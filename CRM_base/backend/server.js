@@ -21,7 +21,7 @@ app.use('/api/bids', bidRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'CRM API работает с Prisma + PostgreSQL' });
+    res.json({ status: 'OK', message: 'Navicon API работает с Prisma + PostgreSQL' });
 });
 
 const PORT = process.env.PORT || 5000;

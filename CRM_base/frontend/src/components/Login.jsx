@@ -33,8 +33,8 @@ const Login = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
-                <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-                    Система CRM
+                <h1 className="text-3xl font-bold text-blue-600 mb-6 text-center" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
+                    Navicon
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">

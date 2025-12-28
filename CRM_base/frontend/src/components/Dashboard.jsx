@@ -8,8 +8,7 @@ const Dashboard = () => {
         <div className="min-h-screen bg-gray-100 flex">
             <aside className="w-64 bg-white shadow-lg flex flex-col">
                 <div className="p-6 border-b border-gray-200">
-                    <h1 className="text-2xl font-bold text-gray-800">Система CRM</h1>
-                    <p className="text-sm text-gray-600 mt-2">Добро пожаловать, {user?.username}</p>
+                    <h1 className="text-2xl font-bold text-blue-600" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>Navicon</h1>
                 </div>
 
                 <nav className="flex-1 px-4 py-6">

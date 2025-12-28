@@ -88,9 +88,9 @@ const Bids = () => {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('uk-UA', {
+        return new Intl.NumberFormat('ru-RU', {
             style: 'currency',
-            currency: 'UAH',
+            currency: 'RUB',
         }).format(amount);
     };
 
@@ -190,7 +190,7 @@ const Bids = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (UAH)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Сумма (RUB)</label>
                                 <input
                                     type="number"
                                     value={formData.amount}
