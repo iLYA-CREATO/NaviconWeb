@@ -4,14 +4,40 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🌱 Starting database seed...');
 
+    // Create roles
+    const userRole = await prisma.role.upsert({
+        where: { name: 'Пользователь' },
+        update: {},
+        create: {
+            name: 'Пользователь',
+            description: 'Обычный пользователь',
+        },
+    });
+    console.log('✅ Created role:', userRole);
+
+    const adminRole = await prisma.role.upsert({
+        where: { name: 'Администратор' },
+        update: {},
+        create: {
+            name: 'Администратор',
+            description: 'Полный доступ',
+        },
+    });
+    console.log('✅ Created role:', adminRole);
+
     // Create admin user
     const adminUser = await prisma.user.upsert({
         where: { username: 'admin' },
-        update: {},
+        update: {
+            fullName: 'Администратор',
+            role: 'admin',
+        },
         create: {
             username: 'admin',
+            fullName: 'Администратор',
             email: 'admin@crm.com',
             password: 'admin123', // Plain text for development
+            role: 'admin',
         },
     });
     console.log('✅ Created admin user:', adminUser);

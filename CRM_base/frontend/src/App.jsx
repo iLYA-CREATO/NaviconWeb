@@ -7,6 +7,7 @@ import Clients from './components/Clients';
 import Bids from './components/Bids';
 import ClientDetail from './components/ClientDetail';
 import BidDetail from './components/BidDetail';
+import Settings from './components/Settings';
 import './index.css';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
                         <Route path="clients/:id" element={<ClientDetail />} />
                         <Route path="bids" element={<Bids />} />
                         <Route path="bids/:id" element={<BidDetail />} />
+                        <Route path="settings" element={<Settings />} />
                     </Route>
 
                     <Route path="/" element={<Navigate to="/dashboard/clients" replace />} />

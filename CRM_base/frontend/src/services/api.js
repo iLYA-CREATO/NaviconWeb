@@ -41,4 +41,18 @@ export const createBid = (data) => api.post('/bids', data);
 export const updateBid = (id, data) => api.put(`/bids/${id}`, data);
 export const deleteBid = (id) => api.delete(`/bids/${id}`);
 
+// Users
+export const getUsers = () => api.get('/users');
+export const getUser = (id) => api.get(`/users/${id}`);
+export const createUser = (data) => api.post('/users', data);
+export const updateUser = (id, data) => api.put(`/users/${id}`, data);
+export const deleteUser = (id) => api.delete(`/users/${id}`);
+
+// Roles
+export const getRoles = () => api.get('/roles');
+export const getRole = (id) => api.get(`/roles/${id}`);
+export const createRole = (data) => api.post('/roles', data);
+export const updateRole = (id, data) => api.put(`/roles/${id}`, data);
+export const deleteRole = (id) => api.delete(`/roles/${id}`);
+
 export default api;
