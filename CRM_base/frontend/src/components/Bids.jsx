@@ -65,7 +65,7 @@ const Bids = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this bid?')) {
+        if (window.confirm('Вы уверены, что хотите удалить эту заявку?')) {
             try {
                 await deleteBid(id);
                 fetchBids();
@@ -97,12 +97,12 @@ const Bids = () => {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Bids</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Заявки</h2>
                 <button
                     onClick={() => setShowModal(true)}
                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                 >
-                    + Add Bid
+                    + Добавить заявку
                 </button>
             </div>
 
@@ -110,12 +110,12 @@ const Bids = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Клиент</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заголовок</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Сумма</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -141,13 +141,13 @@ const Bids = () => {
                                     onClick={() => handleEdit(bid)}
                                     className="text-blue-600 hover:text-blue-900 mr-3"
                                 >
-                                    Edit
+                                    Редактировать
                                 </button>
                                 <button
                                     onClick={() => handleDelete(bid.id)}
                                     className="text-red-600 hover:text-red-900"
                                 >
-                                    Delete
+                                    Удалить
                                 </button>
                             </td>
                         </tr>
@@ -160,18 +160,18 @@ const Bids = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <h3 className="text-xl font-bold mb-4">
-                            {editingBid ? 'Edit Bid' : 'Add New Bid'}
+                            {editingBid ? 'Редактировать заявку' : 'Добавить новую заявку'}
                         </h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
                                 <select
                                     value={formData.clientId}
                                     onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                 >
-                                    <option value="">Select Client</option>
+                                    <option value="">Выберите клиента</option>
                                     {clients.map((client) => (
                                         <option key={client.id} value={client.id}>
                                             {client.name} - {client.company}
@@ -180,7 +180,7 @@ const Bids = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Заголовок</label>
                                 <input
                                     type="text"
                                     value={formData.title}
@@ -200,19 +200,19 @@ const Bids = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
                                 <select
                                     value={formData.status}
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    <option value="Pending">Pending</option>
-                                    <option value="Accepted">Accepted</option>
-                                    <option value="Rejected">Rejected</option>
+                                    <option value="Pending">В ожидании</option>
+                                    <option value="Accepted">Принята</option>
+                                    <option value="Rejected">Отклонена</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -226,14 +226,14 @@ const Bids = () => {
                                     type="submit"
                                     className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
                                 >
-                                    {editingBid ? 'Update' : 'Create'}
+                                    {editingBid ? 'Обновить' : 'Создать'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={resetForm}
                                     className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                                 >
-                                    Cancel
+                                    Отмена
                                 </button>
                             </div>
                         </form>

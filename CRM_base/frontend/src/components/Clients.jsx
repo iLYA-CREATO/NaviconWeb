@@ -54,7 +54,7 @@ const Clients = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this client?')) {
+        if (window.confirm('Вы уверены, что хотите удалить этого клиента?')) {
             try {
                 await deleteClient(id);
                 fetchClients();
@@ -79,12 +79,12 @@ const Clients = () => {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Clients</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Клиенты</h2>
                 <button
                     onClick={() => setShowModal(true)}
                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                 >
-                    + Add Client
+                    + Добавить клиента
                 </button>
             </div>
 
@@ -92,12 +92,12 @@ const Clients = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Имя</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Телефон</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Компания</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -119,13 +119,13 @@ const Clients = () => {
                                     onClick={() => handleEdit(client)}
                                     className="text-blue-600 hover:text-blue-900 mr-3"
                                 >
-                                    Edit
+                                    Редактировать
                                 </button>
                                 <button
                                     onClick={() => handleDelete(client.id)}
                                     className="text-red-600 hover:text-red-900"
                                 >
-                                    Delete
+                                    Удалить
                                 </button>
                             </td>
                         </tr>
@@ -138,11 +138,11 @@ const Clients = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <h3 className="text-xl font-bold mb-4">
-                            {editingClient ? 'Edit Client' : 'Add New Client'}
+                            {editingClient ? 'Редактировать клиента' : 'Добавить нового клиента'}
                         </h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Имя</label>
                                 <input
                                     type="text"
                                     value={formData.name}
@@ -162,7 +162,7 @@ const Clients = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
                                 <input
                                     type="tel"
                                     value={formData.phone}
@@ -172,7 +172,7 @@ const Clients = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Компания</label>
                                 <input
                                     type="text"
                                     value={formData.company}
@@ -182,15 +182,15 @@ const Clients = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
                                 <select
                                     value={formData.status}
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    <option value="Pending">Pending</option>
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
+                                    <option value="Pending">В ожидании</option>
+                                    <option value="Active">Активный</option>
+                                    <option value="Inactive">Неактивный</option>
                                 </select>
                             </div>
                             <div className="flex gap-2 pt-4">
@@ -198,14 +198,14 @@ const Clients = () => {
                                     type="submit"
                                     className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
                                 >
-                                    {editingClient ? 'Update' : 'Create'}
+                                    {editingClient ? 'Обновить' : 'Создать'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={resetForm}
                                     className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                                 >
-                                    Cancel
+                                    Отмена
                                 </button>
                             </div>
                         </form>

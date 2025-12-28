@@ -24,7 +24,7 @@ const Login = () => {
             login(response.data.user, response.data.token);
             navigate('/dashboard/clients');
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed');
+            setError(err.response?.data?.message || 'Вход не удался');
         } finally {
             setLoading(false);
         }
@@ -34,7 +34,7 @@ const Login = () => {
         <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
                 <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-                    CRM System
+                    Система CRM
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -46,7 +46,7 @@ const Login = () => {
 
                     <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2">
-                            Username
+                            Имя пользователя
                         </label>
                         <input
                             type="text"
@@ -55,14 +55,14 @@ const Login = () => {
                                 setCredentials({ ...credentials, username: e.target.value })
                             }
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Enter username"
+                            placeholder="Введите имя пользователя"
                             required
                         />
                     </div>
 
                     <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2">
-                            Password
+                            Пароль
                         </label>
                         <input
                             type="password"
@@ -71,7 +71,7 @@ const Login = () => {
                                 setCredentials({ ...credentials, password: e.target.value })
                             }
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Enter password"
+                            placeholder="Введите пароль"
                             required
                         />
                     </div>
@@ -81,12 +81,12 @@ const Login = () => {
                         disabled={loading}
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50"
                     >
-                        {loading ? 'Logging in...' : 'Login'}
+                        {loading ? 'Вход...' : 'Войти'}
                     </button>
                 </form>
 
                 <p className="mt-4 text-center text-sm text-gray-600">
-                    Demo credentials: <span className="font-semibold">admin / admin123</span>
+                    Демо учетные данные: <span className="font-semibold">admin / admin123</span>
                 </p>
             </div>
         </div>

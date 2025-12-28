@@ -14,7 +14,7 @@ router.post('/login', async (req, res) => {
         });
 
         if (!user) {
-            return res.status(400).json({ message: 'Invalid credentials' });
+            return res.status(400).json({ message: 'Неверные учетные данные' });
         }
 
         // Check password (plain text for development)
@@ -39,7 +39,7 @@ router.post('/login', async (req, res) => {
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Ошибка сервера' });
     }
 });
 
@@ -58,8 +58,8 @@ router.post('/register', async (req, res) => {
         if (existingUser) {
             return res.status(400).json({
                 message: existingUser.username === username
-                    ? 'Username already exists'
-                    : 'Email already exists'
+                    ? 'Имя пользователя уже существует'
+                    : 'Email уже существует'
             });
         }
 
@@ -89,7 +89,7 @@ router.post('/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Register error:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Ошибка сервера' });
     }
 });
 

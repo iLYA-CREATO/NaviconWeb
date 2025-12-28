@@ -21,12 +21,12 @@ app.use('/api/bids', bidRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'CRM API is running with Prisma + PostgreSQL' });
+    res.json({ status: 'OK', message: 'CRM API работает с Prisma + PostgreSQL' });
 });
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📊 Using Prisma ORM with PostgreSQL`);
+    console.log(`🚀 Сервер запущен на порту ${PORT}`);
+    console.log(`📊 Используется Prisma ORM с PostgreSQL`);
 });
