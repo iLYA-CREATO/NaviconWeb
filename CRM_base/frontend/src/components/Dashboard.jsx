@@ -5,62 +5,58 @@ const Dashboard = () => {
     const { user, logout } = useAuth();
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="bg-white shadow-lg">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
-                        <div className="flex items-center">
-                            <h1 className="text-2xl font-bold text-gray-800">Система CRM</h1>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <span className="text-gray-600">Добро пожаловать, {user?.username}</span>
-                            <button
-                                onClick={logout}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                Выйти
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-6">
-                    <div className="border-b border-gray-200">
-                        <nav className="-mb-px flex space-x-8">
-                            <NavLink
-                                to="/dashboard/clients"
-                                className={({ isActive }) =>
-                                    `${
-                                        isActive
-                                            ? 'border-blue-500 text-blue-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition`
-                                }
-                            >
-                                Клиенты
-                            </NavLink>
-                            <NavLink
-                                to="/dashboard/bids"
-                                className={({ isActive }) =>
-                                    `${
-                                        isActive
-                                            ? 'border-blue-500 text-blue-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition`
-                                }
-                            >
-                                Заявки
-                            </NavLink>
-                        </nav>
-                    </div>
+        <div className="min-h-screen bg-gray-100 flex">
+            <aside className="w-64 bg-white shadow-lg flex flex-col">
+                <div className="p-6 border-b border-gray-200">
+                    <h1 className="text-2xl font-bold text-gray-800">Система CRM</h1>
+                    <p className="text-sm text-gray-600 mt-2">Добро пожаловать, {user?.username}</p>
                 </div>
 
-                <div className="mt-6">
-                    <Outlet />
+                <nav className="flex-1 px-4 py-6">
+                    <div className="space-y-2">
+                        <NavLink
+                            to="/dashboard/clients"
+                            className={({ isActive }) =>
+                                `${
+                                    isActive
+                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                } block px-4 py-2 rounded-lg font-medium transition`
+                            }
+                        >
+                            Клиенты
+                        </NavLink>
+                        <NavLink
+                            to="/dashboard/bids"
+                            className={({ isActive }) =>
+                                `${
+                                    isActive
+                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                } block px-4 py-2 rounded-lg font-medium transition`
+                            }
+                        >
+                            Заявки
+                        </NavLink>
+                    </div>
+                </nav>
+
+                <div className="p-4 border-t border-gray-200">
+                    <button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition mb-4">
+                        Настройки
+                    </button>
+                    <button
+                        onClick={logout}
+                        className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        Выйти
+                    </button>
                 </div>
-            </div>
+            </aside>
+
+            <main className="flex-1 p-8">
+                <Outlet />
+            </main>
         </div>
     );
 };
