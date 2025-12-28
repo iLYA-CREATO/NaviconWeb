@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getClients, createClient, updateClient, deleteClient } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { getClients, createClient } from '../services/api';
 
 const Clients = () => {
+    const navigate = useNavigate();
     const [clients, setClients] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [editingClient, setEditingClient] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -29,11 +30,7 @@ const Clients = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (editingClient) {
-                await updateClient(editingClient.id, formData);
-            } else {
-                await createClient(formData);
-            }
+            await createClient(formData);
             fetchClients();
             resetForm();
         } catch (error) {
@@ -41,28 +38,10 @@ const Clients = () => {
         }
     };
 
-    const handleEdit = (client) => {
-        setEditingClient(client);
-        setFormData({
-            name: client.name,
-            email: client.email,
-            phone: client.phone,
-            company: client.company,
-            status: client.status,
-        });
-        setShowModal(true);
+    const handleView = (client) => {
+        navigate(`/dashboard/clients/${client.id}`);
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Вы уверены, что хотите удалить этого клиента?')) {
-            try {
-                await deleteClient(id);
-                fetchClients();
-            } catch (error) {
-                console.error('Error deleting client:', error);
-            }
-        }
-    };
 
     const resetForm = () => {
         setFormData({
@@ -72,7 +51,6 @@ const Clients = () => {
             company: '',
             status: 'Pending',
         });
-        setEditingClient(null);
         setShowModal(false);
     };
 
@@ -97,12 +75,11 @@ const Clients = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Телефон</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Компания</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                     {clients.map((client) => (
-                        <tr key={client.id} className="hover:bg-gray-50">
+                        <tr key={client.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(client)}>
                             <td className="px-6 py-4 whitespace-nowrap">{client.name}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{client.email}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{client.phone}</td>
@@ -114,20 +91,6 @@ const Clients = () => {
                     {client.status}
                   </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <button
-                                    onClick={() => handleEdit(client)}
-                                    className="text-blue-600 hover:text-blue-900 mr-3"
-                                >
-                                    Редактировать
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(client.id)}
-                                    className="text-red-600 hover:text-red-900"
-                                >
-                                    Удалить
-                                </button>
-                            </td>
                         </tr>
                     ))}
                     </tbody>
@@ -138,7 +101,7 @@ const Clients = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <h3 className="text-xl font-bold mb-4">
-                            {editingClient ? 'Редактировать клиента' : 'Добавить нового клиента'}
+                            Добавить нового клиента
                         </h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
@@ -198,7 +161,7 @@ const Clients = () => {
                                     type="submit"
                                     className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
                                 >
-                                    {editingClient ? 'Обновить' : 'Создать'}
+                                    Создать
                                 </button>
                                 <button
                                     type="button"
