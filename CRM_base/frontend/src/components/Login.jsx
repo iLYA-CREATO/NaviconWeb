@@ -1,0 +1,96 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { login as loginAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext.jsx';
+
+const Login = () => {
+    const navigate = useNavigate();
+    const { login } = useAuth();
+
+    const [credentials, setCredentials] = useState({
+        username: '',
+        password: '',
+    });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            const response = await loginAPI(credentials);
+            login(response.data.user, response.data.token);
+            navigate('/dashboard/clients');
+        } catch (err) {
+            setError(err.response?.data?.message || 'Login failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
+                <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+                    CRM System
+                </h1>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                            {error}
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                            Username
+                        </label>
+                        <input
+                            type="text"
+                            value={credentials.username}
+                            onChange={(e) =>
+                                setCredentials({ ...credentials, username: e.target.value })
+                            }
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter username"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            value={credentials.password}
+                            onChange={(e) =>
+                                setCredentials({ ...credentials, password: e.target.value })
+                            }
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter password"
+                            required
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+                    >
+                        {loading ? 'Logging in...' : 'Login'}
+                    </button>
+                </form>
+
+                <p className="mt-4 text-center text-sm text-gray-600">
+                    Demo credentials: <span className="font-semibold">admin / admin123</span>
+                </p>
+            </div>
+        </div>
+    );
+};
+
+export default Login;
