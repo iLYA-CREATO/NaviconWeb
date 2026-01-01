@@ -15,6 +15,8 @@ const Clients = () => {
     });
     const [searchQuery, setSearchQuery] = useState('');
     const [responsibleFilter, setResponsibleFilter] = useState('');
+    const [visibleFilters, setVisibleFilters] = useState({ responsible: false });
+    const [showFilterModal, setShowFilterModal] = useState(false);
 
     useEffect(() => {
         const timeout = setTimeout(() => fetchClients(searchQuery, responsibleFilter), 300);
@@ -84,6 +86,15 @@ const Clients = () => {
                 </button>
             </div>
 
+            <div className="mb-4">
+                <button
+                    onClick={() => setShowFilterModal(true)}
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+                >
+                    Добавить фильтр
+                </button>
+            </div>
+
             <div className="mb-4 flex gap-4">
                 <div className="flex-1">
                     <input
@@ -94,20 +105,31 @@ const Clients = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
-                <div className="flex-1">
-                    <select
-                        value={responsibleFilter}
-                        onChange={(e) => setResponsibleFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Все ответственные</option>
-                        {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                                {user.fullName || user.username}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                {visibleFilters.responsible && (
+                    <div className="flex-1 flex items-center">
+                        <select
+                            value={responsibleFilter}
+                            onChange={(e) => setResponsibleFilter(e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Все ответственные</option>
+                            {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.fullName || user.username}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={() => {
+                                setVisibleFilters({ ...visibleFilters, responsible: false });
+                                setResponsibleFilter('');
+                            }}
+                            className="ml-2 text-red-500 hover:text-red-700"
+                        >
+                            X
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -133,6 +155,32 @@ const Clients = () => {
                 </table>
             </div>
 
+            {showFilterModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-xl font-bold mb-4">Выберите фильтр</h3>
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => {
+                                    setVisibleFilters({ ...visibleFilters, responsible: true });
+                                    setShowFilterModal(false);
+                                }}
+                                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                            >
+                                Ответственный
+                            </button>
+                        </div>
+                        <div className="flex gap-2 pt-4">
+                            <button
+                                onClick={() => setShowFilterModal(false)}
+                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                            >
+                                Закрыть
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
