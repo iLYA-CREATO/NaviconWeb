@@ -8,6 +8,7 @@ const ClientDetail = () => {
     const [client, setClient] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [activeTab, setActiveTab] = useState('Заявки');
 
     useEffect(() => {
         fetchClient();
@@ -81,6 +82,94 @@ const ClientDetail = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Количество заявок</label>
                         <p className="text-gray-900 text-lg">{client.bids?.length || 0}</p>
                     </div>
+                </div>
+            </div>
+
+            <div className="mt-6">
+                <div className="flex space-x-1 mb-4">
+                    {['Заявки', 'Оборудование', 'Файлы', 'Объекты', 'Договоры'].map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-4 py-2 rounded-t-lg font-medium transition ${
+                                activeTab === tab
+                                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="bg-white rounded-lg shadow p-6">
+                    {activeTab === 'Заявки' && (
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4">Заявки клиента</h3>
+                            {client.bids && client.bids.length > 0 ? (
+                                <div className="bg-white rounded-lg shadow overflow-hidden">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заголовок</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {client.bids.map((bid) => (
+                                                <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/dashboard/bids/${bid.id}`)}>
+                                                    <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">{bid.title}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                                            bid.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                            bid.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                            'bg-red-100 text-red-800'
+                                                        }`}>
+                                                            {bid.status === 'approved' ? 'Одобрена' :
+                                                             bid.status === 'pending' ? 'В ожидании' :
+                                                             'Отклонена'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="max-w-xs truncate">{bid.description}</div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500">У клиента нет заявок</p>
+                            )}
+                        </div>
+                    )}
+                    {activeTab === 'Оборудование' && (
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4">Оборудование</h3>
+                            <p className="text-gray-500">В разработке</p>
+                        </div>
+                    )}
+                    {activeTab === 'Файлы' && (
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4">Файлы</h3>
+                            <p className="text-gray-500">В разработке</p>
+                        </div>
+                    )}
+                    {activeTab === 'Объекты' && (
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4">Объекты</h3>
+                            <p className="text-gray-500">В разработке</p>
+                        </div>
+                    )}
+                    {activeTab === 'Договоры' && (
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4">Договоры</h3>
+                            <p className="text-gray-500">В разработке</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
