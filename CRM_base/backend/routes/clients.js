@@ -21,6 +21,13 @@ router.get('/', authMiddleware, async (req, res) => {
                 _count: {
                     select: { bids: true },
                 },
+                responsible: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        email: true,
+                    },
+                },
             },
         });
         console.log('Clients fetched:', clients.length, 'items');
@@ -38,6 +45,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
             where: { id: parseInt(req.params.id) },
             include: {
                 bids: true,
+                responsible: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        email: true,
+                    },
+                },
             },
         });
 
@@ -55,7 +69,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create client
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { name, email, phone, status } = req.body;
+        const { name, email, phone, status, responsibleId } = req.body;
 
         const newClient = await prisma.client.create({
             data: {
@@ -63,6 +77,7 @@ router.post('/', authMiddleware, async (req, res) => {
                 email,
                 phone,
                 status: status || 'Pending',
+                responsibleId: responsibleId ? parseInt(responsibleId) : null,
             },
         });
 
@@ -76,7 +91,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // Update client
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { name, email, phone, status } = req.body;
+        const { name, email, phone, status, responsibleId } = req.body;
 
         const updatedClient = await prisma.client.update({
             where: { id: parseInt(req.params.id) },
@@ -85,6 +100,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 email,
                 phone,
                 status,
+                responsibleId: responsibleId ? parseInt(responsibleId) : null,
             },
         });
 

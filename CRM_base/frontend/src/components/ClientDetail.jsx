@@ -82,6 +82,10 @@ const ClientDetail = () => {
                         </span>
                     </div>
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Ответственный</label>
+                        <p className="text-gray-900 text-lg">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</p>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Количество заявок</label>
                         <p className="text-gray-900 text-lg">{client.bids?.length || 0}</p>
                     </div>

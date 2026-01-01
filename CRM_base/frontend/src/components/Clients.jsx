@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getClients, createClient } from '../services/api';
+import { getClients, createClient, getUsers } from '../services/api';
 
 const Clients = () => {
     const navigate = useNavigate();
     const [clients, setClients] = useState([]);
+    const [users, setUsers] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         phone: '',
         status: 'Pending',
+        responsibleId: '',
     });
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -18,6 +20,18 @@ const Clients = () => {
         const timeout = setTimeout(() => fetchClients(searchQuery), 300);
         return () => clearTimeout(timeout);
     }, [searchQuery]);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await getUsers();
+                setUsers(response.data);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        };
+        fetchUsers();
+    }, []);
 
     const fetchClients = async (search = '') => {
         console.log('Fetching clients...');
@@ -54,6 +68,7 @@ const Clients = () => {
             email: '',
             phone: '',
             status: 'Pending',
+            responsibleId: '',
         });
         setShowModal(false);
     };
@@ -87,6 +102,7 @@ const Clients = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Имя</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Телефон</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ответственный</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
                     </tr>
                     </thead>
@@ -96,6 +112,7 @@ const Clients = () => {
                             <td className="px-6 py-4 whitespace-nowrap">{client.name}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{client.email}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{client.phone}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs rounded-full ${
                       client.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -156,6 +173,21 @@ const Clients = () => {
                                     <option value="Pending">В ожидании</option>
                                     <option value="Active">Активный</option>
                                     <option value="Inactive">Неактивный</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ответственный</label>
+                                <select
+                                    value={formData.responsibleId}
+                                    onChange={(e) => setFormData({ ...formData, responsibleId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Не выбран</option>
+                                    {users.map((user) => (
+                                        <option key={user.id} value={user.id}>
+                                            {user.fullName || user.username}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="flex gap-2 pt-4">

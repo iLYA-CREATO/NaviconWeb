@@ -13,7 +13,6 @@ router.get('/', authMiddleware, async (req, res) => {
                     select: {
                         id: true,
                         name: true,
-                        company: true,
                     },
                 },
             },
