@@ -8,6 +8,7 @@ const clientRoutes = require('./routes/clients');
 const bidRoutes = require('./routes/bids');
 const userRoutes = require('./routes/users');
 const roleRoutes = require('./routes/roles');
+const clientObjectRoutes = require('./routes/clientObjects');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/bids', bidRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/client-objects', clientObjectRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

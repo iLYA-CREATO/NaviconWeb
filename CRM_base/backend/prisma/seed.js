@@ -84,6 +84,37 @@ async function main() {
     });
     console.log('✅ Created bid:', bid2);
 
+    // Create demo client objects
+    const object1 = await prisma.clientObject.create({
+        data: {
+            clientId: client1.id,
+            brandModel: 'Toyota Camry',
+            stateNumber: 'AA1234BB',
+            equipment: null,
+        },
+    });
+    console.log('✅ Created client object:', object1);
+
+    const object2 = await prisma.clientObject.create({
+        data: {
+            clientId: client1.id,
+            brandModel: 'Honda Civic',
+            stateNumber: 'CC5678DD',
+            equipment: 'GPS, Air Conditioning',
+        },
+    });
+    console.log('✅ Created client object:', object2);
+
+    // Associate objects with bids
+    await prisma.bid.update({
+        where: { id: bid1.id },
+        data: {
+            clientObjects: {
+                connect: [{ id: object1.id }, { id: object2.id }],
+            },
+        },
+    });
+
     console.log('🎉 Seed completed successfully!');
 }
 

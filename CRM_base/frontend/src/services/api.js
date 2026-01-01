@@ -73,4 +73,15 @@ export const createRole = (data) => api.post('/roles', data);
 export const updateRole = (id, data) => api.put(`/roles/${id}`, data);
 export const deleteRole = (id) => api.delete(`/roles/${id}`);
 
+// Client Objects
+export const getClientObjects = (clientId = '') => {
+    const params = {};
+    if (clientId) params.clientId = clientId;
+    return api.get('/client-objects', { params });
+};
+export const getClientObject = (id) => api.get(`/client-objects/${id}`);
+export const createClientObject = (data) => api.post('/client-objects', data);
+export const updateClientObject = (id, data) => api.put(`/client-objects/${id}`, data);
+export const deleteClientObject = (id) => api.delete(`/client-objects/${id}`);
+
 export default api;

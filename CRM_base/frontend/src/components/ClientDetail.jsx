@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getClient } from '../services/api';
+import { getClient, getClientObjects } from '../services/api';
 
 const ClientDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [client, setClient] = useState(null);
+    const [clientObjects, setClientObjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('Заявки');
 
     useEffect(() => {
         fetchClient();
+        fetchClientObjects();
     }, [id]);
 
     const fetchClient = async () => {
@@ -23,6 +25,15 @@ const ClientDetail = () => {
             console.error('Error fetching client:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchClientObjects = async () => {
+        try {
+            const response = await getClientObjects(id);
+            setClientObjects(response.data);
+        } catch (error) {
+            console.error('Error fetching client objects:', error);
         }
     };
 
@@ -160,8 +171,45 @@ const ClientDetail = () => {
                     )}
                     {activeTab === 'Объекты' && (
                         <div>
-                            <h3 className="text-lg font-semibold mb-4">Объекты</h3>
-                            <p className="text-gray-500">В разработке</p>
+                            <h3 className="text-lg font-semibold mb-4">Объекты клиента</h3>
+                            {clientObjects && clientObjects.length > 0 ? (
+                                <div className="bg-white rounded-lg shadow overflow-hidden">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Марка/Модель</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Гос. Номер</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Оборудование</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заявки</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {clientObjects.map((obj) => (
+                                                <tr key={obj.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/dashboard/client-objects/${obj.id}`)}>
+                                                    <td className="px-6 py-4 whitespace-nowrap">{obj.brandModel}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">{obj.stateNumber}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">{obj.equipment || 'Не указано'}</td>
+                                                    <td className="px-6 py-4">
+                                                        {obj.bids && obj.bids.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {obj.bids.map((bid) => (
+                                                                    <span key={bid.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                                                        {bid.title}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-500">Нет заявок</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500">У клиента нет объектов</p>
+                            )}
                         </div>
                     )}
                     {activeTab === 'Договоры' && (

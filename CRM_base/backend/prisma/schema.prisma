@@ -43,6 +43,19 @@ model Client {
    createdAt    DateTime @default(now())
    updatedAt    DateTime @updatedAt
    bids         Bid[]
+   clientObjects ClientObject[]
+}
+
+model ClientObject {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  brandModel  String
+  stateNumber String
+  equipment   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  bids        Bid[]    @relation("BidClientObjects")
 }
 
 model Bid {
@@ -55,4 +68,5 @@ model Bid {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientObjects ClientObject[] @relation("BidClientObjects")
 }

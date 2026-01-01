@@ -7,6 +7,8 @@ import Clients from './components/Clients';
 import Bids from './components/Bids';
 import ClientDetail from './components/ClientDetail';
 import BidDetail from './components/BidDetail';
+import ClientObjectDetail from './components/ClientObjectDetail';
+import Objects from './components/Objects';
 import Settings from './components/Settings';
 import './index.css';
 
@@ -28,6 +30,8 @@ function App() {
                         <Route index element={<Navigate to="/dashboard/clients" replace />} />
                         <Route path="clients" element={<Clients />} />
                         <Route path="clients/:id" element={<ClientDetail />} />
+                        <Route path="client-objects/:id" element={<ClientObjectDetail />} />
+                        <Route path="objects" element={<Objects />} />
                         <Route path="bids" element={<Bids />} />
                         <Route path="bids/:id" element={<BidDetail />} />
                         <Route path="settings" element={<Settings />} />
