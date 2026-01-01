@@ -7,6 +7,7 @@ const Bids = () => {
     const [bids, setBids] = useState([]);
     const [clients, setClients] = useState([]);
     const [showForm, setShowForm] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         clientId: '',
         title: '',
@@ -70,6 +71,11 @@ const Bids = () => {
             currency: 'RUB',
         }).format(amount);
     };
+
+    const filteredBids = bids.filter(bid =>
+        bid.id.toString().includes(searchTerm) ||
+        bid.clientName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div>
@@ -165,7 +171,17 @@ const Bids = () => {
             )}
 
             {!showForm && (
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div>
+                    <div className="mb-4">
+                        <input
+                            type="text"
+                            placeholder="Поиск по номеру заявки или клиенту..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                         <tr>
@@ -178,7 +194,7 @@ const Bids = () => {
                         </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                        {bids.map((bid) => (
+                        {filteredBids.map((bid) => (
                             <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(bid)}>
                                 <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.clientName}</td>
@@ -200,6 +216,7 @@ const Bids = () => {
                         ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             )}
 
