@@ -48,7 +48,6 @@ async function main() {
             name: 'Acme Corporation',
             email: 'contact@acme.com',
             phone: '+380501234567',
-            company: 'Acme Corp',
             status: 'Active',
         },
     });
@@ -59,7 +58,6 @@ async function main() {
             name: 'Tech Solutions Ltd',
             email: 'info@techsolutions.com',
             phone: '+380507654321',
-            company: 'Tech Solutions',
             status: 'Pending',
         },
     });

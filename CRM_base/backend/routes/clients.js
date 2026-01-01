@@ -6,7 +6,16 @@ const prisma = require('../prisma/client');
 // Get all clients
 router.get('/', authMiddleware, async (req, res) => {
     try {
+        console.log('Fetching clients for user ID:', req.user?.id);
+        const { name } = req.query;
+        const whereClause = name ? {
+            name: {
+                contains: name,
+                mode: 'insensitive'
+            }
+        } : {};
         const clients = await prisma.client.findMany({
+            where: whereClause,
             orderBy: { createdAt: 'desc' },
             include: {
                 _count: {
@@ -14,6 +23,7 @@ router.get('/', authMiddleware, async (req, res) => {
                 },
             },
         });
+        console.log('Clients fetched:', clients.length, 'items');
         res.json(clients);
     } catch (error) {
         console.error('Get clients error:', error);
@@ -45,14 +55,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create client
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { name, email, phone, company, status } = req.body;
+        const { name, email, phone, status } = req.body;
 
         const newClient = await prisma.client.create({
             data: {
                 name,
                 email,
                 phone,
-                company,
                 status: status || 'Pending',
             },
         });
@@ -67,7 +76,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // Update client
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { name, email, phone, company, status } = req.body;
+        const { name, email, phone, status } = req.body;
 
         const updatedClient = await prisma.client.update({
             where: { id: parseInt(req.params.id) },
@@ -75,7 +84,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 name,
                 email,
                 phone,
-                company,
                 status,
             },
         });
