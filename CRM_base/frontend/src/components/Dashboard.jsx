@@ -51,6 +51,18 @@ const Dashboard = () => {
                         <nav className="flex-1 px-4 py-6">
                             <div className="space-y-2">
                                 <NavLink
+                                    to="/dashboard/bids"
+                                    className={({ isActive }) =>
+                                        `${
+                                            isActive
+                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                        } block px-4 py-2 rounded-lg font-medium transition`
+                                    }
+                                >
+                                    Заявки
+                                </NavLink>
+                                <NavLink
                                     to="/dashboard/clients"
                                     className={({ isActive }) =>
                                         `${
@@ -63,7 +75,7 @@ const Dashboard = () => {
                                     Клиенты
                                 </NavLink>
                                 <NavLink
-                                    to="/dashboard/bids"
+                                    to="/dashboard/contracts"
                                     className={({ isActive }) =>
                                         `${
                                             isActive
@@ -72,7 +84,55 @@ const Dashboard = () => {
                                         } block px-4 py-2 rounded-lg font-medium transition`
                                     }
                                 >
-                                    Заявки
+                                    Договоры
+                                </NavLink>
+                                <NavLink
+                                    to="/dashboard/objects"
+                                    className={({ isActive }) =>
+                                        `${
+                                            isActive
+                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                        } block px-4 py-2 rounded-lg font-medium transition`
+                                    }
+                                >
+                                    Объекты
+                                </NavLink>
+                                <NavLink
+                                    to="/dashboard/equipment"
+                                    className={({ isActive }) =>
+                                        `${
+                                            isActive
+                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                        } block px-4 py-2 rounded-lg font-medium transition`
+                                    }
+                                >
+                                    Оборудование
+                                </NavLink>
+                                <NavLink
+                                    to="/dashboard/knowledge"
+                                    className={({ isActive }) =>
+                                        `${
+                                            isActive
+                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                        } block px-4 py-2 rounded-lg font-medium transition`
+                                    }
+                                >
+                                    База знаний
+                                </NavLink>
+                                <NavLink
+                                    to="/dashboard/employees"
+                                    className={({ isActive }) =>
+                                        `${
+                                            isActive
+                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                        } block px-4 py-2 rounded-lg font-medium transition`
+                                    }
+                                >
+                                    Сотрудники
                                 </NavLink>
                             </div>
                         </nav>
