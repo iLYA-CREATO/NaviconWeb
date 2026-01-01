@@ -62,6 +62,10 @@ const BidDetail = () => {
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Номер заявки</label>
+                        <p className="text-gray-900 text-lg">№ {bid.id}</p>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Заголовок</label>
                         <p className="text-gray-900 text-lg">{bid.title}</p>
                     </div>

@@ -169,6 +169,7 @@ const Bids = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                         <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Клиент</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заголовок</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Сумма</th>
@@ -179,6 +180,7 @@ const Bids = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                         {bids.map((bid) => (
                             <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(bid)}>
+                                <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.clientName}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.title}</td>
                                 <td className="px-6 py-4 whitespace-nowrap font-semibold">{formatCurrency(bid.amount)}</td>
