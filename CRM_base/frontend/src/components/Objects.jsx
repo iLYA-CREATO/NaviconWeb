@@ -165,7 +165,6 @@ const Objects = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Клиент</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Марка/Модель</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Гос. Номер</th>
@@ -176,7 +175,6 @@ const Objects = () => {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredObjects.map((obj) => (
                                     <tr key={obj.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(obj)}>
-                                        <td className="px-6 py-4 whitespace-nowrap">№ {obj.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">{obj.client.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">{obj.brandModel}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">{obj.stateNumber}</td>

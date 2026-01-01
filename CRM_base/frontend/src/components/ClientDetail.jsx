@@ -179,7 +179,6 @@ const ClientDetail = () => {
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Марка/Модель</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Гос. Номер</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Оборудование</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заявки</th>
                                             </tr>
                                         </thead>
@@ -188,7 +187,6 @@ const ClientDetail = () => {
                                                 <tr key={obj.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/dashboard/client-objects/${obj.id}`)}>
                                                     <td className="px-6 py-4 whitespace-nowrap">{obj.brandModel}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">{obj.stateNumber}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">{obj.equipment || 'Не указано'}</td>
                                                     <td className="px-6 py-4">
                                                         {obj.bids && obj.bids.length > 0 ? (
                                                             <div className="flex flex-wrap gap-1">
