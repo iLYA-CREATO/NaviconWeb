@@ -13,9 +13,12 @@ const Clients = () => {
         phone: '',
         responsibleId: '',
     });
-    const [searchQuery, setSearchQuery] = useState('');
-    const [responsibleFilter, setResponsibleFilter] = useState('');
-    const [visibleFilters, setVisibleFilters] = useState({ responsible: false });
+    const [searchQuery, setSearchQuery] = useState(localStorage.getItem('clientsSearchQuery') || '');
+    const [responsibleFilter, setResponsibleFilter] = useState(localStorage.getItem('clientsResponsibleFilter') || '');
+    const [visibleFilters, setVisibleFilters] = useState(() => {
+        const saved = localStorage.getItem('clientsVisibleFilters');
+        return saved ? JSON.parse(saved) : { responsible: false };
+    });
     const [showFilterModal, setShowFilterModal] = useState(false);
 
     useEffect(() => {
@@ -86,15 +89,6 @@ const Clients = () => {
                 </button>
             </div>
 
-            <div className="mb-4">
-                <button
-                    onClick={() => setShowFilterModal(true)}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
-                >
-                    Добавить фильтр
-                </button>
-            </div>
-
             <div className="mb-4 flex gap-4">
                 <div className="flex-1">
                     <input
@@ -105,32 +99,39 @@ const Clients = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
-                {visibleFilters.responsible && (
-                    <div className="flex-1 flex items-center">
-                        <select
-                            value={responsibleFilter}
-                            onChange={(e) => setResponsibleFilter(e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Все ответственные</option>
-                            {users.map((user) => (
-                                <option key={user.id} value={user.id}>
-                                    {user.fullName || user.username}
-                                </option>
-                            ))}
-                        </select>
-                        <button
-                            onClick={() => {
-                                setVisibleFilters({ ...visibleFilters, responsible: false });
-                                setResponsibleFilter('');
-                            }}
-                            className="ml-2 text-red-500 hover:text-red-700"
-                        >
-                            X
-                        </button>
-                    </div>
-                )}
+                <button
+                    onClick={() => setShowFilterModal(true)}
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+                >
+                    Добавить фильтр
+                </button>
             </div>
+
+            {visibleFilters.responsible && (
+                <div className="mb-4 flex items-center gap-2">
+                    <select
+                        value={responsibleFilter}
+                        onChange={(e) => setResponsibleFilter(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Все ответственные</option>
+                        {users.map((user) => (
+                            <option key={user.id} value={user.id}>
+                                {user.fullName || user.username}
+                            </option>
+                        ))}
+                    </select>
+                    <button
+                        onClick={() => {
+                            setVisibleFilters({ ...visibleFilters, responsible: false });
+                            setResponsibleFilter('');
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                    >
+                        X
+                    </button>
+                </div>
+            )}
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
