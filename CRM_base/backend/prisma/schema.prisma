@@ -38,7 +38,6 @@ model Client {
    name         String
    email        String
    phone        String?
-   status       String   @default("Pending")
    responsibleId Int?
    responsible  User?    @relation(fields: [responsibleId], references: [id])
    createdAt    DateTime @default(now())

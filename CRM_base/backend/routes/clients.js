@@ -69,14 +69,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create client
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { name, email, phone, status, responsibleId } = req.body;
+        const { name, email, phone, responsibleId } = req.body;
 
         const newClient = await prisma.client.create({
             data: {
                 name,
                 email,
                 phone,
-                status: status || 'Pending',
                 responsibleId: responsibleId ? parseInt(responsibleId) : null,
             },
         });
@@ -91,7 +90,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // Update client
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { name, email, phone, status, responsibleId } = req.body;
+        const { name, email, phone, responsibleId } = req.body;
 
         const updatedClient = await prisma.client.update({
             where: { id: parseInt(req.params.id) },
@@ -99,7 +98,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 name,
                 email,
                 phone,
-                status,
                 responsibleId: responsibleId ? parseInt(responsibleId) : null,
             },
         });

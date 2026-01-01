@@ -74,14 +74,6 @@ const ClientDetail = () => {
                         <p className="text-gray-900 text-lg">{client.phone}</p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
-                        <span className={`px-2 py-1 text-sm rounded-full ${
-                            client.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                            {client.status}
-                        </span>
-                    </div>
-                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Ответственный</label>
                         <p className="text-gray-900 text-lg">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</p>
                     </div>
