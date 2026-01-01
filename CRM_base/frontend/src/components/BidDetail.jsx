@@ -70,15 +70,6 @@ const BidDetail = () => {
                         <p className="text-gray-900 text-lg">{bid.title}</p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Сумма</label>
-                        <p className="text-gray-900 text-lg font-semibold">
-                            {new Intl.NumberFormat('ru-RU', {
-                                style: 'currency',
-                                currency: 'RUB',
-                            }).format(bid.amount)}
-                        </p>
-                    </div>
-                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
                         <span className={`px-2 py-1 text-sm rounded-full ${
                             bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :

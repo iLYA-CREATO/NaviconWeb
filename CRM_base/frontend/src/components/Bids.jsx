@@ -11,7 +11,6 @@ const Bids = () => {
     const [formData, setFormData] = useState({
         clientId: '',
         title: '',
-        amount: '',
         status: 'Pending',
         description: '',
     });
@@ -58,18 +57,10 @@ const Bids = () => {
         setFormData({
             clientId: '',
             title: '',
-            amount: '',
             status: 'Pending',
             description: '',
         });
         setShowForm(false);
-    };
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('ru-RU', {
-            style: 'currency',
-            currency: 'RUB',
-        }).format(amount);
     };
 
     const filteredBids = bids.filter(bid =>
@@ -115,16 +106,6 @@ const Bids = () => {
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Сумма (RUB)</label>
-                            <input
-                                type="number"
-                                value={formData.amount}
-                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 required
                             />
@@ -188,7 +169,6 @@ const Bids = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Клиент</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заголовок</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Сумма</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
                         </tr>
@@ -199,7 +179,6 @@ const Bids = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.clientName}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.title}</td>
-                                <td className="px-6 py-4 whitespace-nowrap font-semibold">{formatCurrency(bid.amount)}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs rounded-full ${
                           bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :
