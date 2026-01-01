@@ -14,11 +14,12 @@ const Clients = () => {
         responsibleId: '',
     });
     const [searchQuery, setSearchQuery] = useState('');
+    const [responsibleFilter, setResponsibleFilter] = useState('');
 
     useEffect(() => {
-        const timeout = setTimeout(() => fetchClients(searchQuery), 300);
+        const timeout = setTimeout(() => fetchClients(searchQuery, responsibleFilter), 300);
         return () => clearTimeout(timeout);
-    }, [searchQuery]);
+    }, [searchQuery, responsibleFilter]);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -32,10 +33,10 @@ const Clients = () => {
         fetchUsers();
     }, []);
 
-    const fetchClients = async (search = '') => {
+    const fetchClients = async (search = '', responsibleId = '') => {
         console.log('Fetching clients...');
         try {
-            const response = await getClients(search);
+            const response = await getClients(search, responsibleId);
             console.log('Clients response:', response);
             setClients(response.data);
             console.log('Clients set:', response.data);
@@ -83,14 +84,30 @@ const Clients = () => {
                 </button>
             </div>
 
-            <div className="mb-4">
-                <input
-                    type="text"
-                    placeholder="Поиск по имени..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            <div className="mb-4 flex gap-4">
+                <div className="flex-1">
+                    <input
+                        type="text"
+                        placeholder="Поиск по имени..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+                <div className="flex-1">
+                    <select
+                        value={responsibleFilter}
+                        onChange={(e) => setResponsibleFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Все ответственные</option>
+                        {users.map((user) => (
+                            <option key={user.id} value={user.id}>
+                                {user.fullName || user.username}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">

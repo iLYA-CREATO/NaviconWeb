@@ -41,7 +41,12 @@ export const login = (credentials) => api.post('/auth/login', credentials);
 export const register = (userData) => api.post('/auth/register', userData);
 
 // Clients
-export const getClients = (search = '') => api.get('/clients', { params: search ? { name: search } : {} });
+export const getClients = (search = '', responsibleId = '') => {
+    const params = {};
+    if (search) params.name = search;
+    if (responsibleId) params.responsibleId = responsibleId;
+    return api.get('/clients', { params });
+};
 export const getClient = (id) => api.get(`/clients/${id}`);
 export const createClient = (data) => api.post('/clients', data);
 export const updateClient = (id, data) => api.put(`/clients/${id}`, data);

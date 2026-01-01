@@ -7,13 +7,17 @@ const prisma = require('../prisma/client');
 router.get('/', authMiddleware, async (req, res) => {
     try {
         console.log('Fetching clients for user ID:', req.user?.id);
-        const { name } = req.query;
-        const whereClause = name ? {
-            name: {
+        const { name, responsibleId } = req.query;
+        const whereClause = {};
+        if (name) {
+            whereClause.name = {
                 contains: name,
                 mode: 'insensitive'
-            }
-        } : {};
+            };
+        }
+        if (responsibleId) {
+            whereClause.responsibleId = parseInt(responsibleId);
+        }
         const clients = await prisma.client.findMany({
             where: whereClause,
             orderBy: { createdAt: 'desc' },
