@@ -122,18 +122,6 @@ const Dashboard = () => {
                                 >
                                     База знаний
                                 </NavLink>
-                                <NavLink
-                                    to="/dashboard/employees"
-                                    className={({ isActive }) =>
-                                        `${
-                                            isActive
-                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
-                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } block px-4 py-2 rounded-lg font-medium transition`
-                                    }
-                                >
-                                    Сотрудники
-                                </NavLink>
                             </div>
                         </nav>
 

@@ -248,7 +248,12 @@ const ClientObjectDetail = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
-                        <p className="text-gray-900 text-lg">{clientObject.client.name}</p>
+                        <span
+                            className="text-blue-600 text-lg cursor-pointer hover:underline"
+                            onClick={() => navigate(`/dashboard/clients/${clientObject.client.id}`)}
+                        >
+                            {clientObject.client.name}
+                        </span>
                     </div>
                     {isEditing && (
                         <div className="md:col-span-2">
