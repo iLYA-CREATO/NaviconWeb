@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid } from '../services/api';
+import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid } from '../services/api';
 
 const BidDetail = () => {
     const { id } = useParams();
@@ -15,10 +15,15 @@ const BidDetail = () => {
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [searchName, setSearchName] = useState('');
     const [searchCode, setSearchCode] = useState('');
+    const [showChangeClientModal, setShowChangeClientModal] = useState(false);
+    const [availableClients, setAvailableClients] = useState([]);
+    const [searchClient, setSearchClient] = useState('');
+    const [selectedClientId, setSelectedClientId] = useState(null);
 
     useEffect(() => {
         fetchBid();
         fetchAvailableEquipment();
+        fetchAvailableClients();
     }, [id]);
 
     const fetchBid = async () => {
@@ -47,6 +52,15 @@ const BidDetail = () => {
         }
     };
 
+    const fetchAvailableClients = async () => {
+        try {
+            const response = await getClients();
+            setAvailableClients(response.data);
+        } catch (error) {
+            console.error('Error fetching clients:', error);
+        }
+    };
+
     const handleAssignEquipment = async () => {
         if (selectedAssign.length === 0) return;
         try {
@@ -72,6 +86,19 @@ const BidDetail = () => {
             fetchAvailableEquipment();
         } catch (error) {
             console.error('Error returning equipment:', error);
+        }
+    };
+
+    const handleChangeClient = async () => {
+        if (!selectedClientId) return;
+        try {
+            await updateBid(id, { clientId: selectedClientId });
+            setSelectedClientId(null);
+            setShowChangeClientModal(false);
+            setSearchClient('');
+            fetchBid();
+        } catch (error) {
+            console.error('Error changing client:', error);
         }
     };
 
@@ -109,16 +136,12 @@ const BidDetail = () => {
                 </button>
             </div>
 
+            <div className="mb-6">
+                <p className="text-gray-900 text-lg">Номер заявки № {bid.id} - {bid.title}</p>
+            </div>
+
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Номер заявки</label>
-                        <p className="text-gray-900 text-lg">№ {bid.id}</p>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Заголовок</label>
-                        <p className="text-gray-900 text-lg">{bid.title}</p>
-                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
                         <span className={`px-2 py-1 text-sm rounded-full ${
@@ -133,7 +156,20 @@ const BidDetail = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
-                        <p className="text-gray-900 text-lg">{bid.clientName}</p>
+                        <div className="flex items-center space-x-2">
+                            <p
+                                className="text-gray-900 text-lg cursor-pointer hover:text-blue-600 transition"
+                                onClick={() => navigate(`/dashboard/clients/${bid.clientId}`)}
+                            >
+                                {bid.clientName}
+                            </p>
+                            <button
+                                onClick={() => setShowChangeClientModal(true)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
+                            >
+                                Изменить
+                            </button>
+                        </div>
                     </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
@@ -286,6 +322,53 @@ const BidDetail = () => {
                                 className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
                             >
                                 Вернуть
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Client Modal */}
+            {showChangeClientModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-lg font-semibold mb-4">Изменить клиента</h3>
+                        <input
+                            type="text"
+                            placeholder="Поиск клиентов"
+                            value={searchClient}
+                            onChange={(e) => setSearchClient(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+                        />
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {availableClients
+                                .filter(client => client.name.toLowerCase().includes(searchClient.toLowerCase()))
+                                .map(client => (
+                                    <div
+                                        key={client.id}
+                                        onClick={() => setSelectedClientId(client.id)}
+                                        className={`p-2 cursor-pointer rounded ${selectedClientId === client.id ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                                    >
+                                        {client.name}
+                                    </div>
+                                ))}
+                        </div>
+                        <div className="flex justify-end space-x-2 mt-4">
+                            <button
+                                onClick={() => {
+                                    setShowChangeClientModal(false);
+                                    setSearchClient('');
+                                    setSelectedClientId(null);
+                                }}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                onClick={handleChangeClient}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                            >
+                                Изменить
                             </button>
                         </div>
                     </div>
