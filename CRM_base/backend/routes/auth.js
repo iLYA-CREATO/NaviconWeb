@@ -35,6 +35,8 @@ router.post('/login', async (req, res) => {
                 id: user.id,
                 username: user.username,
                 email: user.email,
+                fullName: user.fullName,
+                role: user.role,
             },
         });
     } catch (error) {
@@ -85,10 +87,44 @@ router.post('/register', async (req, res) => {
                 id: newUser.id,
                 username: newUser.username,
                 email: newUser.email,
+                fullName: newUser.fullName,
+                role: newUser.role,
             },
         });
     } catch (error) {
         console.error('Register error:', error);
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
+
+// Get current user
+router.get('/me', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role,
+            },
+        });
+    } catch (error) {
+        console.error('Get me error:', error);
         res.status(500).json({ message: 'Ошибка сервера' });
     }
 });

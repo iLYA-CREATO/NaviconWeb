@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { getMe } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -9,12 +10,29 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         // Check if user is logged in on mount
         const token = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
 
-        if (token && savedUser) {
-            setUser(JSON.parse(savedUser));
+        if (token) {
+            // Try to fetch current user info
+            getMe()
+                .then((response) => {
+                    const userData = response.data.user;
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    setUser(userData);
+                })
+                .catch((error) => {
+                    console.error('Failed to fetch user info:', error);
+                    // Fallback to saved user if available
+                    const savedUser = localStorage.getItem('user');
+                    if (savedUser) {
+                        setUser(JSON.parse(savedUser));
+                    }
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
+        } else {
+            setLoading(false);
         }
-        setLoading(false);
     }, []);
 
     const login = (userData, token) => {

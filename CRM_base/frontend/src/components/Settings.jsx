@@ -31,6 +31,10 @@ const Settings = () => {
     }, []);
 
     useEffect(() => {
+        console.log('Debug: Current logged-in user information:', user);
+    }, [user]);
+
+    useEffect(() => {
         if (notification) {
             const timer = setTimeout(() => setNotification(null), 3000);
             return () => clearTimeout(timer);
@@ -156,16 +160,18 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление пользователями</h2>
-                        <button
-                            onClick={() => {
-                                setShowForm(!showForm);
-                                setEditingUser(null);
-                                setFormData({ username: '', fullName: '', email: '', password: '', role: 'user' });
-                            }}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            {showForm ? 'Отмена' : '+ Добавить пользователя'}
-                        </button>
+                        {user?.role === 'admin' && (
+                            <button
+                                onClick={() => {
+                                    setShowForm(!showForm);
+                                    setEditingUser(null);
+                                    setFormData({ username: '', fullName: '', email: '', password: '', role: 'user' });
+                                }}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                {showForm ? 'Отмена' : '+ Добавить пользователя'}
+                            </button>
+                        )}
                     </div>
 
                     {!showForm && (
@@ -192,7 +198,9 @@ const Settings = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ФИО</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Почта</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                        {user?.role === 'admin' && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                        )}
                                     </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -202,22 +210,24 @@ const Settings = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">{u.fullName}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{u.email}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{u.role === 'admin' ? 'Администратор' : 'Пользователь'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <button
-                                                    onClick={() => handleEditUser(u)}
-                                                    className="text-blue-600 hover:text-blue-900 mr-3"
-                                                >
-                                                    Редактировать
-                                                </button>
-                                                {u.role !== 'admin' && (
+                                            {user?.role === 'admin' && (
+                                                <td className="px-6 py-4 whitespace-nowrap">
                                                     <button
-                                                        onClick={() => handleDeleteUser(u.id)}
-                                                        className="text-red-600 hover:text-red-900"
+                                                        onClick={() => handleEditUser(u)}
+                                                        className="text-blue-600 hover:text-blue-900 mr-3"
                                                     >
-                                                        Удалить
+                                                        Редактировать
                                                     </button>
-                                                )}
-                                            </td>
+                                                    {u.role !== 'admin' && (
+                                                        <button
+                                                            onClick={() => handleDeleteUser(u.id)}
+                                                            className="text-red-600 hover:text-red-900"
+                                                        >
+                                                            Удалить
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                     </tbody>
@@ -311,12 +321,14 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление ролями</h2>
-                        <button
-                            onClick={() => setShowRoleForm(!showRoleForm)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            {showRoleForm ? 'Отмена' : '+ Добавить роль'}
-                        </button>
+                        {user?.role === 'admin' && (
+                            <button
+                                onClick={() => setShowRoleForm(!showRoleForm)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                {showRoleForm ? 'Отмена' : '+ Добавить роль'}
+                            </button>
+                        )}
                     </div>
 
                     {!showRoleForm && (
@@ -326,7 +338,9 @@ const Settings = () => {
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                    {user?.role === 'admin' && (
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                    )}
                                 </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -334,20 +348,22 @@ const Settings = () => {
                                     <tr key={role.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">{role.name}</td>
                                         <td className="px-6 py-4">{role.description}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <button
-                                                onClick={() => handleEditRole(role)}
-                                                className="text-blue-600 hover:text-blue-900 mr-3"
-                                            >
-                                                Редактировать
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteRole(role.id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Удалить
-                                            </button>
-                                        </td>
+                                        {user?.role === 'admin' && (
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <button
+                                                    onClick={() => handleEditRole(role)}
+                                                    className="text-blue-600 hover:text-blue-900 mr-3"
+                                                >
+                                                    Редактировать
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteRole(role.id)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Удалить
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                                 </tbody>
