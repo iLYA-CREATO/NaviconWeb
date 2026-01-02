@@ -9,6 +9,9 @@ import ClientDetail from './components/ClientDetail';
 import BidDetail from './components/BidDetail';
 import ClientObjectDetail from './components/ClientObjectDetail';
 import Objects from './components/Objects';
+import Equipment from './components/Equipment';
+import EquipmentDetail from './components/EquipmentDetail';
+import EquipmentArrival from './components/EquipmentArrival';
 import Settings from './components/Settings';
 import './index.css';
 
@@ -34,6 +37,9 @@ function App() {
                         <Route path="objects" element={<Objects />} />
                         <Route path="bids" element={<Bids />} />
                         <Route path="bids/:id" element={<BidDetail />} />
+                        <Route path="equipment" element={<Equipment />} />
+                        <Route path="equipment/:id" element={<EquipmentDetail />} />
+                        <Route path="equipment/arrival" element={<EquipmentArrival />} />
                         <Route path="settings" element={<Settings />} />
                     </Route>
 

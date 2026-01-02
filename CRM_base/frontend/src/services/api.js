@@ -60,6 +60,14 @@ export const createBid = (data) => api.post('/bids', data);
 export const updateBid = (id, data) => api.put(`/bids/${id}`, data);
 export const deleteBid = (id) => api.delete(`/bids/${id}`);
 
+// Equipment
+export const getEquipment = () => api.get('/equipment');
+export const getEquipmentItem = (id) => api.get(`/equipment/${id}`);
+export const createEquipment = (data) => api.post('/equipment', data);
+export const updateEquipment = (id, data) => api.put(`/equipment/${id}`, data);
+export const deleteEquipment = (id) => api.delete(`/equipment/${id}`);
+export const createEquipmentItems = (id, data) => api.post(`/equipment/${id}/items`, data);
+
 // Users
 export const getUsers = () => api.get('/users');
 export const getUser = (id) => api.get(`/users/${id}`);

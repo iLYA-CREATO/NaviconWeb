@@ -70,3 +70,23 @@ model Bid {
   client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientObjects ClientObject[] @relation("BidClientObjects")
 }
+
+model Equipment {
+  id            Int      @id @default(autoincrement())
+  name          String
+  description   String?
+  productCode   Int?
+  sellingPrice  Decimal? @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  items         EquipmentItem[]
+}
+
+model EquipmentItem {
+  id            Int      @id @default(autoincrement())
+  equipmentId   Int
+  imei          String?
+  purchasePrice Decimal? @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+}

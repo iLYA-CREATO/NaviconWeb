@@ -7,21 +7,21 @@ async function main() {
 
     // Create roles
     const userRole = await prisma.role.upsert({
-        where: { name: 'Пользователь' },
+        where: { name: 'Sklad' },
         update: {},
         create: {
-            name: 'Пользователь',
-            description: 'Обычный пользователь',
+            name: 'Sklad',
+            description: 'Сотрудник склада',
         },
     });
     console.log('✅ Created role:', userRole);
 
     const adminRole = await prisma.role.upsert({
-        where: { name: 'Администратор' },
+        where: { name: 'Admin' },
         update: {},
         create: {
-            name: 'Администратор',
-            description: 'Полный доступ',
+            name: 'Admin',
+            description: 'Администратор',
         },
     });
     console.log('✅ Created role:', adminRole);
@@ -31,18 +31,35 @@ async function main() {
 
     // Create admin user
     const adminUser = await prisma.user.upsert({
-        where: { username: 'admin' },
+        where: { username: 'Sergey' },
         update: {
-            fullName: 'Администратор',
+            fullName: 'Беляев Сергей',
             password: hashedPassword,
-            role: 'admin',
+            role: 'Admin',
         },
         create: {
-            username: 'admin',
-            fullName: 'Администратор',
-            email: 'admin@crm.com',
+            username: 'Sergey',
+            fullName: 'Беляев Сергей',
+            email: 'admin@mail.ru',
             password: hashedPassword,
-            role: 'admin',
+            role: 'Admin',
+        },
+    });
+    console.log('✅ Created admin user:', adminUser);
+    // Create Sklad user
+    const skladUser = await prisma.user.upsert({
+        where: { username: 'Demidov' },
+        update: {
+            fullName: 'Демидов Илья',
+            password: hashedPassword,
+            role: 'Sklad',
+        },
+        create: {
+            username: 'Demidov',
+            fullName: 'Демидов Илья',
+            email: 'admin@mail.ru',
+            password: hashedPassword,
+            role: 'Sklad',
         },
     });
     console.log('✅ Created admin user:', adminUser);
@@ -50,7 +67,7 @@ async function main() {
     // Create demo clients
     const client1 = await prisma.client.create({
         data: {
-            name: 'Acme Corporation',
+            name: 'Уваровская Нива',
             email: 'contact@acme.com',
             phone: '+380501234567',
         },
@@ -59,7 +76,7 @@ async function main() {
 
     const client2 = await prisma.client.create({
         data: {
-            name: 'Tech Solutions Ltd',
+            name: 'Агротехнологии',
             email: 'info@techsolutions.com',
             phone: '+380507654321',
         },
