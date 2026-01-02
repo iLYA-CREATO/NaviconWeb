@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment } from '../services/api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment } from '../services/api';
 
 const Equipment = () => {
     const navigate = useNavigate();
     const [equipment, setEquipment] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [editingItem, setEditingItem] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         productCode: '',
-        sellingPrice: '',
     });
 
     useEffect(() => {
@@ -31,8 +31,14 @@ const Equipment = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await createEquipment(formData);
-            navigate(`/dashboard/equipment/${response.data.id}`);
+            if (editingItem) {
+                await updateEquipment(editingItem.id, formData);
+                fetchEquipment();
+                resetForm();
+            } else {
+                const response = await createEquipment(formData);
+                navigate(`/dashboard/equipment/${response.data.id}`);
+            }
         } catch (error) {
             console.error('Error saving equipment:', error);
         }
@@ -42,14 +48,35 @@ const Equipment = () => {
         navigate(`/dashboard/equipment/${item.id}`);
     };
 
+    const handleEdit = (item) => {
+        setEditingItem(item);
+        setFormData({
+            name: item.name,
+            description: item.description || '',
+            productCode: item.productCode || '',
+        });
+        setShowForm(true);
+    };
+
+    const handleDelete = async (item) => {
+        if (window.confirm(`Вы уверены, что хотите удалить оборудование "${item.name}"?`)) {
+            try {
+                await deleteEquipment(item.id);
+                fetchEquipment();
+            } catch (error) {
+                console.error('Error deleting equipment:', error);
+            }
+        }
+    };
+
     const resetForm = () => {
         setFormData({
             name: '',
             description: '',
             productCode: '',
-            sellingPrice: '',
         });
         setShowForm(false);
+        setEditingItem(null);
     };
 
     const filteredEquipment = equipment.filter(item =>
@@ -79,7 +106,7 @@ const Equipment = () => {
 
             {showForm && (
                 <div className="bg-white rounded-lg shadow p-6 mb-6">
-                    <h3 className="text-xl font-bold mb-4">Добавить новое оборудование</h3>
+                    <h3 className="text-xl font-bold mb-4">{editingItem ? 'Редактировать оборудование' : 'Добавить новое оборудование'}</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
@@ -109,32 +136,12 @@ const Equipment = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Цена продажи</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.sellingPrice}
-                                onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Цена продажи</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.sellingPrice}
-                                onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
                         <div className="flex gap-2 pt-4">
                             <button
                                 type="submit"
                                 className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
                             >
-                                Создать
+                                {editingItem ? 'Сохранить' : 'Создать'}
                             </button>
                             <button
                                 type="button"
@@ -168,20 +175,33 @@ const Equipment = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Код товара</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Количество</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Цена продажи</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredEquipment.map((item) => (
-                                    <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(item)}>
-                                        <td className="px-6 py-4 whitespace-nowrap">{item.id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{item.name}</td>
-                                        <td className="px-6 py-4">
+                                    <tr key={item.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.name}</td>
+                                        <td className="px-6 py-4 cursor-pointer" onClick={() => handleView(item)}>
                                             <div className="max-w-xs truncate">{item.description || '-'}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{item.productCode || '-'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{item.quantity}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{item.sellingPrice ? `${item.sellingPrice} ₽` : '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.productCode || '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.quantity}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <button
+                                                onClick={() => handleEdit(item)}
+                                                className="text-blue-600 hover:text-blue-900 mr-2"
+                                            >
+                                                Редактировать
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(item)}
+                                                className="text-red-600 hover:text-red-900"
+                                            >
+                                                Удалить
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

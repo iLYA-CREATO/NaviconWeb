@@ -9,6 +9,9 @@ router.get('/', authMiddleware, async (req, res) => {
         const equipment = await prisma.equipment.findMany({
             orderBy: { createdAt: 'desc' },
             include: {
+                items: {
+                    orderBy: { createdAt: 'desc' }
+                },
                 _count: {
                     select: { items: true }
                 }
@@ -24,6 +27,10 @@ router.get('/', authMiddleware, async (req, res) => {
             quantity: item._count.items,
             createdAt: item.createdAt,
             sellingPrice: item.sellingPrice ? parseFloat(item.sellingPrice) : null,
+            items: item.items.map(item => ({
+                ...item,
+                purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
+            }))
         }));
 
         res.json(formattedEquipment);

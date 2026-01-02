@@ -69,6 +69,7 @@ model Bid {
   updatedAt   DateTime @updatedAt
   client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientObjects ClientObject[] @relation("BidClientObjects")
+  equipmentItems EquipmentItem[]
 }
 
 model Equipment {
@@ -87,6 +88,8 @@ model EquipmentItem {
   equipmentId   Int
   imei          String?
   purchasePrice Decimal? @db.Decimal(10, 2)
+  bidId         Int?
   createdAt     DateTime @default(now())
   equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  bid           Bid?     @relation(fields: [bidId], references: [id])
 }

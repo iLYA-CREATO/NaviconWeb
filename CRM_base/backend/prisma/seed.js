@@ -57,7 +57,7 @@ async function main() {
         create: {
             username: 'Demidov',
             fullName: 'Демидов Илья',
-            email: 'admin@mail.ru',
+            email: 'sklad@mail.ru',
             password: hashedPassword,
             role: 'Sklad',
         },

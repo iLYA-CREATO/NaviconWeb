@@ -15,6 +15,15 @@ router.get('/', authMiddleware, async (req, res) => {
                         name: true,
                     },
                 },
+                equipmentItems: {
+                    include: {
+                        equipment: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                    },
+                },
             },
         });
 
@@ -45,6 +54,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
             where: { id: parseInt(req.params.id) },
             include: {
                 client: true,
+                equipmentItems: {
+                    include: {
+                        equipment: true,
+                    },
+                },
             },
         });
 
@@ -172,6 +186,86 @@ router.delete('/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Bid not found' });
         }
         console.error('Delete bid error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Assign equipment to bid
+router.post('/:id/equipment', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        const { equipmentItemIds } = req.body;
+
+        // Check if bid exists
+        const bid = await prisma.bid.findUnique({
+            where: { id: bidId },
+        });
+
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Check if equipment items exist and are not already assigned
+        const items = await prisma.equipmentItem.findMany({
+            where: {
+                id: { in: equipmentItemIds },
+                bidId: null, // Only assign unassigned items
+            },
+        });
+
+        if (items.length !== equipmentItemIds.length) {
+            return res.status(400).json({ message: 'Some equipment items not found or already assigned' });
+        }
+
+        // Assign items to bid
+        await prisma.equipmentItem.updateMany({
+            where: { id: { in: equipmentItemIds } },
+            data: { bidId },
+        });
+
+        res.json({ message: `${items.length} equipment items assigned to bid` });
+    } catch (error) {
+        console.error('Assign equipment error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Return equipment from bid
+router.post('/:id/equipment/return', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        const { equipmentItemIds } = req.body;
+
+        // Check if bid exists
+        const bid = await prisma.bid.findUnique({
+            where: { id: bidId },
+        });
+
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Check if equipment items are assigned to this bid
+        const items = await prisma.equipmentItem.findMany({
+            where: {
+                id: { in: equipmentItemIds },
+                bidId: bidId,
+            },
+        });
+
+        if (items.length !== equipmentItemIds.length) {
+            return res.status(400).json({ message: 'Some equipment items not found or not assigned to this bid' });
+        }
+
+        // Return items (set bidId to null)
+        await prisma.equipmentItem.updateMany({
+            where: { id: { in: equipmentItemIds } },
+            data: { bidId: null },
+        });
+
+        res.json({ message: `${items.length} equipment items returned from bid` });
+    } catch (error) {
+        console.error('Return equipment error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

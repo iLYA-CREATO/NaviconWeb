@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://127.0.0.1:5000/api';
+const API_URL = '/api';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -59,6 +59,8 @@ export const getBid = (id) => api.get(`/bids/${id}`);
 export const createBid = (data) => api.post('/bids', data);
 export const updateBid = (id, data) => api.put(`/bids/${id}`, data);
 export const deleteBid = (id) => api.delete(`/bids/${id}`);
+export const assignEquipmentToBid = (bidId, data) => api.post(`/bids/${bidId}/equipment`, data);
+export const returnEquipmentFromBid = (bidId, data) => api.post(`/bids/${bidId}/equipment/return`, data);
 
 // Equipment
 export const getEquipment = () => api.get('/equipment');
