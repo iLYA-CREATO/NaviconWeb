@@ -27,7 +27,7 @@ async function main() {
     console.log('✅ Created role:', adminRole);
 
     // Hash password
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash('123', 10);
 
     // Create admin user
     const adminUser = await prisma.user.upsert({
