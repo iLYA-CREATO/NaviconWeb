@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const prisma = require('../prisma/client');
 
 // Login
@@ -17,8 +18,9 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Неверные учетные данные' });
         }
 
-        // Check password (plain text for development)
-        if (password !== user.password) {
+        // Check password
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
@@ -65,11 +67,14 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Create user (plain text password for development)
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user
         const newUser = await prisma.user.create({
             data: {
                 username,
-                password, // Plain text for development ONLY!
+                password: hashedPassword,
                 email,
             },
         });
