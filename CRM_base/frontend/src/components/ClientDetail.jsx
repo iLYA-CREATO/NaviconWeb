@@ -93,6 +93,10 @@ const ClientDetail = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Количество заявок</label>
                         <p className="text-gray-900 text-lg">{client.bids?.length || 0}</p>
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Количество объектов</label>
+                        <p className="text-gray-900 text-lg">{clientObjects.length}</p>
+                    </div>
                 </div>
             </div>
 

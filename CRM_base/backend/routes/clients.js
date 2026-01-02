@@ -23,7 +23,7 @@ router.get('/', authMiddleware, async (req, res) => {
             orderBy: { createdAt: 'desc' },
             include: {
                 _count: {
-                    select: { bids: true },
+                    select: { bids: true, clientObjects: true },
                 },
                 responsible: {
                     select: {

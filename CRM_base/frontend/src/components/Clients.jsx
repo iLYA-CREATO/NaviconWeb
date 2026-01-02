@@ -141,6 +141,8 @@ const Clients = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Телефон</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ответственный</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заявок</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Объектов</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -150,6 +152,8 @@ const Clients = () => {
                             <td className="px-6 py-4 whitespace-nowrap">{client.email}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{client.phone}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{client._count?.bids || 0}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{client._count?.clientObjects || 0}</td>
                         </tr>
                     ))}
                     </tbody>
