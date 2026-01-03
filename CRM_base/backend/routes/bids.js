@@ -453,4 +453,269 @@ router.post('/:id/comments', authMiddleware, async (req, res) => {
     }
 });
 
+// Получить спецификации заявки
+router.get('/:id/specifications', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+
+        // Проверяем существование заявки
+        const bid = await prisma.bid.findUnique({
+            where: { id: bidId },
+        });
+
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Получаем спецификации с данными
+        const specifications = await prisma.bidSpecification.findMany({
+            where: { bidId },
+            include: {
+                specification: {
+                    include: {
+                        category: true,
+                    },
+                },
+                executor: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        // Получаем соисполнителей отдельно
+        const specIds = specifications.map(s => s.id);
+        const coExecutorsData = await prisma.bidSpecification.findMany({
+            where: { id: { in: specIds } },
+            select: {
+                id: true,
+                coExecutorIds: true,
+            },
+        });
+
+        // Создаем карту соисполнителей
+        const coExecutorsMap = {};
+        for (const spec of coExecutorsData) {
+            if (spec.coExecutorIds.length > 0) {
+                const coExecutors = await prisma.user.findMany({
+                    where: { id: { in: spec.coExecutorIds } },
+                    select: { id: true, fullName: true },
+                });
+                coExecutorsMap[spec.id] = coExecutors;
+            }
+        }
+
+        // Добавляем соисполнителей к спецификациям
+        const specificationsWithCoExecutors = specifications.map(spec => ({
+            ...spec,
+            coExecutors: coExecutorsMap[spec.id] || [],
+        }));
+
+        res.json(specifications);
+    } catch (error) {
+        console.error('Get specifications error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Добавить спецификацию к заявке
+router.post('/:id/specifications', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        const { specificationId, executorId, coExecutorIds, comment } = req.body;
+
+        // Проверяем аутентификацию
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        // Проверяем существование заявки
+        const bid = await prisma.bid.findUnique({
+            where: { id: bidId },
+        });
+
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Проверяем существование спецификации
+        const specification = await prisma.specification.findUnique({
+            where: { id: parseInt(specificationId) },
+        });
+
+        if (!specification) {
+            return res.status(404).json({ message: 'Specification not found' });
+        }
+
+        // Проверяем исполнителя если указан
+        if (executorId) {
+            const executor = await prisma.user.findUnique({
+                where: { id: parseInt(executorId) },
+            });
+            if (!executor) {
+                return res.status(404).json({ message: 'Executor not found' });
+            }
+        }
+
+        // Проверяем соисполнителей если указаны
+        if (coExecutorIds && coExecutorIds.length > 0) {
+            const coExecutors = await prisma.user.findMany({
+                where: { id: { in: coExecutorIds.map(id => parseInt(id)) } },
+            });
+            if (coExecutors.length !== coExecutorIds.length) {
+                return res.status(404).json({ message: 'Some co-executors not found' });
+            }
+        }
+
+        // Создаем спецификацию заявки
+        const bidSpecification = await prisma.bidSpecification.create({
+            data: {
+                bidId,
+                specificationId: parseInt(specificationId),
+                executorId: executorId ? parseInt(executorId) : null,
+                coExecutorIds: coExecutorIds ? coExecutorIds.map(id => parseInt(id)) : [],
+                comment: comment || null,
+            },
+            include: {
+                specification: {
+                    include: {
+                        category: true,
+                    },
+                },
+                executor: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+        });
+
+        // Получаем соисполнителей
+        let coExecutors = [];
+        if (bidSpecification.coExecutorIds.length > 0) {
+            coExecutors = await prisma.user.findMany({
+                where: { id: { in: bidSpecification.coExecutorIds } },
+                select: { id: true, fullName: true },
+            });
+        }
+
+        res.status(201).json({
+            ...bidSpecification,
+            coExecutors,
+        });
+    } catch (error) {
+        console.error('Create bid specification error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Обновить спецификацию заявки
+router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        const specId = parseInt(req.params.specId);
+        const { executorId, coExecutorIds, comment } = req.body;
+
+        // Проверяем существование спецификации заявки
+        const existingSpec = await prisma.bidSpecification.findUnique({
+            where: { id: specId },
+        });
+
+        if (!existingSpec || existingSpec.bidId !== bidId) {
+            return res.status(404).json({ message: 'Bid specification not found' });
+        }
+
+        // Проверяем исполнителя если указан
+        if (executorId) {
+            const executor = await prisma.user.findUnique({
+                where: { id: parseInt(executorId) },
+            });
+            if (!executor) {
+                return res.status(404).json({ message: 'Executor not found' });
+            }
+        }
+
+        // Проверяем соисполнителей если указаны
+        if (coExecutorIds && coExecutorIds.length > 0) {
+            const coExecutors = await prisma.user.findMany({
+                where: { id: { in: coExecutorIds.map(id => parseInt(id)) } },
+            });
+            if (coExecutors.length !== coExecutorIds.length) {
+                return res.status(404).json({ message: 'Some co-executors not found' });
+            }
+        }
+
+        // Обновляем спецификацию
+        const updatedSpec = await prisma.bidSpecification.update({
+            where: { id: specId },
+            data: {
+                executorId: executorId ? parseInt(executorId) : null,
+                coExecutorIds: coExecutorIds ? coExecutorIds.map(id => parseInt(id)) : [],
+                comment: comment || null,
+            },
+            include: {
+                specification: {
+                    include: {
+                        category: true,
+                    },
+                },
+                executor: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+        });
+
+        // Получаем соисполнителей
+        let coExecutors = [];
+        if (updatedSpec.coExecutorIds.length > 0) {
+            coExecutors = await prisma.user.findMany({
+                where: { id: { in: updatedSpec.coExecutorIds } },
+                select: { id: true, fullName: true },
+            });
+        }
+
+        res.json({
+            ...updatedSpec,
+            coExecutors,
+        });
+    } catch (error) {
+        console.error('Update bid specification error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Удалить спецификацию заявки
+router.delete('/:id/specifications/:specId', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        const specId = parseInt(req.params.specId);
+
+        // Проверяем существование спецификации заявки
+        const existingSpec = await prisma.bidSpecification.findUnique({
+            where: { id: specId },
+        });
+
+        if (!existingSpec || existingSpec.bidId !== bidId) {
+            return res.status(404).json({ message: 'Bid specification not found' });
+        }
+
+        // Удаляем спецификацию
+        await prisma.bidSpecification.delete({
+            where: { id: specId },
+        });
+
+        res.json({ message: 'Bid specification deleted' });
+    } catch (error) {
+        console.error('Delete bid specification error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

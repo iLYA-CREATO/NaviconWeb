@@ -21,10 +21,17 @@ export const AuthProvider = ({ children }) => {
                 })
                 .catch((error) => {
                     console.error('Failed to fetch user info:', error);
-                    // Fallback to saved user if available
-                    const savedUser = localStorage.getItem('user');
-                    if (savedUser) {
-                        setUser(JSON.parse(savedUser));
+                    // If user not found (404), clear invalid token and user data
+                    if (error.response && error.response.status === 404) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        setUser(null);
+                    } else {
+                        // For other errors, fallback to saved user if available
+                        const savedUser = localStorage.getItem('user');
+                        if (savedUser) {
+                            setUser(JSON.parse(savedUser));
+                        }
                     }
                 })
                 .finally(() => {

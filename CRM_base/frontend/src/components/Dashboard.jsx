@@ -59,6 +59,26 @@ const Dashboard = () => {
                             >
                                 Роли
                             </button>
+                            <button
+                                onClick={() => setActiveSettingsTab('specification-categories')} // Установка активной вкладки "Категории спецификаций"
+                                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
+                                    activeSettingsTab === 'specification-categories'
+                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
+                                }`}
+                            >
+                                Категории спецификаций
+                            </button>
+                            <button
+                                onClick={() => setActiveSettingsTab('specifications')} // Установка активной вкладки "Спецификации"
+                                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
+                                    activeSettingsTab === 'specifications'
+                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
+                                }`}
+                            >
+                                Спецификации
+                            </button>
                         </nav>
                     </div>
                 ) : (

@@ -115,4 +115,26 @@ export const createClientObject = (data) => api.post('/client-objects', data); /
 export const updateClientObject = (id, data) => api.put(`/client-objects/${id}`, data); // Обновление объекта
 export const deleteClientObject = (id) => api.delete(`/client-objects/${id}`); // Удаление объекта
 
+// === СПЕЦИФИКАЦИИ ===
+// CRUD операции для спецификаций
+export const getSpecifications = () => api.get('/specifications'); // Получение всех спецификаций
+export const getSpecification = (id) => api.get(`/specifications/${id}`); // Получение спецификации по ID
+export const createSpecification = (data) => api.post('/specifications', data); // Создание новой спецификации
+export const updateSpecification = (id, data) => api.put(`/specifications/${id}`, data); // Обновление спецификации
+export const deleteSpecification = (id) => api.delete(`/specifications/${id}`); // Удаление спецификации
+
+// === СПЕЦИФИКАЦИИ ЗАЯВОК ===
+export const getBidSpecifications = (bidId) => api.get(`/bids/${bidId}/specifications`); // Получение спецификаций заявки
+export const createBidSpecification = (bidId, data) => api.post(`/bids/${bidId}/specifications`, data); // Создание спецификации заявки
+export const updateBidSpecification = (bidId, specId, data) => api.put(`/bids/${bidId}/specifications/${specId}`, data); // Обновление спецификации заявки
+export const deleteBidSpecification = (bidId, specId) => api.delete(`/bids/${bidId}/specifications/${specId}`); // Удаление спецификации заявки
+
+// === КАТЕГОРИИ СПЕЦИФИКАЦИЙ ===
+// CRUD операции для категорий спецификаций
+export const getSpecificationCategories = () => api.get('/specification-categories'); // Получение всех категорий
+export const getSpecificationCategory = (id) => api.get(`/specification-categories/${id}`); // Получение категории по ID
+export const createSpecificationCategory = (data) => api.post('/specification-categories', data); // Создание новой категории
+export const updateSpecificationCategory = (id, data) => api.put(`/specification-categories/${id}`, data); // Обновление категории
+export const deleteSpecificationCategory = (id) => api.delete(`/specification-categories/${id}`); // Удаление категории
+
 export default api;

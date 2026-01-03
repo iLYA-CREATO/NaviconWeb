@@ -31,14 +31,14 @@ async function main() {
 
     // Create admin user
     const adminUser = await prisma.user.upsert({
-        where: { username: 'Sergey' },
+        where: { username: 'Sergei' },
         update: {
             fullName: 'Беляев Сергей',
             password: hashedPassword,
             role: 'Admin',
         },
         create: {
-            username: 'Sergey',
+            username: 'Sergei',
             fullName: 'Беляев Сергей',
             email: 'admin@mail.ru',
             password: hashedPassword,
@@ -136,6 +136,26 @@ async function main() {
             clientObjectId: object1.id,
         },
     });
+
+    // Create specification categories
+    const categories = [
+        'Автопилот',
+        'АРМ',
+        'Навигация',
+        'Прочее',
+        'Тахографы'
+    ];
+
+    for (const categoryName of categories) {
+        await prisma.specificationCategory.upsert({
+            where: { name: categoryName },
+            update: {},
+            create: {
+                name: categoryName,
+            },
+        });
+        console.log('✅ Created specification category:', categoryName);
+    }
 
     console.log('🎉 Seed completed successfully!');
 }

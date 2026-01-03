@@ -8,7 +8,9 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment } from '../services/api';
+import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories } from '../services/api';
+// Импорт хука аутентификации
+import { useAuth } from '../context/AuthContext';
 
 // Основной компонент BidDetail
 const BidDetail = () => {
@@ -16,6 +18,8 @@ const BidDetail = () => {
     const { id } = useParams();
     // Хук для навигации между страницами
     const navigate = useNavigate();
+    // Хук аутентификации
+    const { user } = useAuth();
     const [bid, setBid] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -38,12 +42,23 @@ const BidDetail = () => {
     const [activeTab, setActiveTab] = useState('comments');
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
+    const [bidSpecifications, setBidSpecifications] = useState([]);
+    const [showAddSpecModal, setShowAddSpecModal] = useState(false);
+    const [editingSpec, setEditingSpec] = useState(null);
+    const [availableUsers, setAvailableUsers] = useState([]);
+    const [specifications, setSpecifications] = useState([]);
+    const [specCategories, setSpecCategories] = useState([]);
+    const [expandedCategories, setExpandedCategories] = useState(new Set());
 
     useEffect(() => {
         fetchBid();
         fetchAvailableEquipment();
         fetchAvailableClients();
         fetchComments();
+        fetchBidSpecifications();
+        fetchUsers();
+        fetchSpecifications();
+        fetchSpecCategories();
     }, [id]);
 
     useEffect(() => {
@@ -104,6 +119,42 @@ const BidDetail = () => {
             setComments(response.data);
         } catch (error) {
             console.error('Error fetching comments:', error);
+        }
+    };
+
+    const fetchBidSpecifications = async () => {
+        try {
+            const response = await getBidSpecifications(id);
+            setBidSpecifications(response.data);
+        } catch (error) {
+            console.error('Error fetching bid specifications:', error);
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const response = await getUsers();
+            setAvailableUsers(response.data);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
+
+    const fetchSpecifications = async () => {
+        try {
+            const response = await getSpecifications();
+            setSpecifications(response.data);
+        } catch (error) {
+            console.error('Error fetching specifications:', error);
+        }
+    };
+
+    const fetchSpecCategories = async () => {
+        try {
+            const response = await getSpecificationCategories();
+            setSpecCategories(response.data);
+        } catch (error) {
+            console.error('Error fetching specification categories:', error);
         }
     };
 
@@ -181,6 +232,33 @@ const BidDetail = () => {
         } catch (error) {
             console.error('Error creating comment:', error);
             alert('Ошибка при добавлении комментария. Возможно, истек срок действия токена.');
+        }
+    };
+
+    const handleDeleteSpec = async (specId) => {
+        if (!confirm('Вы уверены, что хотите удалить эту спецификацию?')) return;
+        try {
+            await deleteBidSpecification(id, specId);
+            fetchBidSpecifications();
+        } catch (error) {
+            console.error('Error deleting specification:', error);
+            alert('Ошибка при удалении спецификации.');
+        }
+    };
+
+    const handleSaveSpec = async (specData) => {
+        try {
+            if (editingSpec) {
+                await updateBidSpecification(id, editingSpec.id, specData);
+            } else {
+                await createBidSpecification(id, specData);
+            }
+            setShowAddSpecModal(false);
+            setEditingSpec(null);
+            fetchBidSpecifications();
+        } catch (error) {
+            console.error('Error saving specification:', error);
+            alert('Ошибка при сохранении спецификации.');
         }
     };
 
@@ -395,8 +473,63 @@ const BidDetail = () => {
                             </div>
                         )}
                         {activeTab === 'spec' && (
-                            <div className="text-center py-8">
-                                <p className="text-gray-500">Спецификация в разработке</p>
+                            <div>
+                                <div className="mb-4">
+                                    <button
+                                        onClick={() => setShowAddSpecModal(true)}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    >
+                                        Добавить спецификацию
+                                    </button>
+                                </div>
+                                {bidSpecifications.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full bg-white border border-gray-300">
+                                            <thead>
+                                                <tr className="bg-gray-50">
+                                                    <th className="px-4 py-2 border-b text-left">Категория</th>
+                                                    <th className="px-4 py-2 border-b text-left">Спецификация</th>
+                                                    <th className="px-4 py-2 border-b text-left">Стоимость</th>
+                                                    <th className="px-4 py-2 border-b text-left">Исполнитель</th>
+                                                    <th className="px-4 py-2 border-b text-left">Соисполнитель</th>
+                                                    <th className="px-4 py-2 border-b text-left">Комментарий</th>
+                                                    <th className="px-4 py-2 border-b text-left">Действия</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {bidSpecifications.map(spec => (
+                                                    <tr key={spec.id} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-2 border-b">{spec.specification.category.name}</td>
+                                                        <td className="px-4 py-2 border-b">{spec.specification.name}</td>
+                                                        <td className="px-4 py-2 border-b">{spec.specification.cost} руб.</td>
+                                                        <td className="px-4 py-2 border-b">{spec.executor ? spec.executor.fullName : 'Не назначен'}</td>
+                                                        <td className="px-4 py-2 border-b">{spec.coExecutors && spec.coExecutors.length > 0 ? spec.coExecutors.map(ce => ce.fullName).join(', ') : 'Не назначены'}</td>
+                                                        <td className="px-4 py-2 border-b">{spec.comment || '-'}</td>
+                                                        <td className="px-4 py-2 border-b">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingSpec(spec);
+                                                                    setShowAddSpecModal(true);
+                                                                }}
+                                                                className="text-blue-500 hover:text-blue-700 mr-2"
+                                                            >
+                                                                Редактировать
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteSpec(spec.id)}
+                                                                className="text-red-500 hover:text-red-700"
+                                                            >
+                                                                Удалить
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-center py-4">Спецификации не добавлены</p>
+                                )}
                             </div>
                         )}
                         {activeTab === 'print' && (
@@ -708,6 +841,195 @@ const BidDetail = () => {
                     </div>
                 </div>
             )}
+
+            {/* Add/Edit Specification Modal */}
+            {showAddSpecModal && (
+                <SpecificationModal
+                    isOpen={showAddSpecModal}
+                    onClose={() => {
+                        setShowAddSpecModal(false);
+                        setEditingSpec(null);
+                    }}
+                    onSave={handleSaveSpec}
+                    editingSpec={editingSpec}
+                    specCategories={specCategories}
+                    specifications={specifications}
+                    availableUsers={availableUsers}
+                    currentUser={user}
+                    expandedCategories={expandedCategories}
+                    setExpandedCategories={setExpandedCategories}
+                />
+            )}
+        </div>
+    );
+};
+
+// Specification Modal Component
+const SpecificationModal = ({
+    isOpen,
+    onClose,
+    onSave,
+    editingSpec,
+    specCategories,
+    specifications,
+    availableUsers,
+    currentUser,
+    expandedCategories,
+    setExpandedCategories
+}) => {
+    const [selectedSpecId, setSelectedSpecId] = useState(editingSpec?.specificationId || '');
+    const [executorId, setExecutorId] = useState(editingSpec?.executorId || currentUser?.id || '');
+    const [coExecutorId, setCoExecutorId] = useState(editingSpec?.coExecutorIds?.[0] || '');
+    const [coExecutorIds, setCoExecutorIds] = useState(editingSpec?.coExecutorIds || []);
+    const [comment, setComment] = useState(editingSpec?.comment || '');
+
+    const selectedSpec = specifications.find(s => s.id === parseInt(selectedSpecId));
+
+    const handleSave = () => {
+        if (!selectedSpecId) {
+            alert('Выберите спецификацию');
+            return;
+        }
+        onSave({
+            specificationId: selectedSpecId,
+            executorId: executorId || null,
+            coExecutorIds: coExecutorId ? [coExecutorId] : [],
+            comment: comment.trim() || null,
+        });
+    };
+
+    const toggleCategory = (categoryId) => {
+        const newExpanded = new Set(expandedCategories);
+        if (newExpanded.has(categoryId)) {
+            newExpanded.delete(categoryId);
+        } else {
+            newExpanded.add(categoryId);
+        }
+        setExpandedCategories(newExpanded);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <h3 className="text-lg font-semibold mb-4">
+                    {editingSpec ? 'Редактировать спецификацию' : 'Добавить спецификацию'}
+                </h3>
+
+                {/* Specification Selection */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Выберите спецификацию</label>
+                    <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                        {specCategories.map(category => {
+                            const categorySpecs = specifications.filter(s => s.categoryId === category.id);
+                            const isExpanded = expandedCategories.has(category.id);
+                            return (
+                                <div key={category.id}>
+                                    <div
+                                        className="flex items-center p-3 bg-gray-50 border-b cursor-pointer hover:bg-gray-100"
+                                        onClick={() => toggleCategory(category.id)}
+                                    >
+                                        <span className="mr-2">{isExpanded ? '▼' : '▶'}</span>
+                                        <span className="font-medium">{category.name}</span>
+                                        <span className="ml-auto text-sm text-gray-500">({categorySpecs.length})</span>
+                                    </div>
+                                    {isExpanded && (
+                                        <div className="pl-6">
+                                            {categorySpecs.map(spec => (
+                                                <div
+                                                    key={spec.id}
+                                                    className={`p-2 cursor-pointer hover:bg-blue-50 ${
+                                                        selectedSpecId === spec.id.toString() ? 'bg-blue-100' : ''
+                                                    }`}
+                                                    onClick={() => setSelectedSpecId(spec.id.toString())}
+                                                >
+                                                    <span>{spec.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Cost Display */}
+                {selectedSpec && (
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Стоимость</label>
+                        <input
+                            type="text"
+                            value={`${selectedSpec.cost} руб.`}
+                            readOnly
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                        />
+                    </div>
+                )}
+
+                {/* Executor */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Исполнитель</label>
+                    <select
+                        value={executorId}
+                        onChange={(e) => setExecutorId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Не назначен</option>
+                        {availableUsers.map(user => (
+                            <option key={user.id} value={user.id}>
+                                {user.fullName}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Co-Executor */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Соисполнитель</label>
+                    <select
+                        value={coExecutorId}
+                        onChange={(e) => setCoExecutorId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Не назначен</option>
+                        {availableUsers.map(user => (
+                            <option key={user.id} value={user.id}>
+                                {user.fullName} ({user.username})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Comment */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
+                    <textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder="Введите комментарий..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex justify-end space-x-2">
+                    <button
+                        onClick={onClose}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                    >
+                        Отмена
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                    >
+                        {editingSpec ? 'Сохранить' : 'Добавить'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
