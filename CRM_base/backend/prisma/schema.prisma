@@ -63,7 +63,7 @@ model ClientObject {
  model Bid {
    id          Int      @id @default(autoincrement())
    clientId    Int
-   title       String
+   tema        String
    amount      Decimal  @db.Decimal(10, 2)
    status      String   @default("Pending")
    description String?

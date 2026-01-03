@@ -87,7 +87,7 @@ async function main() {
     const bid1 = await prisma.bid.create({
         data: {
             clientId: client1.id,
-            title: 'Website Redesign',
+            tema: 'Website Redesign',
             amount: 50000,
             status: 'Pending',
             description: 'Complete website redesign project',
@@ -99,7 +99,7 @@ async function main() {
     const bid2 = await prisma.bid.create({
         data: {
             clientId: client2.id,
-            title: 'Mobile App Development',
+            tema: 'Mobile App Development',
             amount: 120000,
             status: 'Accepted',
             description: 'Cross-platform mobile application',

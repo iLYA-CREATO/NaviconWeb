@@ -455,8 +455,8 @@ const Bids = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                         {/* Отображение отфильтрованных заявок */}
                         {filteredBids.map((bid) => (
-                            <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(bid)}> {/* Клик по строке для просмотра деталей */}
-                                {displayColumns.map(column => (
+                            <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(bid)}>
+{displayColumns.map(column => (
                                     <td key={column} className={`px-6 py-4 ${column === 'description' ? '' : 'whitespace-nowrap'}`}>
                                         {getCellContent(bid, column)}
                                     </td>

@@ -57,7 +57,7 @@ router.get('/', authMiddleware, async (req, res) => {
             id: bid.id,
             clientId: bid.clientId,
             clientName: bid.client.name, // Добавляем имя клиента отдельно
-            title: bid.title,
+            tema: bid.tema,
             amount: parseFloat(bid.amount), // Преобразуем в число
             status: bid.status,
             description: bid.description,

@@ -180,6 +180,7 @@ const BidDetail = () => {
             fetchComments();
         } catch (error) {
             console.error('Error creating comment:', error);
+            alert('Ошибка при добавлении комментария. Возможно, истек срок действия токена.');
         }
     };
 
@@ -407,9 +408,9 @@ const BidDetail = () => {
                 </div>
             </div>
 
-            <div className="w-64 bg-white shadow px-4 pb-4 pt-0 ml-4">
+            <div className="w-64 bg-white shadow pb-4 pt-0 ml-4">
                 <div className="mb-4">
-                    <div className={`w-full pb-2 pt-0 text-lg text-left text-white cursor-pointer ${
+                    <div className={`w-full p-2 text-lg text-left text-white cursor-pointer ${
                         bid.status === 'Accepted' ? 'bg-green-500' :
                             bid.status === 'Rejected' ? 'bg-red-500' :
                                 'bg-yellow-500'
@@ -419,7 +420,7 @@ const BidDetail = () => {
                          bid.status === 'Rejected' ? 'Отклонена' : bid.status}
                     </div>
                 </div>
-                <div>
+                <div className='p-2'>
                     <label className="block text-xs text-gray-500 mb-1">Дата и время создания</label>
                     <p className="text-gray-900">{formattedCreatedAt}</p>
                 </div>

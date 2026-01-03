@@ -178,14 +178,7 @@ const Clients = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                     {/* Отображение списка клиентов */}
                     {clients.map((client) => (
-                        <tr key={client.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(client)}> {/* Клик для просмотра деталей */}
-                            <td className="px-6 py-4 whitespace-nowrap">{client.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{client.email}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{client.phone}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</td> {/* Ответственный или "Не назначен" */}
-                            <td className="px-6 py-4 whitespace-nowrap">{client._count?.bids || 0}</td> {/* Количество заявок */}
-                            <td className="px-6 py-4 whitespace-nowrap">{client._count?.clientObjects || 0}</td> {/* Количество объектов */}
-                        </tr>
+                        <tr key={client.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(client)}><td className="px-6 py-4 whitespace-nowrap">{client.name}</td><td className="px-6 py-4 whitespace-nowrap">{client.email}</td><td className="px-6 py-4 whitespace-nowrap">{client.phone}</td><td className="px-6 py-4 whitespace-nowrap">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</td><td className="px-6 py-4 whitespace-nowrap">{client._count?.bids || 0}</td><td className="px-6 py-4 whitespace-nowrap">{client._count?.clientObjects || 0}</td></tr>
                     ))}
                     </tbody>
                 </table>
