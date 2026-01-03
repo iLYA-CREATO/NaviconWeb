@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBids, createBid, getClients } from '../services/api';
+import { getBids, createBid, getClients, getClientObjects } from '../services/api';
 
 const Bids = () => {
     const navigate = useNavigate();
     const [bids, setBids] = useState([]);
     const [clients, setClients] = useState([]);
+    const [clientObjects, setClientObjects] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ const Bids = () => {
         title: '',
         status: 'Pending',
         description: '',
+        clientObjectId: '',
     });
 
     useEffect(() => {
@@ -20,6 +22,12 @@ const Bids = () => {
         fetchClients();
         setShowForm(false);
     }, []);
+
+    useEffect(() => {
+        fetchClientObjects(formData.clientId);
+        // Reset selected client object when client changes
+        setFormData(prev => ({ ...prev, clientObjectId: '' }));
+    }, [formData.clientId]);
 
     const fetchBids = async () => {
         try {
@@ -36,6 +44,22 @@ const Bids = () => {
             setClients(response.data);
         } catch (error) {
             console.error('Error fetching clients:', error);
+        }
+    };
+
+    const fetchClientObjects = async (clientId) => {
+        if (!clientId) {
+            setClientObjects([]);
+            return;
+        }
+        try {
+            const response = await getClientObjects(clientId);
+            // Filter to show only objects not assigned to any bid
+            const availableObjects = response.data.filter(obj => !obj.bid);
+            setClientObjects(availableObjects);
+        } catch (error) {
+            console.error('Error fetching client objects:', error);
+            setClientObjects([]);
         }
     };
 
@@ -59,7 +83,9 @@ const Bids = () => {
             title: '',
             status: 'Pending',
             description: '',
+            clientObjectId: '',
         });
+        setClientObjects([]);
         setShowForm(false);
     };
 
@@ -95,7 +121,24 @@ const Bids = () => {
                                 <option value="">Выберите клиента</option>
                                 {clients.map((client) => (
                                     <option key={client.id} value={client.id}>
-                                        {client.name} - {client.company}
+                                        {client.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Объект клиента</label>
+                            <select
+                                value={formData.clientObjectId}
+                                onChange={(e) => setFormData({ ...formData, clientObjectId: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">
+                                    {formData.clientId ? 'Выберите объект (необязательно)' : 'Сначала выберите клиента'}
+                                </option>
+                                {clientObjects.map((obj) => (
+                                    <option key={obj.id} value={obj.id}>
+                                        {obj.brandModel} {obj.stateNumber ? `(${obj.stateNumber})` : ''}
                                     </option>
                                 ))}
                             </select>

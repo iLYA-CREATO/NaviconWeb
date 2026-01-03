@@ -15,6 +15,14 @@ router.get('/', authMiddleware, async (req, res) => {
                         name: true,
                     },
                 },
+                clientObject: {
+                    select: {
+                        id: true,
+                        brandModel: true,
+                        stateNumber: true,
+                        equipment: true,
+                    },
+                },
                 equipmentItems: {
                     include: {
                         equipment: {
@@ -36,6 +44,7 @@ router.get('/', authMiddleware, async (req, res) => {
             amount: parseFloat(bid.amount),
             status: bid.status,
             description: bid.description,
+            clientObject: bid.clientObject,
             createdAt: bid.createdAt,
             updatedAt: bid.updatedAt,
         }));
@@ -54,6 +63,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
             where: { id: parseInt(req.params.id) },
             include: {
                 client: true,
+                clientObject: true,
                 equipmentItems: {
                     include: {
                         equipment: true,
@@ -80,7 +90,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create bid
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { clientId, title, amount, status, description } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId } = req.body;
 
         // Check if client exists
         const client = await prisma.client.findUnique({
@@ -91,13 +101,29 @@ router.post('/', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Client not found' });
         }
 
+        // If clientObjectId provided, check it belongs to the client and is not already assigned
+        if (clientObjectId) {
+            const clientObject = await prisma.clientObject.findUnique({
+                where: { id: parseInt(clientObjectId) },
+            });
+
+            if (!clientObject || clientObject.clientId !== parseInt(clientId)) {
+                return res.status(400).json({ message: 'Client object does not belong to this client' });
+            }
+
+            if (clientObject.bidId) {
+                return res.status(400).json({ message: 'Client object is already assigned to another bid' });
+            }
+        }
+
         const newBid = await prisma.bid.create({
             data: {
                 clientId: parseInt(clientId),
                 title,
-                amount: parseFloat(amount),
+                amount: parseFloat(amount || 0),
                 status: status || 'Pending',
                 description,
+                clientObjectId: clientObjectId ? parseInt(clientObjectId) : null,
             },
             include: {
                 client: {
@@ -105,6 +131,7 @@ router.post('/', authMiddleware, async (req, res) => {
                         name: true,
                     },
                 },
+                clientObject: true,
             },
         });
 
@@ -122,7 +149,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // Update bid
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { clientId, title, amount, status, description } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId } = req.body;
 
         // If clientId is being changed, verify new client exists
         if (clientId) {
@@ -135,14 +162,42 @@ router.put('/:id', authMiddleware, async (req, res) => {
             }
         }
 
+        // Get current bid to check client
+        const currentBid = await prisma.bid.findUnique({
+            where: { id: parseInt(req.params.id) },
+            include: { client: true },
+        });
+
+        if (!currentBid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        const targetClientId = clientId ? parseInt(clientId) : currentBid.clientId;
+
+        // If clientObjectId provided, check it belongs to the target client and is not already assigned to another bid
+        if (clientObjectId) {
+            const clientObject = await prisma.clientObject.findUnique({
+                where: { id: parseInt(clientObjectId) },
+            });
+
+            if (!clientObject || clientObject.clientId !== targetClientId) {
+                return res.status(400).json({ message: 'Client object does not belong to the target client' });
+            }
+
+            if (clientObject.bidId && clientObject.bidId !== parseInt(req.params.id)) {
+                return res.status(400).json({ message: 'Client object is already assigned to another bid' });
+            }
+        }
+
         const updatedBid = await prisma.bid.update({
             where: { id: parseInt(req.params.id) },
             data: {
                 ...(clientId && { clientId: parseInt(clientId) }),
                 ...(title && { title }),
-                ...(amount && { amount: parseFloat(amount) }),
+                ...(amount !== undefined && { amount: parseFloat(amount) }),
                 ...(status && { status }),
                 ...(description !== undefined && { description }),
+                clientObjectId: clientObjectId ? parseInt(clientObjectId) : null,
             },
             include: {
                 client: {
@@ -150,6 +205,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
                         name: true,
                     },
                 },
+                clientObject: true,
             },
         });
 
