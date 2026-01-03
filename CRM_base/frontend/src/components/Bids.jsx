@@ -119,7 +119,8 @@ const Bids = () => {
     // Фильтрация заявок на основе поискового запроса
     const filteredBids = bids.filter(bid =>
         bid.id.toString().includes(searchTerm) || // Поиск по ID заявки
-        bid.clientName.toLowerCase().includes(searchTerm.toLowerCase()) // Поиск по имени клиента (регистронезависимо)
+        bid.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || // Поиск по имени клиента (регистронезависимо)
+        bid.creatorName.toLowerCase().includes(searchTerm.toLowerCase()) // Поиск по ФИО создателя (регистронезависимо)
     );
 
     return (
@@ -245,6 +246,7 @@ const Bids = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Клиент</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заголовок</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Создатель</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
                         </tr>
@@ -256,6 +258,7 @@ const Bids = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.clientName}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.title}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">{bid.creatorName}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs rounded-full ${ // Цвет статуса зависит от значения
                           bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :

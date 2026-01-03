@@ -23,6 +23,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   clients   Client[]
+  bids      Bid[]
 }
 
 model Role {
@@ -66,10 +67,12 @@ model ClientObject {
    status      String   @default("Pending")
    description String?
    clientObjectId Int? @unique
+   createdBy   Int
    createdAt   DateTime @default(now())
    updatedAt   DateTime @updatedAt
    client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
    clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
+   creator     User     @relation(fields: [createdBy], references: [id])
    equipmentItems EquipmentItem[]
  }
 

@@ -91,6 +91,7 @@ async function main() {
             amount: 50000,
             status: 'Pending',
             description: 'Complete website redesign project',
+            createdBy: adminUser.id,
         },
     });
     console.log('✅ Created bid:', bid1);
@@ -102,6 +103,7 @@ async function main() {
             amount: 120000,
             status: 'Accepted',
             description: 'Cross-platform mobile application',
+            createdBy: adminUser.id,
         },
     });
     console.log('✅ Created bid:', bid2);
@@ -131,9 +133,7 @@ async function main() {
     await prisma.bid.update({
         where: { id: bid1.id },
         data: {
-            clientObjects: {
-                connect: [{ id: object1.id }, { id: object2.id }],
-            },
+            clientObjectId: object1.id,
         },
     });
 

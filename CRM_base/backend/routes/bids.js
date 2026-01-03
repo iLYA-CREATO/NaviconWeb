@@ -34,6 +34,12 @@ router.get('/', authMiddleware, async (req, res) => {
                         equipment: true,
                     },
                 },
+                creator: { // Данные создателя
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
                 equipmentItems: { // Назначенное оборудование
                     include: {
                         equipment: {
@@ -56,6 +62,7 @@ router.get('/', authMiddleware, async (req, res) => {
             status: bid.status,
             description: bid.description,
             clientObject: bid.clientObject,
+            creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             createdAt: bid.createdAt,
             updatedAt: bid.updatedAt,
         }));
@@ -76,6 +83,12 @@ router.get('/:id', authMiddleware, async (req, res) => {
             include: {
                 client: true, // Полные данные клиента
                 clientObject: true, // Полные данные объекта клиента
+                creator: { // Данные создателя
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
                 equipmentItems: { // Назначенное оборудование
                     include: {
                         equipment: true, // Полные данные типа оборудования
@@ -92,6 +105,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         res.json({
             ...bid,
             clientName: bid.client.name, // Добавляем имя клиента
+            creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             amount: parseFloat(bid.amount), // Преобразуем сумму в число
         });
     } catch (error) {
@@ -103,6 +117,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Создать новую заявку
 router.post('/', authMiddleware, async (req, res) => {
     try {
+        // Проверяем аутентификацию пользователя
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
         // Извлекаем данные из тела запроса
         const { clientId, title, amount, status, description, clientObjectId } = req.body;
 
@@ -141,6 +160,7 @@ router.post('/', authMiddleware, async (req, res) => {
                 status: status || 'Pending', // Статус (по умолчанию 'Pending')
                 description, // Описание
                 clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // ID объекта клиента (опционально)
+                createdBy: req.user.id, // ID пользователя, создавшего заявку
             },
             include: { // Включаем связанные данные в ответ
                 client: {

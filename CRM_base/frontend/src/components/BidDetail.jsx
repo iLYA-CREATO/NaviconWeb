@@ -158,115 +158,131 @@ const BidDetail = () => {
         );
     }
 
+    const formattedCreatedAt = bid.createdAt ? new Date(bid.createdAt).toLocaleString('ru-RU', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    }) : '';
+
     return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Информация о заявке</h2>
-                <button
-                    onClick={() => navigate('/dashboard/bids')}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
-                >
-                    Назад
-                </button>
-            </div>
+        <div className="flex min-h-screen">
+            <div className="flex-1 p-4">
+                <div className="flex items-center mb-6">
+                    <button
+                        onClick={() => navigate('/dashboard/bids')}
+                        className="text-black text-sm px-2 py-1 flex items-center"
+                    >
+                        <span className="text-blue-500 mr-1 font-bold">←</span> Назад
+                    </button>
+                </div>
 
-            <div className="mb-6">
-                <p className="text-gray-900 text-lg">Номер заявки № {bid.id} - {bid.title}</p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
-                        <span className={`px-2 py-1 text-sm rounded-full ${
-                            bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :
-                                bid.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                    'bg-yellow-100 text-yellow-800'
-                        }`}>
-                            {bid.status === 'Pending' ? 'В ожидании' :
-                             bid.status === 'Accepted' ? 'Принята' :
-                             bid.status === 'Rejected' ? 'Отклонена' : bid.status}
-                        </span>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
-                        <div className="flex items-center space-x-2">
-                            <p
-                                className="text-gray-900 text-lg cursor-pointer hover:text-blue-600 transition"
-                                onClick={() => navigate(`/dashboard/clients/${bid.clientId}`)}
-                            >
-                                {bid.clientName}
-                            </p>
-                            <button
-                                onClick={() => setShowChangeClientModal(true)}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
-                            >
-                                Изменить
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Объект клиента</label>
-                        <div className="flex items-center space-x-2">
-                            <div className="text-gray-900">
-                                {bid.clientObject ? (
-                                    <div>
-                                        <p className="font-medium">{bid.clientObject.brandModel}</p>
-                                        <p className="text-sm text-gray-600">Гос. номер: {bid.clientObject.stateNumber || 'N/A'}</p>
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500">Не назначен</p>
-                                )}
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
+                            <div className="flex items-center space-x-2">
+                                <p
+                                    className="text-gray-900 text-lg cursor-pointer hover:text-blue-600 transition"
+                                    onClick={() => navigate(`/dashboard/clients/${bid.clientId}`)}
+                                >
+                                    {bid.clientName}
+                                </p>
+                                <button
+                                    onClick={() => setShowChangeClientModal(true)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
+                                >
+                                    Изменить
+                                </button>
                             </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Объект клиента</label>
+                            <div className="flex items-center space-x-2">
+                                <div className="text-gray-900">
+                                    {bid.clientObject ? (
+                                        <div>
+                                            <p className="font-medium">{bid.clientObject.brandModel}</p>
+                                            <p className="text-sm text-gray-600">Гос. номер: {bid.clientObject.stateNumber || 'N/A'}</p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500">Не назначен</p>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setShowChangeClientObjectModal(true)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
+                                >
+                                    {bid.clientObject ? 'Изменить' : 'Назначить'}
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Создатель</label>
+                            <p className="text-gray-900 text-lg">{bid.creatorName}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                        <p className="text-gray-900">{bid.description}</p>
+                    </div>
+                </div>
+
+                {/* Equipment Section */}
+                <div className="bg-white rounded-lg shadow p-6 mt-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">Оборудование</h3>
+                        <div className="space-x-2">
                             <button
-                                onClick={() => setShowChangeClientObjectModal(true)}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
+                                onClick={() => setShowAssignModal(true)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                             >
-                                {bid.clientObject ? 'Изменить' : 'Назначить'}
+                                Вставить оборудование
+                            </button>
+                            <button
+                                onClick={() => setShowReturnModal(true)}
+                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                Вернуть оборудование
                             </button>
                         </div>
                     </div>
+                    {bid.equipmentItems && bid.equipmentItems.length > 0 ? (
+                        <div className="space-y-2">
+                            {bid.equipmentItems.map(item => (
+                                <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p className="font-medium">{item.equipment.name}</p>
+                                        <p className="text-sm text-gray-600">IMEI: {item.imei || 'N/A'}</p>
+                                    </div>
+                                    <p className="text-sm text-gray-600">Цена: {item.purchasePrice ? `${item.purchasePrice} руб.` : 'N/A'}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-gray-500">Оборудование не назначено</p>
+                    )}
+                </div>
+            </div>
+
+            <div className="w-64 bg-white shadow p-4 ml-4">
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Статус заявки</label>
+                    <span className={`px-2 py-1 text-sm rounded-full ${
+                        bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :
+                            bid.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
+                    }`}>
+                        {bid.status === 'Pending' ? 'В ожидании' :
+                         bid.status === 'Accepted' ? 'Принята' :
+                         bid.status === 'Rejected' ? 'Отклонена' : bid.status}
+                    </span>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                    <p className="text-gray-900">{bid.description}</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Дата и время создания</label>
+                    <p className="text-gray-900">{formattedCreatedAt}</p>
                 </div>
-            </div>
-
-            {/* Equipment Section */}
-            <div className="bg-white rounded-lg shadow p-6 mt-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Оборудование</h3>
-                    <div className="space-x-2">
-                        <button
-                            onClick={() => setShowAssignModal(true)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            Вставить оборудование
-                        </button>
-                        <button
-                            onClick={() => setShowReturnModal(true)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            Вернуть оборудование
-                        </button>
-                    </div>
-                </div>
-                {bid.equipmentItems && bid.equipmentItems.length > 0 ? (
-                    <div className="space-y-2">
-                        {bid.equipmentItems.map(item => (
-                            <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                <div>
-                                    <p className="font-medium">{item.equipment.name}</p>
-                                    <p className="text-sm text-gray-600">IMEI: {item.imei || 'N/A'}</p>
-                                </div>
-                                <p className="text-sm text-gray-600">Цена: {item.purchasePrice ? `${item.purchasePrice} руб.` : 'N/A'}</p>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-gray-500">Оборудование не назначено</p>
-                )}
             </div>
 
 
