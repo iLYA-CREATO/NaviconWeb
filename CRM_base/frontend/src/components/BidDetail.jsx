@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories } from '../services/api';
+import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 
@@ -151,7 +151,7 @@ const BidDetail = () => {
 
     const fetchSpecCategories = async () => {
         try {
-            const response = await getSpecificationCategories();
+            const response = await getSpecificationCategoriesTree();
             setSpecCategories(response.data);
         } catch (error) {
             console.error('Error fetching specification categories:', error);
@@ -751,34 +751,17 @@ const BidDetail = () => {
                                     <div
                                         key={obj.id}
                                         onClick={() => {
-                                            // Only allow selection if object is not assigned to another bid
-                                            if (!obj.bid || obj.bid.id === bid.id) {
-                                                setSelectedClientObjectId(obj.id);
-                                            }
+                                            setSelectedClientObjectId(obj.id);
                                         }}
                                         className={`p-2 rounded ${
-                                            !obj.bid || obj.bid.id === bid.id
-                                                ? selectedClientObjectId === obj.id
-                                                    ? 'bg-blue-100 cursor-pointer'
-                                                    : 'hover:bg-gray-100 cursor-pointer'
-                                                : 'bg-gray-100 cursor-not-allowed opacity-60'
+                                            selectedClientObjectId === obj.id
+                                                ? 'bg-blue-100 cursor-pointer'
+                                                : 'hover:bg-gray-100 cursor-pointer'
                                         }`}
                                     >
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-medium">{obj.brandModel}</p>
-                                                <p className="text-sm text-gray-600">Гос. номер: {obj.stateNumber || 'N/A'}</p>
-                                            </div>
-                                            {obj.bid && obj.bid.id !== bid.id && (
-                                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                                                    Занят другой заявкой
-                                                </span>
-                                            )}
-                                            {obj.bid && obj.bid.id === bid.id && (
-                                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                                    Текущая заявка
-                                                </span>
-                                            )}
+                                        <div>
+                                            <p className="font-medium">{obj.brandModel}</p>
+                                            <p className="text-sm text-gray-600">Гос. номер: {obj.stateNumber || 'N/A'}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -908,6 +891,56 @@ const SpecificationModal = ({
         setExpandedCategories(newExpanded);
     };
 
+    const CategoryTree = ({ category, specifications, selectedSpecId, setSelectedSpecId, expandedCategories, toggleCategory, level }) => {
+        const categorySpecs = specifications.filter(s => s.categoryId === category.id);
+        const hasChildren = category.children && category.children.length > 0;
+        const hasSpecs = categorySpecs.length > 0;
+        const isExpanded = expandedCategories.has(category.id);
+
+        return (
+            <div>
+                <div
+                    className="flex items-center p-3 bg-gray-50 border-b cursor-pointer hover:bg-gray-100"
+                    style={{ paddingLeft: `${12 + level * 20}px` }}
+                    onClick={() => toggleCategory(category.id)}
+                >
+                    {(hasChildren || hasSpecs) && <span className="mr-2">{isExpanded ? '▼' : '▶'}</span>}
+                    {!(hasChildren || hasSpecs) && <span className="mr-2 w-4"></span>}
+                    <span className="font-medium">{category.name}</span>
+                    <span className="ml-auto text-sm text-gray-500">({categorySpecs.length})</span>
+                </div>
+                {isExpanded && (
+                    <div>
+                        {categorySpecs.map(spec => (
+                            <div
+                                key={spec.id}
+                                className={`p-2 cursor-pointer hover:bg-blue-50 ${
+                                    selectedSpecId === spec.id.toString() ? 'bg-blue-100' : ''
+                                }`}
+                                style={{ paddingLeft: `${32 + level * 20}px` }}
+                                onClick={() => setSelectedSpecId(spec.id.toString())}
+                            >
+                                <span>{spec.name}</span>
+                            </div>
+                        ))}
+                        {category.children && category.children.map(child => (
+                            <CategoryTree
+                                key={child.id}
+                                category={child}
+                                specifications={specifications}
+                                selectedSpecId={selectedSpecId}
+                                setSelectedSpecId={setSelectedSpecId}
+                                expandedCategories={expandedCategories}
+                                toggleCategory={toggleCategory}
+                                level={level + 1}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -921,37 +954,18 @@ const SpecificationModal = ({
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Выберите спецификацию</label>
                     <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                        {specCategories.map(category => {
-                            const categorySpecs = specifications.filter(s => s.categoryId === category.id);
-                            const isExpanded = expandedCategories.has(category.id);
-                            return (
-                                <div key={category.id}>
-                                    <div
-                                        className="flex items-center p-3 bg-gray-50 border-b cursor-pointer hover:bg-gray-100"
-                                        onClick={() => toggleCategory(category.id)}
-                                    >
-                                        <span className="mr-2">{isExpanded ? '▼' : '▶'}</span>
-                                        <span className="font-medium">{category.name}</span>
-                                        <span className="ml-auto text-sm text-gray-500">({categorySpecs.length})</span>
-                                    </div>
-                                    {isExpanded && (
-                                        <div className="pl-6">
-                                            {categorySpecs.map(spec => (
-                                                <div
-                                                    key={spec.id}
-                                                    className={`p-2 cursor-pointer hover:bg-blue-50 ${
-                                                        selectedSpecId === spec.id.toString() ? 'bg-blue-100' : ''
-                                                    }`}
-                                                    onClick={() => setSelectedSpecId(spec.id.toString())}
-                                                >
-                                                    <span>{spec.name}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                        {specCategories.map(category => (
+                            <CategoryTree
+                                key={category.id}
+                                category={category}
+                                specifications={specifications}
+                                selectedSpecId={selectedSpecId}
+                                setSelectedSpecId={setSelectedSpecId}
+                                expandedCategories={expandedCategories}
+                                toggleCategory={toggleCategory}
+                                level={0}
+                            />
+                        ))}
                     </div>
                 </div>
 

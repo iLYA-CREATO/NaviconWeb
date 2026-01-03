@@ -132,6 +132,7 @@ export const deleteBidSpecification = (bidId, specId) => api.delete(`/bids/${bid
 // === КАТЕГОРИИ СПЕЦИФИКАЦИЙ ===
 // CRUD операции для категорий спецификаций
 export const getSpecificationCategories = () => api.get('/specification-categories'); // Получение всех категорий
+export const getSpecificationCategoriesTree = () => api.get('/specification-categories/tree'); // Получение дерева категорий
 export const getSpecificationCategory = (id) => api.get(`/specification-categories/${id}`); // Получение категории по ID
 export const createSpecificationCategory = (data) => api.post('/specification-categories', data); // Создание новой категории
 export const updateSpecificationCategory = (id, data) => api.put(`/specification-categories/${id}`, data); // Обновление категории

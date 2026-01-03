@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory } from '../services/api';
+import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory } from '../services/api';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -37,11 +37,15 @@ const Settings = () => {
         comment: '',
     });
     const [specificationCategories, setSpecificationCategories] = useState([]);
+    const [allSpecificationCategories, setAllSpecificationCategories] = useState([]);
+    const [expandedCategories, setExpandedCategories] = useState(new Set());
+    const [expandedSpecCategories, setExpandedSpecCategories] = useState(new Set());
     const [showSpecificationCategoryForm, setShowSpecificationCategoryForm] = useState(false);
     const [editingSpecificationCategory, setEditingSpecificationCategory] = useState(null);
     const [specificationCategoryFormData, setSpecificationCategoryFormData] = useState({
         name: '',
         description: '',
+        parentId: '',
     });
 
     useEffect(() => {
@@ -91,8 +95,12 @@ const Settings = () => {
 
     const fetchSpecificationCategories = async () => {
         try {
-            const response = await getSpecificationCategories();
-            setSpecificationCategories(response.data);
+            const [treeResponse, flatResponse] = await Promise.all([
+                getSpecificationCategoriesTree(),
+                getSpecificationCategories()
+            ]);
+            setSpecificationCategories(treeResponse.data);
+            setAllSpecificationCategories(flatResponse.data);
         } catch (error) {
             console.error('Error fetching specification categories:', error);
         }
@@ -257,6 +265,7 @@ const Settings = () => {
         setSpecificationCategoryFormData({
             name: category.name,
             description: category.description || '',
+            parentId: category.parentId ? category.parentId.toString() : '',
         });
         setShowSpecificationCategoryForm(true);
     };
@@ -272,6 +281,175 @@ const Settings = () => {
                 setNotification({ type: 'error', message: 'Ошибка при удалении категории спецификаций' });
             }
         }
+    };
+
+    const toggleCategoryExpansion = (categoryId) => {
+        setExpandedCategories(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(categoryId)) {
+                newSet.delete(categoryId);
+            } else {
+                newSet.add(categoryId);
+            }
+            return newSet;
+        });
+    };
+
+    const toggleSpecCategoryExpansion = (categoryId) => {
+        setExpandedSpecCategories(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(categoryId)) {
+                newSet.delete(categoryId);
+            } else {
+                newSet.add(categoryId);
+            }
+            return newSet;
+        });
+    };
+
+    const buildSpecificationsTree = (categories, specifications, level = 0) => {
+        return categories.map(category => {
+            const categorySpecs = specifications.filter(spec => spec.categoryId === category.id);
+            const children = category.children ? buildSpecificationsTree(category.children, specifications, level + 1) : [];
+            return {
+                ...category,
+                specifications: categorySpecs,
+                children,
+                level
+            };
+        });
+    };
+
+    const buildCategoryOptions = (categories, level = 0, excludeId = null) => {
+        const options = [];
+        categories.forEach(category => {
+            if (category.id === excludeId) return;
+            options.push({
+                id: category.id,
+                name: `${'  '.repeat(level)}${category.name}`,
+                level
+            });
+            if (category.children) {
+                options.push(...buildCategoryOptions(category.children, level + 1, excludeId));
+            }
+        });
+        return options;
+    };
+
+    const CategoryTreeItem = ({ category, level = 0 }) => {
+        const hasChildren = category.children && category.children.length > 0;
+        const isExpanded = expandedCategories.has(category.id);
+
+        return (
+            <div>
+                <div
+                    className={`flex items-center py-2 px-4 hover:bg-gray-50 cursor-pointer ${level > 0 ? 'ml-6' : ''}`}
+                    style={{ paddingLeft: `${16 + level * 24}px` }}
+                >
+                    {hasChildren && (
+                        <button
+                            onClick={() => toggleCategoryExpansion(category.id)}
+                            className="mr-2 text-gray-500 hover:text-gray-700"
+                        >
+                            {isExpanded ? '▼' : '▶'}
+                        </button>
+                    )}
+                    {!hasChildren && <span className="mr-2 w-4"></span>}
+                    <div className="flex-1">
+                        <span className="font-medium">{category.name}</span>
+                        {category.description && (
+                            <span className="text-gray-500 ml-2">({category.description})</span>
+                        )}
+                    </div>
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => handleEditSpecificationCategory(category)}
+                            className="text-blue-600 hover:text-blue-900 text-sm"
+                        >
+                            Редактировать
+                        </button>
+                        <button
+                            onClick={() => handleDeleteSpecificationCategory(category.id)}
+                            className="text-red-600 hover:text-red-900 text-sm"
+                        >
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+                {hasChildren && isExpanded && (
+                    <div>
+                        {category.children.map(child => (
+                            <CategoryTreeItem key={child.id} category={child} level={level + 1} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const SpecificationTreeItem = ({ category }) => {
+        const hasChildren = category.children && category.children.length > 0;
+        const hasSpecs = category.specifications && category.specifications.length > 0;
+        const isExpanded = expandedSpecCategories.has(category.id);
+
+        return (
+            <div>
+                <div
+                    className="flex items-center py-2 px-4 hover:bg-gray-50 cursor-pointer"
+                    style={{ paddingLeft: `${16 + category.level * 24}px` }}
+                >
+                    {(hasChildren || hasSpecs) && (
+                        <button
+                            onClick={() => toggleSpecCategoryExpansion(category.id)}
+                            className="mr-2 text-gray-500 hover:text-gray-700"
+                        >
+                            {isExpanded ? '▼' : '▶'}
+                        </button>
+                    )}
+                    {!(hasChildren || hasSpecs) && <span className="mr-2 w-4"></span>}
+                    <div className="flex-1">
+                        <span className="font-medium">{category.name}</span>
+                        {category.description && (
+                            <span className="text-gray-500 ml-2">({category.description})</span>
+                        )}
+                    </div>
+                </div>
+                {isExpanded && (
+                    <div>
+                        {category.specifications.map((spec) => (
+                            <div
+                                key={spec.id}
+                                className="flex items-center py-1 px-4 hover:bg-gray-50"
+                                style={{ paddingLeft: `${40 + category.level * 24}px` }}
+                            >
+                                <div className="flex-1 grid grid-cols-3 gap-4">
+                                    <span>{spec.name}</span>
+                                    <span>{spec.discount}%</span>
+                                    <span>{spec.cost} ₽</span>
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => handleEditSpecification(spec)}
+                                        className="text-blue-600 hover:text-blue-900 text-sm"
+                                    >
+                                        Редактировать
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteSpecification(spec.id)}
+                                        className="text-red-600 hover:text-red-900 text-sm"
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                        {category.children.map(child => (
+                            <SpecificationTreeItem key={child.id} category={child} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -555,7 +733,7 @@ const Settings = () => {
                             onClick={() => {
                                 setShowSpecificationCategoryForm(!showSpecificationCategoryForm);
                                 setEditingSpecificationCategory(null);
-                                setSpecificationCategoryFormData({ name: '', description: '' });
+                                setSpecificationCategoryFormData({ name: '', description: '', parentId: '' });
                             }}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                         >
@@ -565,37 +743,11 @@ const Settings = () => {
 
                     {!showSpecificationCategoryForm && (
                         <div className="bg-white rounded-lg shadow overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-                                </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                            <div className="divide-y divide-gray-200">
                                 {specificationCategories.map((category) => (
-                                    <tr key={category.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">{category.name}</td>
-                                        <td className="px-6 py-4">{category.description}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <button
-                                                onClick={() => handleEditSpecificationCategory(category)}
-                                                className="text-blue-600 hover:text-blue-900 mr-3"
-                                            >
-                                                Редактировать
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteSpecificationCategory(category.id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Удалить
-                                            </button>
-                                        </td>
-                                    </tr>
+                                    <CategoryTreeItem key={category.id} category={category} />
                                 ))}
-                                </tbody>
-                            </table>
+                            </div>
                         </div>
                     )}
 
@@ -614,6 +766,21 @@ const Settings = () => {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         required
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Родительская категория</label>
+                                    <select
+                                        value={specificationCategoryFormData.parentId}
+                                        onChange={(e) => setSpecificationCategoryFormData({ ...specificationCategoryFormData, parentId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Нет родителя (корневая категория)</option>
+                                        {buildCategoryOptions(specificationCategories, 0, editingSpecificationCategory?.id).map((option) => (
+                                            <option key={option.id} value={option.id}>
+                                                {option.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
@@ -663,41 +830,11 @@ const Settings = () => {
 
                     {!showSpecificationForm && (
                         <div className="bg-white rounded-lg shadow overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Категория</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Наименование</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Скидка (%)</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Стоимость</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-                                </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                {specifications.map((spec) => (
-                                    <tr key={spec.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">{spec.category.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{spec.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{spec.discount}%</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{spec.cost} ₽</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <button
-                                                onClick={() => handleEditSpecification(spec)}
-                                                className="text-blue-600 hover:text-blue-900 mr-3"
-                                            >
-                                                Редактировать
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteSpecification(spec.id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Удалить
-                                            </button>
-                                        </td>
-                                    </tr>
+                            <div className="divide-y divide-gray-200">
+                                {buildSpecificationsTree(specificationCategories, specifications).map((category) => (
+                                    <SpecificationTreeItem key={category.id} category={category} />
                                 ))}
-                                </tbody>
-                            </table>
+                            </div>
                         </div>
                     )}
 
@@ -717,7 +854,7 @@ const Settings = () => {
                                             required
                                         >
                                             <option value="">Выберите категорию</option>
-                                            {specificationCategories.map((category) => (
+                                            {allSpecificationCategories.map((category) => (
                                                 <option key={category.id} value={category.id}>
                                                     {category.name}
                                                 </option>

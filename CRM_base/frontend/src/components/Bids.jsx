@@ -125,9 +125,8 @@ const Bids = () => {
         }
         try {
             const response = await getClientObjects(clientId); // Вызов API для получения объектов клиента
-            // Фильтрация: показывать только объекты, не назначенные ни на одну заявку
-            const availableObjects = response.data.filter(obj => !obj.bid);
-            setClientObjects(availableObjects); // Сохранение доступных объектов
+            // Показывать все объекты клиента
+            setClientObjects(response.data); // Сохранение всех объектов
         } catch (error) {
             console.error('Error fetching client objects:', error); // Логирование ошибки
             setClientObjects([]); // Очистка списка при ошибке

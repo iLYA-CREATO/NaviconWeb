@@ -58,7 +58,7 @@ model ClientObject {
    createdAt   DateTime @default(now())
    updatedAt   DateTime @updatedAt
    client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-   bid         Bid?
+   bids        Bid[]
  }
 
  model Bid {
@@ -68,7 +68,7 @@ model ClientObject {
    amount      Decimal  @db.Decimal(10, 2)
    status      String   @default("Pending")
    description String?
-   clientObjectId Int? @unique
+   clientObjectId Int?
    createdBy   Int
    createdAt   DateTime @default(now())
    updatedAt   DateTime @updatedAt
@@ -114,8 +114,11 @@ model Comment {
 
 model SpecificationCategory {
   id            Int            @id @default(autoincrement())
-  name          String         @unique
+  name          String
   description   String?
+  parentId      Int?
+  parent        SpecificationCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children      SpecificationCategory[] @relation("CategoryHierarchy")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   specifications Specification[]

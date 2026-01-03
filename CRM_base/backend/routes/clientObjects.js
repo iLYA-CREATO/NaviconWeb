@@ -21,7 +21,7 @@ router.get('/', authMiddleware, async (req, res) => {
                         name: true,
                     },
                 },
-                bid: {
+                bids: {
                     select: {
                         id: true,
                         tema: true,
@@ -49,7 +49,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
                         name: true,
                     },
                 },
-                bid: {
+                bids: {
                     select: {
                         id: true,
                         tema: true,

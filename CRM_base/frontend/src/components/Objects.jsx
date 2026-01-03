@@ -180,11 +180,13 @@ const Objects = () => {
                                         <td className="px-6 py-4 whitespace-nowrap">{obj.stateNumber}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">{obj.equipment || 'Не указано'}</td>
                                         <td className="px-6 py-4">
-                                            {obj.bid ? (
+                                            {obj.bids && obj.bids.length > 0 ? (
                                                 <div className="flex flex-wrap gap-1">
-                                                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                                        {obj.bid.title}
-                                                    </span>
+                                                    {obj.bids.map(bid => (
+                                                        <span key={bid.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                                            {bid.tema}
+                                                        </span>
+                                                    ))}
                                                 </div>
                                             ) : (
                                                 <span className="text-gray-500">Нет заявок</span>

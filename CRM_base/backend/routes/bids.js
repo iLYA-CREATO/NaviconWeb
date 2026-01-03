@@ -57,7 +57,7 @@ router.get('/', authMiddleware, async (req, res) => {
             id: bid.id,
             clientId: bid.clientId,
             clientName: bid.client.name, // Добавляем имя клиента отдельно
-            tema: bid.tema,
+            title: bid.tema,
             amount: parseFloat(bid.amount), // Преобразуем в число
             status: bid.status,
             description: bid.description,
@@ -104,6 +104,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         // Отправляем данные заявки с дополнительными полями
         res.json({
             ...bid,
+            title: bid.tema, // Для совместимости с фронтендом
             clientName: bid.client.name, // Добавляем имя клиента
             creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             amount: parseFloat(bid.amount), // Преобразуем сумму в число
@@ -155,7 +156,7 @@ router.post('/', authMiddleware, async (req, res) => {
         const newBid = await prisma.bid.create({
             data: {
                 clientId: parseInt(clientId), // ID клиента
-                title, // Заголовок заявки
+                tema: title, // Заголовок заявки
                 amount: parseFloat(amount || 0), // Сумма (по умолчанию 0)
                 status: status || 'Pending', // Статус (по умолчанию 'Pending')
                 description, // Описание
@@ -235,7 +236,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
             where: { id: parseInt(req.params.id) },
             data: {
                 ...(clientId && { clientId: parseInt(clientId) }), // Обновляем клиента если указано
-                ...(title && { title }), // Обновляем заголовок если указано
+                ...(title && { tema: title }), // Обновляем заголовок если указано
                 ...(amount !== undefined && { amount: parseFloat(amount) }), // Обновляем сумму если указано
                 ...(status && { status }), // Обновляем статус если указано
                 ...(description !== undefined && { description }), // Обновляем описание если указано

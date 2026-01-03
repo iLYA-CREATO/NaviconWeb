@@ -38,6 +38,31 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
+// Получить дерево категорий
+router.get('/tree', authenticateToken, async (req, res) => {
+    try {
+        const categories = await prisma.specificationCategory.findMany({
+            include: {
+                children: {
+                    include: {
+                        children: true, // Рекурсивно включаем детей
+                    },
+                },
+            },
+            where: {
+                parentId: null, // Только корневые категории
+            },
+            orderBy: {
+                name: 'asc',
+            },
+        });
+        res.json(categories);
+    } catch (error) {
+        console.error('Error fetching specification categories tree:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Получить категорию по ID
 router.get('/:id', authenticateToken, async (req, res) => {
     try {
@@ -57,12 +82,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Создать категорию
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name, description, parentId } = req.body;
 
         const category = await prisma.specificationCategory.create({
             data: {
                 name,
                 description,
+                parentId: parentId ? parseInt(parentId) : null,
             },
         });
         res.status(201).json(category);
@@ -79,13 +105,14 @@ router.post('/', authenticateToken, async (req, res) => {
 // Обновить категорию
 router.put('/:id', authenticateToken, async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name, description, parentId } = req.body;
 
         const category = await prisma.specificationCategory.update({
             where: { id: parseInt(req.params.id) },
             data: {
                 name,
                 description,
+                parentId: parentId ? parseInt(parentId) : null,
             },
         });
         res.json(category);
