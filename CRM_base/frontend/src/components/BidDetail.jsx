@@ -1,9 +1,20 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects } from '../services/api';
+/**
+ * Компонент BidDetail - отображает детали заявки (bid), позволяет управлять оборудованием,
+ * изменять клиента, объект клиента и статус заявки.
+ */
 
+// Импорты React хуков для управления состоянием и эффектами
+import { useState, useEffect } from 'react';
+// Импорты из React Router для получения параметров URL и навигации
+import { useParams, useNavigate } from 'react-router-dom';
+// Импорты функций API для взаимодействия с сервером
+import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment } from '../services/api';
+
+// Основной компонент BidDetail
 const BidDetail = () => {
+    // Получение ID заявки из параметров URL
     const { id } = useParams();
+    // Хук для навигации между страницами
     const navigate = useNavigate();
     const [bid, setBid] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -23,11 +34,16 @@ const BidDetail = () => {
     const [selectedClientObjectId, setSelectedClientObjectId] = useState('');
     const [showChangeClientObjectModal, setShowChangeClientObjectModal] = useState(false);
     const [searchClientObject, setSearchClientObject] = useState('');
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [activeTab, setActiveTab] = useState('comments');
+    const [comments, setComments] = useState([]);
+    const [newComment, setNewComment] = useState('');
 
     useEffect(() => {
         fetchBid();
         fetchAvailableEquipment();
         fetchAvailableClients();
+        fetchComments();
     }, [id]);
 
     useEffect(() => {
@@ -79,6 +95,15 @@ const BidDetail = () => {
             setAvailableClientObjects(response.data);
         } catch (error) {
             console.error('Error fetching client objects:', error);
+        }
+    };
+
+    const fetchComments = async () => {
+        try {
+            const response = await getComments(id);
+            setComments(response.data);
+        } catch (error) {
+            console.error('Error fetching comments:', error);
         }
     };
 
@@ -136,6 +161,28 @@ const BidDetail = () => {
         }
     };
 
+    const handleChangeStatus = async (newStatus) => {
+        try {
+            await updateBid(id, { status: newStatus });
+            setShowStatusModal(false);
+            fetchBid();
+        } catch (error) {
+            console.error('Error changing status:', error);
+        }
+    };
+
+    const handleSubmitComment = async (e) => {
+        e.preventDefault();
+        if (!newComment.trim()) return;
+        try {
+            await createComment(id, { content: newComment });
+            setNewComment('');
+            fetchComments();
+        } catch (error) {
+            console.error('Error creating comment:', error);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -169,16 +216,16 @@ const BidDetail = () => {
     return (
         <div className="flex min-h-screen">
             <div className="flex-1 p-4">
-                <div className="flex items-center mb-6">
+                <div className="flex items-center">
                     <button
                         onClick={() => navigate('/dashboard/bids')}
-                        className="text-black text-sm px-2 py-1 flex items-center"
+                        className="w-full text-black text-sm px-2 py-1 flex items-center"
                     >
                         <span className="text-blue-500 mr-1 font-bold">←</span> Назад
                     </button>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-white rounded-lg shadow p-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
@@ -198,7 +245,7 @@ const BidDetail = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Объект клиента</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Объект обслуживания</label>
                             <div className="flex items-center space-x-2">
                                 <div className="text-gray-900">
                                     {bid.clientObject ? (
@@ -230,7 +277,7 @@ const BidDetail = () => {
                 </div>
 
                 {/* Equipment Section */}
-                <div className="bg-white rounded-lg shadow p-6 mt-6">
+                <div className="bg-white rounded-lg shadow p-4 mt-6">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold text-gray-800">Оборудование</h3>
                         <div className="space-x-2">
@@ -264,23 +311,116 @@ const BidDetail = () => {
                         <p className="text-gray-500">Оборудование не назначено</p>
                     )}
                 </div>
+
+                {/* Tabs Section */}
+                <div className="bg-white rounded-lg shadow p-4 mt-6">
+                    <div className="border-b border-gray-200">
+                        <nav className="-mb-px flex space-x-8">
+                            {[
+                                { id: 'comments', label: 'Коментарии' },
+                                { id: 'files', label: 'Файлы' },
+                                { id: 'nested', label: 'Вложенные заявки' },
+                                { id: 'spec', label: 'Спецификация' },
+                                { id: 'print', label: 'Печатная форма' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === tab.id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+                    <div className="mt-4">
+                        {activeTab === 'comments' && (
+                            <div>
+                                <div className="mb-4">
+                                    <form onSubmit={handleSubmitComment} className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newComment}
+                                            onChange={(e) => setNewComment(e.target.value)}
+                                            placeholder="Напишите комментарий..."
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                        >
+                                            Добавить
+                                        </button>
+                                    </form>
+                                </div>
+                                <div className="space-y-4">
+                                    {comments.length > 0 ? (
+                                        comments.map(comment => (
+                                            <div key={comment.id} className="bg-gray-50 p-4 rounded-lg">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <p className="font-medium text-gray-900">{comment.user.fullName}</p>
+                                                    <p className="text-sm text-gray-500">
+                                                        {new Date(comment.createdAt).toLocaleString('ru-RU', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: '2-digit',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                                <p className="text-gray-700">{comment.content}</p>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 text-center py-4">Комментариев пока нет</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        {activeTab === 'files' && (
+                            <div className="text-center py-8">
+                                <p className="text-gray-500">Файлы в разработке</p>
+                            </div>
+                        )}
+                        {activeTab === 'nested' && (
+                            <div className="text-center py-8">
+                                <p className="text-gray-500">Вложенные заявки в разработке</p>
+                            </div>
+                        )}
+                        {activeTab === 'spec' && (
+                            <div className="text-center py-8">
+                                <p className="text-gray-500">Спецификация в разработке</p>
+                            </div>
+                        )}
+                        {activeTab === 'print' && (
+                            <div className="text-center py-8">
+                                <p className="text-gray-500">Печатная форма в разработке</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            <div className="w-64 bg-white shadow p-4 ml-4">
+            <div className="w-64 bg-white shadow px-4 pb-4 pt-0 ml-4">
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Статус заявки</label>
-                    <span className={`px-2 py-1 text-sm rounded-full ${
-                        bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :
-                            bid.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
-                    }`}>
+                    <div className={`w-full pb-2 pt-0 text-lg text-left text-white cursor-pointer ${
+                        bid.status === 'Accepted' ? 'bg-green-500' :
+                            bid.status === 'Rejected' ? 'bg-red-500' :
+                                'bg-yellow-500'
+                    }`} onClick={() => setShowStatusModal(true)}>
                         {bid.status === 'Pending' ? 'В ожидании' :
                          bid.status === 'Accepted' ? 'Принята' :
                          bid.status === 'Rejected' ? 'Отклонена' : bid.status}
-                    </span>
+                    </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Дата и время создания</label>
+                    <label className="block text-xs text-gray-500 mb-1">Дата и время создания</label>
                     <p className="text-gray-900">{formattedCreatedAt}</p>
                 </div>
             </div>
@@ -452,7 +592,7 @@ const BidDetail = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <h3 className="text-lg font-semibold mb-4">
-                            {bid.clientObject ? 'Изменить объект клиента' : 'Назначить объект клиента'}
+                            {bid.clientObject ? 'Изменить объект обслуживания' : 'Назначить объект обслуживания'}
                         </h3>
                         <input
                             type="text"
@@ -525,6 +665,43 @@ const BidDetail = () => {
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
                             >
                                 {bid.clientObject ? 'Изменить' : 'Назначить'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Status Modal */}
+            {showStatusModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-lg font-semibold mb-4">Изменить статус</h3>
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => handleChangeStatus('Pending')}
+                                className="w-full text-left p-2 hover:bg-gray-100"
+                            >
+                                В ожидании
+                            </button>
+                            <button
+                                onClick={() => handleChangeStatus('Accepted')}
+                                className="w-full text-left p-2 hover:bg-gray-100"
+                            >
+                                Принята
+                            </button>
+                            <button
+                                onClick={() => handleChangeStatus('Rejected')}
+                                className="w-full text-left p-2 hover:bg-gray-100"
+                            >
+                                Отклонена
+                            </button>
+                        </div>
+                        <div className="flex justify-end mt-4">
+                            <button
+                                onClick={() => setShowStatusModal(false)}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                            >
+                                Отмена
                             </button>
                         </div>
                     </div>

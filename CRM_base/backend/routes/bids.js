@@ -369,4 +369,88 @@ router.post('/:id/equipment/return', authMiddleware, async (req, res) => {
     }
 });
 
+// Получить комментарии к заявке
+router.get('/:id/comments', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+
+        // Проверяем существование заявки
+        const bid = await prisma.bid.findUnique({
+            where: { id: bidId },
+        });
+
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Получаем комментарии с данными пользователя
+        const comments = await prisma.comment.findMany({
+            where: { bidId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        res.json(comments);
+    } catch (error) {
+        console.error('Get comments error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Добавить комментарий к заявке
+router.post('/:id/comments', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        const { content } = req.body;
+
+        // Проверяем аутентификацию
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        // Проверяем существование заявки
+        const bid = await prisma.bid.findUnique({
+            where: { id: bidId },
+        });
+
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Проверяем содержание комментария
+        if (!content || content.trim() === '') {
+            return res.status(400).json({ message: 'Comment content is required' });
+        }
+
+        // Создаем комментарий
+        const comment = await prisma.comment.create({
+            data: {
+                bidId,
+                userId: req.user.id,
+                content: content.trim(),
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+        });
+
+        res.status(201).json(comment);
+    } catch (error) {
+        console.error('Create comment error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

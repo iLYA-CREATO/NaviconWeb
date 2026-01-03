@@ -75,6 +75,8 @@ export const updateBid = (id, data) => api.put(`/bids/${id}`, data); // Обно
 export const deleteBid = (id) => api.delete(`/bids/${id}`); // Удаление заявки
 export const assignEquipmentToBid = (bidId, data) => api.post(`/bids/${bidId}/equipment`, data); // Назначение оборудования на заявку
 export const returnEquipmentFromBid = (bidId, data) => api.post(`/bids/${bidId}/equipment/return`, data); // Возврат оборудования с заявки
+export const getComments = (bidId) => api.get(`/bids/${bidId}/comments`); // Получение комментариев к заявке
+export const createComment = (bidId, data) => api.post(`/bids/${bidId}/comments`, data); // Создание комментария к заявке
 
 // === ОБОРУДОВАНИЕ ===
 // CRUD операции для оборудования

@@ -24,6 +24,7 @@ model User {
   updatedAt DateTime @updatedAt
   clients   Client[]
   bids      Bid[]
+  comments  Comment[]
 }
 
 model Role {
@@ -74,6 +75,7 @@ model ClientObject {
    clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
    creator     User     @relation(fields: [createdBy], references: [id])
    equipmentItems EquipmentItem[]
+   comments    Comment[]
  }
 
 model Equipment {
@@ -96,4 +98,14 @@ model EquipmentItem {
   createdAt     DateTime @default(now())
   equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
   bid           Bid?     @relation(fields: [bidId], references: [id])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  bidId     Int
+  userId    Int
+  content   String
+  createdAt DateTime @default(now())
+  bid       Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
