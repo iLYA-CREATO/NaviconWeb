@@ -1,21 +1,32 @@
+/**
+ * Маршруты для работы с заявками (Bids)
+ *
+ * Этот модуль содержит все API endpoints для CRUD операций с заявками,
+ * а также для назначения и возврата оборудования на заявки.
+ */
+
+// Импорт Express для создания маршрутов
 const express = require('express');
 const router = express.Router();
+// Импорт middleware для аутентификации
 const authMiddleware = require('../middleware/auth');
+// Импорт Prisma клиента для работы с базой данных
 const prisma = require('../prisma/client');
 
-// Get all bids
+// Получить все заявки
 router.get('/', authMiddleware, async (req, res) => {
     try {
+        // Получаем все заявки из базы данных, сортируем по дате создания (новые сначала)
         const bids = await prisma.bid.findMany({
-            orderBy: { createdAt: 'desc' },
-            include: {
-                client: {
+            orderBy: { createdAt: 'desc' }, // Сортировка по убыванию даты
+            include: { // Включаем связанные данные
+                client: { // Данные клиента
                     select: {
                         id: true,
                         name: true,
                     },
                 },
-                clientObject: {
+                clientObject: { // Данные объекта клиента (автомобиль)
                     select: {
                         id: true,
                         brandModel: true,
@@ -23,11 +34,11 @@ router.get('/', authMiddleware, async (req, res) => {
                         equipment: true,
                     },
                 },
-                equipmentItems: {
+                equipmentItems: { // Назначенное оборудование
                     include: {
                         equipment: {
                             select: {
-                                name: true,
+                                name: true, // Название типа оборудования
                             },
                         },
                     },
@@ -35,13 +46,13 @@ router.get('/', authMiddleware, async (req, res) => {
             },
         });
 
-        // Format response to match frontend expectations
+        // Форматируем ответ для соответствия ожиданиям фронтенда
         const formattedBids = bids.map(bid => ({
             id: bid.id,
             clientId: bid.clientId,
-            clientName: bid.client.name,
+            clientName: bid.client.name, // Добавляем имя клиента отдельно
             title: bid.title,
-            amount: parseFloat(bid.amount),
+            amount: parseFloat(bid.amount), // Преобразуем в число
             status: bid.status,
             description: bid.description,
             clientObject: bid.clientObject,
@@ -49,37 +60,39 @@ router.get('/', authMiddleware, async (req, res) => {
             updatedAt: bid.updatedAt,
         }));
 
-        res.json(formattedBids);
+        res.json(formattedBids); // Отправляем отформатированные данные
     } catch (error) {
         console.error('Get bids error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
-// Get single bid
+// Получить одну заявку по ID
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
+        // Ищем заявку по ID с полными связанными данными
         const bid = await prisma.bid.findUnique({
-            where: { id: parseInt(req.params.id) },
+            where: { id: parseInt(req.params.id) }, // Преобразуем ID в число
             include: {
-                client: true,
-                clientObject: true,
-                equipmentItems: {
+                client: true, // Полные данные клиента
+                clientObject: true, // Полные данные объекта клиента
+                equipmentItems: { // Назначенное оборудование
                     include: {
-                        equipment: true,
+                        equipment: true, // Полные данные типа оборудования
                     },
                 },
             },
         });
 
         if (!bid) {
-            return res.status(404).json({ message: 'Bid not found' });
+            return res.status(404).json({ message: 'Bid not found' }); // Заявка не найдена
         }
 
+        // Отправляем данные заявки с дополнительными полями
         res.json({
             ...bid,
-            clientName: bid.client.name,
-            amount: parseFloat(bid.amount),
+            clientName: bid.client.name, // Добавляем имя клиента
+            amount: parseFloat(bid.amount), // Преобразуем сумму в число
         });
     } catch (error) {
         console.error('Get bid error:', error);
@@ -87,58 +100,63 @@ router.get('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Create bid
+// Создать новую заявку
 router.post('/', authMiddleware, async (req, res) => {
     try {
+        // Извлекаем данные из тела запроса
         const { clientId, title, amount, status, description, clientObjectId } = req.body;
 
-        // Check if client exists
+        // Проверяем существование клиента
         const client = await prisma.client.findUnique({
             where: { id: parseInt(clientId) },
         });
 
         if (!client) {
-            return res.status(404).json({ message: 'Client not found' });
+            return res.status(404).json({ message: 'Client not found' }); // Клиент не найден
         }
 
-        // If clientObjectId provided, check it belongs to the client and is not already assigned
+        // Если указан объект клиента, проверяем его принадлежность и доступность
         if (clientObjectId) {
             const clientObject = await prisma.clientObject.findUnique({
                 where: { id: parseInt(clientObjectId) },
             });
 
+            // Проверяем, что объект принадлежит этому клиенту
             if (!clientObject || clientObject.clientId !== parseInt(clientId)) {
                 return res.status(400).json({ message: 'Client object does not belong to this client' });
             }
 
+            // Проверяем, что объект не назначен на другую заявку
             if (clientObject.bidId) {
                 return res.status(400).json({ message: 'Client object is already assigned to another bid' });
             }
         }
 
+        // Создаем новую заявку в базе данных
         const newBid = await prisma.bid.create({
             data: {
-                clientId: parseInt(clientId),
-                title,
-                amount: parseFloat(amount || 0),
-                status: status || 'Pending',
-                description,
-                clientObjectId: clientObjectId ? parseInt(clientObjectId) : null,
+                clientId: parseInt(clientId), // ID клиента
+                title, // Заголовок заявки
+                amount: parseFloat(amount || 0), // Сумма (по умолчанию 0)
+                status: status || 'Pending', // Статус (по умолчанию 'Pending')
+                description, // Описание
+                clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // ID объекта клиента (опционально)
             },
-            include: {
+            include: { // Включаем связанные данные в ответ
                 client: {
                     select: {
-                        name: true,
+                        name: true, // Только имя клиента
                     },
                 },
-                clientObject: true,
+                clientObject: true, // Данные объекта клиента
             },
         });
 
+        // Отправляем созданную заявку с дополнительными полями
         res.status(201).json({
             ...newBid,
-            clientName: newBid.client.name,
-            amount: parseFloat(newBid.amount),
+            clientName: newBid.client.name, // Добавляем имя клиента
+            amount: parseFloat(newBid.amount), // Преобразуем сумму в число
         });
     } catch (error) {
         console.error('Create bid error:', error);
@@ -146,12 +164,12 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 });
 
-// Update bid
+// Обновить заявку
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const { clientId, title, amount, status, description, clientObjectId } = req.body;
 
-        // If clientId is being changed, verify new client exists
+        // Если меняется клиент, проверяем его существование
         if (clientId) {
             const client = await prisma.client.findUnique({
                 where: { id: parseInt(clientId) },
@@ -162,7 +180,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
             }
         }
 
-        // Get current bid to check client
+        // Получаем текущую заявку для проверки
         const currentBid = await prisma.bid.findUnique({
             where: { id: parseInt(req.params.id) },
             include: { client: true },
@@ -172,32 +190,36 @@ router.put('/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Bid not found' });
         }
 
+        // Определяем целевой ID клиента (новый или текущий)
         const targetClientId = clientId ? parseInt(clientId) : currentBid.clientId;
 
-        // If clientObjectId provided, check it belongs to the target client and is not already assigned to another bid
+        // Если указан объект клиента, проверяем его принадлежность и доступность
         if (clientObjectId) {
             const clientObject = await prisma.clientObject.findUnique({
                 where: { id: parseInt(clientObjectId) },
             });
 
+            // Проверяем принадлежность целевому клиенту
             if (!clientObject || clientObject.clientId !== targetClientId) {
                 return res.status(400).json({ message: 'Client object does not belong to the target client' });
             }
 
+            // Проверяем, что объект не назначен на другую заявку (кроме текущей)
             if (clientObject.bidId && clientObject.bidId !== parseInt(req.params.id)) {
                 return res.status(400).json({ message: 'Client object is already assigned to another bid' });
             }
         }
 
+        // Обновляем заявку в базе данных
         const updatedBid = await prisma.bid.update({
             where: { id: parseInt(req.params.id) },
             data: {
-                ...(clientId && { clientId: parseInt(clientId) }),
-                ...(title && { title }),
-                ...(amount !== undefined && { amount: parseFloat(amount) }),
-                ...(status && { status }),
-                ...(description !== undefined && { description }),
-                clientObjectId: clientObjectId ? parseInt(clientObjectId) : null,
+                ...(clientId && { clientId: parseInt(clientId) }), // Обновляем клиента если указано
+                ...(title && { title }), // Обновляем заголовок если указано
+                ...(amount !== undefined && { amount: parseFloat(amount) }), // Обновляем сумму если указано
+                ...(status && { status }), // Обновляем статус если указано
+                ...(description !== undefined && { description }), // Обновляем описание если указано
+                clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // Обновляем объект клиента
             },
             include: {
                 client: {
@@ -209,13 +231,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
             },
         });
 
+        // Отправляем обновленную заявку
         res.json({
             ...updatedBid,
             clientName: updatedBid.client.name,
             amount: parseFloat(updatedBid.amount),
         });
     } catch (error) {
-        if (error.code === 'P2025') {
+        if (error.code === 'P2025') { // Ошибка Prisma: запись не найдена
             return res.status(404).json({ message: 'Bid not found' });
         }
         console.error('Update bid error:', error);
@@ -223,7 +246,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Delete bid
+// Удалить заявку
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const deletedBid = await prisma.bid.delete({
@@ -246,13 +269,13 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Assign equipment to bid
+// Назначить оборудование на заявку
 router.post('/:id/equipment', authMiddleware, async (req, res) => {
     try {
         const bidId = parseInt(req.params.id);
         const { equipmentItemIds } = req.body;
 
-        // Check if bid exists
+        // Проверяем существование заявки
         const bid = await prisma.bid.findUnique({
             where: { id: bidId },
         });
@@ -261,11 +284,11 @@ router.post('/:id/equipment', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Bid not found' });
         }
 
-        // Check if equipment items exist and are not already assigned
+        // Проверяем существование и доступность элементов оборудования
         const items = await prisma.equipmentItem.findMany({
             where: {
                 id: { in: equipmentItemIds },
-                bidId: null, // Only assign unassigned items
+                bidId: null, // Назначаем только неназначенные элементы
             },
         });
 
@@ -273,7 +296,7 @@ router.post('/:id/equipment', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Some equipment items not found or already assigned' });
         }
 
-        // Assign items to bid
+        // Назначаем элементы на заявку
         await prisma.equipmentItem.updateMany({
             where: { id: { in: equipmentItemIds } },
             data: { bidId },
@@ -286,13 +309,13 @@ router.post('/:id/equipment', authMiddleware, async (req, res) => {
     }
 });
 
-// Return equipment from bid
+// Вернуть оборудование с заявки
 router.post('/:id/equipment/return', authMiddleware, async (req, res) => {
     try {
         const bidId = parseInt(req.params.id);
         const { equipmentItemIds } = req.body;
 
-        // Check if bid exists
+        // Проверяем существование заявки
         const bid = await prisma.bid.findUnique({
             where: { id: bidId },
         });
@@ -301,7 +324,7 @@ router.post('/:id/equipment/return', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Bid not found' });
         }
 
-        // Check if equipment items are assigned to this bid
+        // Проверяем, что элементы назначены на эту заявку
         const items = await prisma.equipmentItem.findMany({
             where: {
                 id: { in: equipmentItemIds },
@@ -313,7 +336,7 @@ router.post('/:id/equipment/return', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Some equipment items not found or not assigned to this bid' });
         }
 
-        // Return items (set bidId to null)
+        // Возвращаем элементы (устанавливаем bidId в null)
         await prisma.equipmentItem.updateMany({
             where: { id: { in: equipmentItemIds } },
             data: { bidId: null },

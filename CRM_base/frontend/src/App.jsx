@@ -1,6 +1,17 @@
+/**
+ * Главный компонент приложения App
+ *
+ * Этот компонент настраивает маршрутизацию всего приложения,
+ * предоставляет контекст аутентификации и определяет все доступные маршруты.
+ */
+
+// Импорт компонентов маршрутизации из React Router
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// Импорт провайдера аутентификации
 import { AuthProvider } from './context/AuthContext.jsx';
+// Импорт компонента защищенного маршрута
 import ProtectedRoute from './components/ProtectedRoute';
+// Импорт всех компонентов страниц
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Clients from './components/Clients';
@@ -13,15 +24,20 @@ import Equipment from './components/Equipment';
 import EquipmentDetail from './components/EquipmentDetail';
 import EquipmentArrival from './components/EquipmentArrival';
 import Settings from './components/Settings';
+// Импорт глобальных стилей
 import './index.css';
 
 function App() {
     return (
+        // BrowserRouter для клиентской маршрутизации
         <Router>
+            {/* Провайдер контекста аутентификации для всего приложения */}
             <AuthProvider>
                 <Routes>
+                    {/* Маршрут для страницы входа (доступен без аутентификации) */}
                     <Route path="/login" element={<Login />} />
 
+                    {/* Защищенный маршрут для дашборда (требует аутентификации) */}
                     <Route
                         path="/dashboard"
                         element={
@@ -30,20 +46,23 @@ function App() {
                             </ProtectedRoute>
                         }
                     >
-                        <Route index element={<Navigate to="/dashboard/clients" replace />} />
-                        <Route path="clients" element={<Clients />} />
-                        <Route path="clients/:id" element={<ClientDetail />} />
-                        <Route path="client-objects/:id" element={<ClientObjectDetail />} />
-                        <Route path="objects" element={<Objects />} />
-                        <Route path="bids" element={<Bids />} />
-                        <Route path="bids/:id" element={<BidDetail />} />
-                        <Route path="equipment" element={<Equipment />} />
-                        <Route path="equipment/:id" element={<EquipmentDetail />} />
-                        <Route path="equipment/arrival" element={<EquipmentArrival />} />
-                        <Route path="settings" element={<Settings />} />
+                        {/* Вложенные маршруты дашборда (отображаются в Outlet компонента Dashboard) */}
+                        <Route index element={<Navigate to="/dashboard/clients" replace />} /> {/* Перенаправление по умолчанию */}
+                        <Route path="clients" element={<Clients />} /> {/* Список клиентов */}
+                        <Route path="clients/:id" element={<ClientDetail />} /> {/* Детали клиента */}
+                        <Route path="client-objects/:id" element={<ClientObjectDetail />} /> {/* Детали объекта клиента */}
+                        <Route path="objects" element={<Objects />} /> {/* Список объектов клиентов */}
+                        <Route path="bids" element={<Bids />} /> {/* Список заявок */}
+                        <Route path="bids/:id" element={<BidDetail />} /> {/* Детали заявки */}
+                        <Route path="equipment" element={<Equipment />} /> {/* Список оборудования */}
+                        <Route path="equipment/:id" element={<EquipmentDetail />} /> {/* Детали оборудования */}
+                        <Route path="equipment/arrival" element={<EquipmentArrival />} /> {/* Приход оборудования */}
+                        <Route path="settings" element={<Settings />} /> {/* Настройки */}
                     </Route>
 
+                    {/* Перенаправление с корневого пути на дашборд */}
                     <Route path="/" element={<Navigate to="/dashboard/clients" replace />} />
+                    {/* Перенаправление для всех неизвестных маршрутов */}
                     <Route path="*" element={<Navigate to="/dashboard/clients" replace />} />
                 </Routes>
             </AuthProvider>

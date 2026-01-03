@@ -1,98 +1,116 @@
+/**
+ * API Service Module
+ *
+ * Этот модуль настраивает Axios для взаимодействия с backend API.
+ * Включает интерцепторы для автоматического добавления токена и обработки ошибок аутентификации.
+ * Экспортирует функции для всех API endpoints.
+ */
+
+// Импорт Axios для HTTP запросов
 import axios from 'axios';
 
+// Базовый URL для API (проксируется через Vite)
 const API_URL = '/api';
 
+// Создание экземпляра Axios с базовой конфигурацией
 const api = axios.create({
     baseURL: API_URL,
     headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json', // Установка типа контента по умолчанию
     },
 });
 
-// Add token to requests
+// Интерцептор запросов: добавление токена аутентификации
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token'); // Получение токена из localStorage
         if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+            config.headers.Authorization = `Bearer ${token}`; // Добавление токена в заголовок
         }
         return config;
     },
     (error) => {
-        return Promise.reject(error);
+        return Promise.reject(error); // Пропуск ошибки дальше
     }
 );
 
-// Handle 401 responses
+// Интерцептор ответов: обработка ошибок аутентификации
 api.interceptors.response.use(
-    (response) => response,
+    (response) => response, // Успешный ответ пропускается
     (error) => {
-        if (error.response && error.response.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+        if (error.response && error.response.status === 401) { // Если 401 Unauthorized
+            localStorage.removeItem('token'); // Удаление токена
+            localStorage.removeItem('user'); // Удаление данных пользователя
+            window.location.href = '/login'; // Перенаправление на страницу входа
         }
-        return Promise.reject(error);
+        return Promise.reject(error); // Пропуск ошибки дальше
     }
 );
 
-// Auth
-export const login = (credentials) => api.post('/auth/login', credentials);
-export const register = (userData) => api.post('/auth/register', userData);
-export const getMe = () => api.get('/auth/me');
+// === АУТЕНТИФИКАЦИЯ ===
+// Функции для входа, регистрации и получения текущего пользователя
+export const login = (credentials) => api.post('/auth/login', credentials); // Вход в систему
+export const register = (userData) => api.post('/auth/register', userData); // Регистрация нового пользователя
+export const getMe = () => api.get('/auth/me'); // Получение данных текущего пользователя
 
-// Clients
+// === КЛИЕНТЫ ===
+// CRUD операции для клиентов
 export const getClients = (search = '', responsibleId = '') => {
     const params = {};
-    if (search) params.name = search;
-    if (responsibleId) params.responsibleId = responsibleId;
+    if (search) params.name = search; // Поиск по имени
+    if (responsibleId) params.responsibleId = responsibleId; // Фильтр по ответственному
     return api.get('/clients', { params });
 };
-export const getClient = (id) => api.get(`/clients/${id}`);
-export const createClient = (data) => api.post('/clients', data);
-export const updateClient = (id, data) => api.put(`/clients/${id}`, data);
-export const deleteClient = (id) => api.delete(`/clients/${id}`);
+export const getClient = (id) => api.get(`/clients/${id}`); // Получение клиента по ID
+export const createClient = (data) => api.post('/clients', data); // Создание нового клиента
+export const updateClient = (id, data) => api.put(`/clients/${id}`, data); // Обновление клиента
+export const deleteClient = (id) => api.delete(`/clients/${id}`); // Удаление клиента
 
-// Bids
-export const getBids = () => api.get('/bids');
-export const getBid = (id) => api.get(`/bids/${id}`);
-export const createBid = (data) => api.post('/bids', data);
-export const updateBid = (id, data) => api.put(`/bids/${id}`, data);
-export const deleteBid = (id) => api.delete(`/bids/${id}`);
-export const assignEquipmentToBid = (bidId, data) => api.post(`/bids/${bidId}/equipment`, data);
-export const returnEquipmentFromBid = (bidId, data) => api.post(`/bids/${bidId}/equipment/return`, data);
+// === ЗАЯВКИ ===
+// CRUD операции для заявок
+export const getBids = () => api.get('/bids'); // Получение всех заявок
+export const getBid = (id) => api.get(`/bids/${id}`); // Получение заявки по ID
+export const createBid = (data) => api.post('/bids', data); // Создание новой заявки
+export const updateBid = (id, data) => api.put(`/bids/${id}`, data); // Обновление заявки
+export const deleteBid = (id) => api.delete(`/bids/${id}`); // Удаление заявки
+export const assignEquipmentToBid = (bidId, data) => api.post(`/bids/${bidId}/equipment`, data); // Назначение оборудования на заявку
+export const returnEquipmentFromBid = (bidId, data) => api.post(`/bids/${bidId}/equipment/return`, data); // Возврат оборудования с заявки
 
-// Equipment
-export const getEquipment = () => api.get('/equipment');
-export const getEquipmentItem = (id) => api.get(`/equipment/${id}`);
-export const createEquipment = (data) => api.post('/equipment', data);
-export const updateEquipment = (id, data) => api.put(`/equipment/${id}`, data);
-export const deleteEquipment = (id) => api.delete(`/equipment/${id}`);
-export const createEquipmentItems = (id, data) => api.post(`/equipment/${id}/items`, data);
+// === ОБОРУДОВАНИЕ ===
+// CRUD операции для оборудования
+export const getEquipment = () => api.get('/equipment'); // Получение всего оборудования
+export const getEquipmentItem = (id) => api.get(`/equipment/${id}`); // Получение оборудования по ID
+export const createEquipment = (data) => api.post('/equipment', data); // Создание нового оборудования
+export const updateEquipment = (id, data) => api.put(`/equipment/${id}`, data); // Обновление оборудования
+export const deleteEquipment = (id) => api.delete(`/equipment/${id}`); // Удаление оборудования
+export const createEquipmentItems = (id, data) => api.post(`/equipment/${id}/items`, data); // Создание экземпляров оборудования
 
-// Users
-export const getUsers = () => api.get('/users');
-export const getUser = (id) => api.get(`/users/${id}`);
-export const createUser = (data) => api.post('/users', data);
-export const updateUser = (id, data) => api.put(`/users/${id}`, data);
-export const deleteUser = (id) => api.delete(`/users/${id}`);
+// === ПОЛЬЗОВАТЕЛИ ===
+// CRUD операции для пользователей
+export const getUsers = () => api.get('/users'); // Получение всех пользователей
+export const getUser = (id) => api.get(`/users/${id}`); // Получение пользователя по ID
+export const createUser = (data) => api.post('/users', data); // Создание нового пользователя
+export const updateUser = (id, data) => api.put(`/users/${id}`, data); // Обновление пользователя
+export const deleteUser = (id) => api.delete(`/users/${id}`); // Удаление пользователя
 
-// Roles
-export const getRoles = () => api.get('/roles');
-export const getRole = (id) => api.get(`/roles/${id}`);
-export const createRole = (data) => api.post('/roles', data);
-export const updateRole = (id, data) => api.put(`/roles/${id}`, data);
-export const deleteRole = (id) => api.delete(`/roles/${id}`);
+// === РОЛИ ===
+// CRUD операции для ролей
+export const getRoles = () => api.get('/roles'); // Получение всех ролей
+export const getRole = (id) => api.get(`/roles/${id}`); // Получение роли по ID
+export const createRole = (data) => api.post('/roles', data); // Создание новой роли
+export const updateRole = (id, data) => api.put(`/roles/${id}`, data); // Обновление роли
+export const deleteRole = (id) => api.delete(`/roles/${id}`); // Удаление роли
 
-// Client Objects
+// === ОБЪЕКТЫ КЛИЕНТОВ ===
+// CRUD операции для объектов клиентов (автомобилей)
 export const getClientObjects = (clientId = '') => {
     const params = {};
-    if (clientId) params.clientId = clientId;
+    if (clientId) params.clientId = clientId; // Фильтр по клиенту
     return api.get('/client-objects', { params });
 };
-export const getClientObject = (id) => api.get(`/client-objects/${id}`);
-export const createClientObject = (data) => api.post('/client-objects', data);
-export const updateClientObject = (id, data) => api.put(`/client-objects/${id}`, data);
-export const deleteClientObject = (id) => api.delete(`/client-objects/${id}`);
+export const getClientObject = (id) => api.get(`/client-objects/${id}`); // Получение объекта по ID
+export const createClientObject = (data) => api.post('/client-objects', data); // Создание нового объекта
+export const updateClientObject = (id, data) => api.put(`/client-objects/${id}`, data); // Обновление объекта
+export const deleteClientObject = (id) => api.delete(`/client-objects/${id}`); // Удаление объекта
 
 export default api;

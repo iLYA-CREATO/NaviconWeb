@@ -1,115 +1,145 @@
+/**
+ * Bids Component
+ *
+ * This component manages the display and creation of bids (заявки).
+ * It shows a list of existing bids, allows searching, and provides a form to create new bids.
+ * Bids are associated with clients and optionally with client objects (vehicles/equipment).
+ */
+
+// Import React hooks for state management and side effects
 import { useState, useEffect } from 'react';
+// Import navigation hook from React Router for programmatic navigation
 import { useNavigate } from 'react-router-dom';
+// Import API functions for interacting with backend services
 import { getBids, createBid, getClients, getClientObjects } from '../services/api';
 
 const Bids = () => {
+    // Hook for navigation between routes
     const navigate = useNavigate();
+
+    // State for storing the list of bids fetched from the API
     const [bids, setBids] = useState([]);
+    // State for storing the list of clients for the dropdown in the form
     const [clients, setClients] = useState([]);
+    // State for storing client objects (vehicles) available for selection
     const [clientObjects, setClientObjects] = useState([]);
+    // State to toggle the visibility of the create bid form
     const [showForm, setShowForm] = useState(false);
+    // State for the search input to filter bids
     const [searchTerm, setSearchTerm] = useState('');
+    // State for the form data when creating a new bid
     const [formData, setFormData] = useState({
-        clientId: '',
-        title: '',
-        status: 'Pending',
-        description: '',
-        clientObjectId: '',
+        clientId: '',        // ID of the selected client
+        title: '',           // Title of the bid
+        status: 'Pending',   // Default status
+        description: '',     // Description of the bid
+        clientObjectId: '',  // Optional ID of the client object (vehicle)
     });
 
+    // useEffect to load initial data when component mounts
     useEffect(() => {
-        fetchBids();
-        fetchClients();
-        setShowForm(false);
-    }, []);
+        fetchBids();      // Load all bids
+        fetchClients();   // Load all clients for the form dropdown
+        setShowForm(false); // Ensure form is hidden initially
+    }, []); // Empty dependency array means this runs only once on mount
 
+    // useEffect to load client objects when a client is selected
     useEffect(() => {
-        fetchClientObjects(formData.clientId);
-        // Reset selected client object when client changes
+        fetchClientObjects(formData.clientId); // Load objects for the selected client
+        // Reset selected client object when client changes to avoid invalid selections
         setFormData(prev => ({ ...prev, clientObjectId: '' }));
-    }, [formData.clientId]);
+    }, [formData.clientId]); // Runs when clientId changes
 
+    // Функция для загрузки списка заявок с сервера
     const fetchBids = async () => {
         try {
-            const response = await getBids();
-            setBids(response.data);
+            const response = await getBids(); // Вызов API для получения заявок
+            setBids(response.data); // Сохранение данных в состояние
         } catch (error) {
-            console.error('Error fetching bids:', error);
+            console.error('Error fetching bids:', error); // Логирование ошибки
         }
     };
 
+    // Функция для загрузки списка клиентов для выпадающего списка
     const fetchClients = async () => {
         try {
-            const response = await getClients();
-            setClients(response.data);
+            const response = await getClients(); // Вызов API для получения клиентов
+            setClients(response.data); // Сохранение данных в состояние
         } catch (error) {
-            console.error('Error fetching clients:', error);
+            console.error('Error fetching clients:', error); // Логирование ошибки
         }
     };
 
+    // Функция для загрузки объектов клиента (автомобилей) для выбранного клиента
     const fetchClientObjects = async (clientId) => {
         if (!clientId) {
-            setClientObjects([]);
+            setClientObjects([]); // Очистка списка если клиент не выбран
             return;
         }
         try {
-            const response = await getClientObjects(clientId);
-            // Filter to show only objects not assigned to any bid
+            const response = await getClientObjects(clientId); // Вызов API для получения объектов клиента
+            // Фильтрация: показывать только объекты, не назначенные ни на одну заявку
             const availableObjects = response.data.filter(obj => !obj.bid);
-            setClientObjects(availableObjects);
+            setClientObjects(availableObjects); // Сохранение доступных объектов
         } catch (error) {
-            console.error('Error fetching client objects:', error);
-            setClientObjects([]);
+            console.error('Error fetching client objects:', error); // Логирование ошибки
+            setClientObjects([]); // Очистка списка при ошибке
         }
     };
 
+    // Обработчик отправки формы для создания новой заявки
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Предотвращение перезагрузки страницы
         try {
-            const response = await createBid(formData);
-            navigate(`/dashboard/bids/${response.data.id}`);
+            const response = await createBid(formData); // Отправка данных на сервер
+            navigate(`/dashboard/bids/${response.data.id}`); // Переход на страницу созданной заявки
         } catch (error) {
-            console.error('Error saving bid:', error);
+            console.error('Error saving bid:', error); // Логирование ошибки
         }
     };
 
+    // Обработчик клика по заявке для просмотра деталей
     const handleView = (bid) => {
-        navigate(`/dashboard/bids/${bid.id}`);
+        navigate(`/dashboard/bids/${bid.id}`); // Переход на страницу деталей заявки
     };
 
+    // Функция сброса формы к начальному состоянию
     const resetForm = () => {
-        setFormData({
+        setFormData({ // Сброс данных формы
             clientId: '',
             title: '',
             status: 'Pending',
             description: '',
             clientObjectId: '',
         });
-        setClientObjects([]);
-        setShowForm(false);
+        setClientObjects([]); // Очистка списка объектов
+        setShowForm(false); // Скрытие формы
     };
 
+    // Фильтрация заявок на основе поискового запроса
     const filteredBids = bids.filter(bid =>
-        bid.id.toString().includes(searchTerm) ||
-        bid.clientName.toLowerCase().includes(searchTerm.toLowerCase())
+        bid.id.toString().includes(searchTerm) || // Поиск по ID заявки
+        bid.clientName.toLowerCase().includes(searchTerm.toLowerCase()) // Поиск по имени клиента (регистронезависимо)
     );
 
     return (
         <div>
+            {/* Заголовок страницы с кнопкой для переключения формы */}
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Заявки</h2>
                 <button
-                    onClick={() => setShowForm(!showForm)}
+                    onClick={() => setShowForm(!showForm)} // Переключение видимости формы
                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                 >
-                    {showForm ? 'Отмена' : '+ Добавить заявку'}
+                    {showForm ? 'Отмена' : '+ Добавить заявку'} {/* Текст кнопки зависит от состояния формы */}
                 </button>
             </div>
 
+            {/* Форма создания новой заявки, показывается только если showForm = true */}
             {showForm && (
                 <div className="bg-white rounded-lg shadow p-6 mb-6">
                     <h3 className="text-xl font-bold mb-4">Добавить новую заявку</h3>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4"> {/* Форма с обработчиком отправки */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
                             <select
@@ -194,17 +224,20 @@ const Bids = () => {
                 </div>
             )}
 
+            {/* Список заявок, показывается только если форма скрыта */}
             {!showForm && (
                 <div>
+                    {/* Поле поиска для фильтрации заявок */}
                     <div className="mb-4">
                         <input
                             type="text"
                             placeholder="Поиск по номеру заявки или клиенту..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.target.value)} // Обновление поискового запроса
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
+                    {/* Таблица с заявками */}
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -217,13 +250,14 @@ const Bids = () => {
                         </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
+                        {/* Отображение отфильтрованных заявок */}
                         {filteredBids.map((bid) => (
-                            <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(bid)}>
+                            <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(bid)}> {/* Клик по строке для просмотра деталей */}
                                 <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.clientName}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{bid.title}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
+                      <span className={`px-2 py-1 text-xs rounded-full ${ // Цвет статуса зависит от значения
                           bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :
                               bid.status === 'Rejected' ? 'bg-red-100 text-red-800' :
                                   'bg-yellow-100 text-yellow-800'
@@ -232,7 +266,7 @@ const Bids = () => {
                       </span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="max-w-xs truncate">{bid.description}</div>
+                                    <div className="max-w-xs truncate">{bid.description}</div> {/* Ограничение ширины с многоточием */}
                                 </td>
                             </tr>
                         ))}
