@@ -8,6 +8,7 @@ const Equipment = () => {
     const [showForm, setShowForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState(null);
+    const [activeTab, setActiveTab] = useState('nomenclature');
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -88,20 +89,6 @@ const Equipment = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Оборудование</h2>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                    >
-                        {showForm ? 'Отмена' : '+ Добавить оборудование'}
-                    </button>
-                    <button
-                        onClick={() => navigate('/dashboard/equipment/arrival')}
-                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
-                    >
-                        Приход
-                    </button>
-                </div>
             </div>
 
             {showForm && (
@@ -157,56 +144,120 @@ const Equipment = () => {
 
             {!showForm && (
                 <div>
-                    <div className="mb-4">
-                        <input
-                            type="text"
-                            placeholder="Поиск по ID или названию..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                    {/* Tabs */}
+                    <div className="border-b border-gray-200 mb-6">
+                        <nav className="-mb-px flex space-x-8">
+                            {[
+                                { id: 'nomenclature', label: 'Номенклатура' },
+                                { id: 'arrivals', label: 'Приходы' },
+                                { id: 'expenses', label: 'Расходы' },
+                                { id: 'reports', label: 'Отчёты' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === tab.id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </nav>
                     </div>
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Код товара</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Количество</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredEquipment.map((item) => (
-                                    <tr key={item.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.name}</td>
-                                        <td className="px-6 py-4 cursor-pointer" onClick={() => handleView(item)}>
-                                            <div className="max-w-xs truncate">{item.description || '-'}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.productCode || '-'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.quantity}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <button
-                                                onClick={() => handleEdit(item)}
-                                                className="text-blue-600 hover:text-blue-900 mr-2"
-                                            >
-                                                Редактировать
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(item)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Удалить
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+
+                    {activeTab === 'nomenclature' && (
+                        <>
+                            <div className="mb-4 flex justify-between items-center">
+                                <button
+                                    onClick={() => setShowForm(!showForm)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    {showForm ? 'Отмена' : 'Новое оборудование'}
+                                </button>
+                            </div>
+                            <div className="mb-4">
+                                <input
+                                    type="text"
+                                    placeholder="Поиск по ID или названию..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="bg-white rounded-lg shadow overflow-hidden">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Код товара</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Количество</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {filteredEquipment.map((item) => (
+                                            <tr key={item.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.id}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.name}</td>
+                                                <td className="px-6 py-4 cursor-pointer" onClick={() => handleView(item)}>
+                                                    <div className="max-w-xs truncate">{item.description || '-'}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.productCode || '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.quantity}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <button
+                                                        onClick={() => handleEdit(item)}
+                                                        className="text-blue-600 hover:text-blue-900 mr-2"
+                                                    >
+                                                        Редактировать
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(item)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                    >
+                                                        Удалить
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'arrivals' && (
+                        <div>
+                            <div className="mb-4">
+                                <button
+                                    onClick={() => navigate('/dashboard/equipment/arrival')}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Создать приход
+                                </button>
+                            </div>
+                            <div className="text-center py-8">
+                                <p className="text-gray-500">Приходы в разработке</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'expenses' && (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">Расходы в разработке</p>
+                        </div>
+                    )}
+
+                    {activeTab === 'reports' && (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">Отчёты в разработке</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

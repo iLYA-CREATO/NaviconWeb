@@ -18,20 +18,23 @@ router.get('/', authMiddleware, async (req, res) => {
             }
         });
 
-        // Format response
-        const formattedEquipment = equipment.map(item => ({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            productCode: item.productCode,
-            quantity: item._count.items,
-            createdAt: item.createdAt,
-            sellingPrice: item.sellingPrice ? parseFloat(item.sellingPrice) : null,
-            items: item.items.map(item => ({
-                ...item,
-                purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
-            }))
-        }));
+        // Format response - count only available items (not assigned to bids)
+        const formattedEquipment = equipment.map(item => {
+            const availableItems = item.items.filter(item => !item.bidId);
+            return {
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                productCode: item.productCode,
+                quantity: availableItems.length, // Only count available items
+                createdAt: item.createdAt,
+                sellingPrice: item.sellingPrice ? parseFloat(item.sellingPrice) : null,
+                items: item.items.map(item => ({
+                    ...item,
+                    purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
+                }))
+            };
+        });
 
         res.json(formattedEquipment);
     } catch (error) {
@@ -59,9 +62,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Equipment not found' });
         }
 
+        const availableItems = equipment.items.filter(item => !item.bidId);
+
         res.json({
             ...equipment,
-            quantity: equipment._count.items,
+            quantity: availableItems.length, // Only count available items
             sellingPrice: equipment.sellingPrice ? parseFloat(equipment.sellingPrice) : null,
             items: equipment.items.map(item => ({
                 ...item,

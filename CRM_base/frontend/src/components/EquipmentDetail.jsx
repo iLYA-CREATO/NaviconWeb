@@ -91,33 +91,39 @@ const EquipmentDetail = () => {
                     </div>
                 </div>
 
-                {equipment.items && equipment.items.length > 0 && (
-                    <div className="mt-8">
-                        <h3 className="text-xl font-bold mb-4">Элементы оборудования</h3>
-                        <div className="bg-gray-50 rounded-lg overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-100">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Цена закупки</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата добавления</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {equipment.items.map((item) => (
+                <div className="mt-8">
+                    <h3 className="text-xl font-bold mb-4">Элементы оборудования</h3>
+                    <div className="bg-gray-50 rounded-lg overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Цена закупки</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата добавления</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {equipment.items && equipment.items.filter(item => !item.bidId).length > 0 ? (
+                                    equipment.items.filter(item => !item.bidId).map((item) => (
                                         <tr key={item.id}>
                                             <td className="px-6 py-4 whitespace-nowrap">{item.id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{item.imei || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{item.purchasePrice ? `${item.purchasePrice} ₽` : '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{new Date(item.createdAt).toLocaleDateString('ru-RU')}</td>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                                            Нет доступных элементов оборудования
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
