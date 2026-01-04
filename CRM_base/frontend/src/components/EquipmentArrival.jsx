@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getEquipment, createEquipmentItems, getSuppliers, getArrivalDocuments } from '../services/api';
+import { getEquipment, createEquipmentItems, getSuppliers, getArrivalDocuments, getWarehouses } from '../services/api';
 
 const EquipmentArrival = ({ openCustomTab, closeTab }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [equipment, setEquipment] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
+    const [warehouses, setWarehouses] = useState([]);
     const [selectedSupplier, setSelectedSupplier] = useState('');
+    const [selectedWarehouse, setSelectedWarehouse] = useState('');
     const [items, setItems] = useState([{ equipmentId: '', imei: '', purchasePrice: '' }]);
     const [arrivalDocuments, setArrivalDocuments] = useState([]);
 
@@ -29,6 +31,15 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
         }
     }, []);
 
+    const fetchWarehouses = useCallback(async () => {
+        try {
+            const response = await getWarehouses();
+            setWarehouses(response.data);
+        } catch (error) {
+            console.error('Error fetching warehouses:', error);
+        }
+    }, []);
+
     const fetchArrivalDocuments = useCallback(async () => {
         try {
             const response = await getArrivalDocuments();
@@ -41,6 +52,7 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
     useEffect(() => {
         fetchEquipment();
         fetchSuppliers();
+        fetchWarehouses();
         fetchArrivalDocuments();
     }, []);
 
@@ -88,7 +100,7 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
 
             // Create items for each equipment type
             const promises = Object.entries(equipmentGroups).map(([equipmentId, items]) =>
-                createEquipmentItems(equipmentId, { items, supplierId: selectedSupplier })
+                createEquipmentItems(equipmentId, { items, supplierId: selectedSupplier, warehouseId: selectedWarehouse })
             );
 
             await Promise.all(promises);
@@ -112,28 +124,47 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
 
             <div className="bg-white rounded-lg shadow p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Выберите поставщика</label>
-                        <select
-                             value={selectedSupplier}
-                             onChange={(e) => {
-                                 if (e.target.value === 'create-new') {
-                                     openCustomTab('create-supplier', 'Создание поставщика');
-                                 } else {
-                                     setSelectedSupplier(e.target.value);
-                                 }
-                             }}
-                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                             required
-                         >
-                             <option value="">Выберите поставщика</option>
-                             <option value="create-new" className="font-medium text-green-600">+ Создать нового поставщика</option>
-                             {suppliers.map((supplier) => (
-                                 <option key={supplier.id} value={supplier.id}>
-                                     {supplier.name}
-                                 </option>
-                             ))}
-                         </select>
+                    <div className="grid grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Выберите склад</label>
+                            <select
+                                value={selectedWarehouse}
+                                onChange={(e) => setSelectedWarehouse(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            >
+                                <option value="">Выберите склад</option>
+                                {warehouses.map((warehouse) => (
+                                    <option key={warehouse.id} value={warehouse.id}>
+                                        {warehouse.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Выберите поставщика</label>
+                            <select
+                                  value={selectedSupplier}
+                                  onChange={(e) => {
+                                      if (e.target.value === 'create-new') {
+                                          openCustomTab('create-supplier', 'Создание поставщика');
+                                      } else {
+                                          setSelectedSupplier(e.target.value);
+                                      }
+                                  }}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  required
+                              >
+                                  <option value="">Выберите поставщика</option>
+                                  <option value="create-new" className="font-medium text-green-600">+ Создать нового поставщика</option>
+                                  {suppliers.map((supplier) => (
+                                      <option key={supplier.id} value={supplier.id}>
+                                          {supplier.name}
+                                      </option>
+                                  ))}
+                              </select>
+                        </div>
                     </div>
 
                     <div>

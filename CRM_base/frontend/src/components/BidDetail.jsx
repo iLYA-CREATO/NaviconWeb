@@ -30,6 +30,7 @@ const BidDetail = () => {
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [searchName, setSearchName] = useState('');
     const [searchCode, setSearchCode] = useState('');
+    const [searchWarehouse, setSearchWarehouse] = useState('');
     const [showChangeClientModal, setShowChangeClientModal] = useState(false);
     const [availableClients, setAvailableClients] = useState([]);
     const [searchClient, setSearchClient] = useState('');
@@ -166,6 +167,7 @@ const BidDetail = () => {
             setShowAssignModal(false);
             setSearchName('');
             setSearchCode('');
+            setSearchWarehouse('');
             fetchBid();
             fetchAvailableEquipment();
         } catch (error) {
@@ -580,34 +582,49 @@ const BidDetail = () => {
                                 onChange={(e) => setSearchCode(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
+                            <select
+                                value={searchWarehouse}
+                                onChange={(e) => setSearchWarehouse(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Все склады</option>
+                                {Array.from(new Set(availableEquipment.flatMap(eq => eq.availableItems.map(item => item.warehouse?.name)).filter(Boolean))).map(warehouseName => (
+                                    <option key={warehouseName} value={warehouseName}>
+                                        {warehouseName}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="space-y-4 max-h-60 overflow-y-auto">
                             {availableEquipment
                                 .filter(eq =>
                                     eq.name.toLowerCase().includes(searchName.toLowerCase()) &&
-                                    (eq.productCode ? eq.productCode.toString().toLowerCase().includes(searchCode.toLowerCase()) : searchCode === '')
+                                    (eq.productCode ? eq.productCode.toString().toLowerCase().includes(searchCode.toLowerCase()) : searchCode === '') &&
+                                    (searchWarehouse === '' || eq.availableItems.some(item => item.warehouse?.name === searchWarehouse))
                                 )
                                 .map(eq => (
                                     <div key={eq.id} className="border-b pb-2">
                                         <h4 className="font-semibold text-gray-800">{eq.name} ({eq.productCode})</h4>
                                         <div className="space-y-1 ml-4">
-                                            {eq.availableItems.map(item => (
-                                                <label key={item.id} className="flex items-center space-x-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedAssign.includes(item.id)}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked) {
-                                                                setSelectedAssign([...selectedAssign, item.id]);
-                                                            } else {
-                                                                setSelectedAssign(selectedAssign.filter(id => id !== item.id));
-                                                            }
-                                                        }}
-                                                    />
-                                                    <span>IMEI: {item.imei || 'N/A'}</span>
-                                                </label>
-                                            ))}
-                                        </div>
+                                             {eq.availableItems
+                                                 .filter(item => searchWarehouse === '' || item.warehouse?.name === searchWarehouse)
+                                                 .map(item => (
+                                                 <label key={item.id} className="flex items-center space-x-2">
+                                                     <input
+                                                         type="checkbox"
+                                                         checked={selectedAssign.includes(item.id)}
+                                                         onChange={(e) => {
+                                                             if (e.target.checked) {
+                                                                 setSelectedAssign([...selectedAssign, item.id]);
+                                                             } else {
+                                                                 setSelectedAssign(selectedAssign.filter(id => id !== item.id));
+                                                             }
+                                                         }}
+                                                     />
+                                                     <span>IMEI: {item.imei || 'N/A'} - Склад: {item.warehouse?.name || 'Не указан'}</span>
+                                                 </label>
+                                             ))}
+                                         </div>
                                     </div>
                                 ))}
                         </div>
@@ -617,6 +634,7 @@ const BidDetail = () => {
                                     setShowAssignModal(false);
                                     setSearchName('');
                                     setSearchCode('');
+                                    setSearchWarehouse('');
                                 }}
                                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                             >

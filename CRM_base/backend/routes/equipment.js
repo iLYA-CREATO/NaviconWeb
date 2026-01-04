@@ -10,7 +10,10 @@ router.get('/', authMiddleware, async (req, res) => {
             orderBy: { createdAt: 'desc' },
             include: {
                 items: {
-                    orderBy: { createdAt: 'desc' }
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        warehouse: true
+                    }
                 },
                 _count: {
                     select: { items: true }
@@ -135,7 +138,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.post('/:id/items', authMiddleware, async (req, res) => {
     try {
         const equipmentId = parseInt(req.params.id);
-        const { items, supplierId } = req.body; // items: [{ imei, purchasePrice }, ...], supplierId: number
+        const { items, supplierId, warehouseId } = req.body; // items: [{ imei, purchasePrice }, ...], supplierId: number, warehouseId: number
 
         // Check if equipment exists
         const equipment = await prisma.equipment.findUnique({
@@ -157,10 +160,22 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
             }
         }
 
+        // Check if warehouse exists
+        if (warehouseId) {
+            const warehouse = await prisma.warehouse.findUnique({
+                where: { id: parseInt(warehouseId) },
+            });
+
+            if (!warehouse) {
+                return res.status(404).json({ message: 'Warehouse not found' });
+            }
+        }
+
         const newItems = await prisma.equipmentItem.createMany({
             data: items.map(item => ({
                 equipmentId,
                 supplierId: supplierId ? parseInt(supplierId) : null,
+                warehouseId: warehouseId ? parseInt(warehouseId) : null,
                 imei: item.imei || null,
                 purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
             })),
@@ -179,29 +194,31 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
 // Get arrival documents
 router.get('/arrivals/documents', authMiddleware, async (req, res) => {
     try {
-        // Group equipment items by creation date and supplier to simulate arrival documents
+        // Group equipment items by creation date, supplier, and warehouse to simulate arrival documents
         const items = await prisma.equipmentItem.findMany({
             include: {
                 supplier: true,
                 equipment: true,
+                warehouse: true,
             },
             orderBy: { createdAt: 'desc' },
         });
 
-        // Group by date and supplier (simulating arrival documents)
+        // Group by date, supplier, and warehouse (simulating arrival documents)
         const arrivalDocuments = {};
         items.forEach(item => {
             const dateKey = item.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD format
             const supplierKey = item.supplierId || 'no-supplier';
-            const key = `${dateKey}-${supplierKey}`;
+            const warehouseKey = item.warehouseId || 'no-warehouse';
+            const key = `${dateKey}-${supplierKey}-${warehouseKey}`;
 
             if (!arrivalDocuments[key]) {
                 arrivalDocuments[key] = {
                     id: Object.keys(arrivalDocuments).length + 1,
                     date: item.createdAt,
                     supplier: item.supplier,
+                    warehouse: item.warehouse?.name || 'Не указан',
                     documentNumber: `Д-${String(Object.keys(arrivalDocuments).length + 1).padStart(4, '0')}`,
-                    warehouse: 'Основной склад',
                     items: [],
                 };
             }

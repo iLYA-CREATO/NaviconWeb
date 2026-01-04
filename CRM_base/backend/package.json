@@ -4,7 +4,7 @@
   "description": "CRM System Backend with Express",
   "main": "server.js",
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed_large.js"
   },
   "scripts": {
     "start": "node server.js",
@@ -12,9 +12,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "node prisma/seed.js"
+    "prisma:seed": "node prisma/seed_large.js"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.2.0",
     "@prisma/client": "^5.7.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
