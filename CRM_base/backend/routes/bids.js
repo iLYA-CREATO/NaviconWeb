@@ -310,6 +310,7 @@ router.post('/:id/equipment', authMiddleware, async (req, res) => {
             where: {
                 id: { in: equipmentItemIds },
                 bidId: null, // Назначаем только неназначенные элементы
+                imei: { not: null }, // Назначаем только элементы с IMEI
             },
         });
 

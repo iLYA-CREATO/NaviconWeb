@@ -87,6 +87,14 @@ export const updateEquipment = (id, data) => api.put(`/equipment/${id}`, data); 
 export const deleteEquipment = (id) => api.delete(`/equipment/${id}`); // Удаление оборудования
 export const createEquipmentItems = (id, data) => api.post(`/equipment/${id}/items`, data); // Создание экземпляров оборудования
 
+// === ПОСТАВЩИКИ ===
+// CRUD операции для поставщиков
+export const getSuppliers = () => api.get('/suppliers'); // Получение всех поставщиков
+export const getSupplier = (id) => api.get(`/suppliers/${id}`); // Получение поставщика по ID
+export const createSupplier = (data) => api.post('/suppliers', data); // Создание нового поставщика
+export const updateSupplier = (id, data) => api.put(`/suppliers/${id}`, data); // Обновление поставщика
+export const deleteSupplier = (id) => api.delete(`/suppliers/${id}`); // Удаление поставщика
+
 // === ПОЛЬЗОВАТЕЛИ ===
 // CRUD операции для пользователей
 export const getUsers = () => api.get('/users'); // Получение всех пользователей

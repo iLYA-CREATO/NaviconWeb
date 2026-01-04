@@ -20,6 +20,7 @@ const userRoutes = require('./routes/users'); // Маршруты пользов
 const roleRoutes = require('./routes/roles'); // Маршруты ролей
 const clientObjectRoutes = require('./routes/clientObjects'); // Маршруты объектов клиентов
 const equipmentRoutes = require('./routes/equipment'); // Маршруты оборудования
+const supplierRoutes = require('./routes/suppliers'); // Маршруты поставщиков
 const specificationRoutes = require('./routes/specifications'); // Маршруты спецификаций
 const specificationCategoryRoutes = require('./routes/specificationCategories'); // Маршруты категорий спецификаций
 
@@ -43,6 +44,7 @@ app.use('/api/users', userRoutes); // /api/users/*
 app.use('/api/roles', roleRoutes); // /api/roles/*
 app.use('/api/client-objects', clientObjectRoutes); // /api/client-objects/*
 app.use('/api/equipment', equipmentRoutes); // /api/equipment/*
+app.use('/api/suppliers', supplierRoutes); // /api/suppliers/*
 app.use('/api/specifications', specificationRoutes); // /api/specifications/*
 app.use('/api/specification-categories', specificationCategoryRoutes); // /api/specification-categories/*
 

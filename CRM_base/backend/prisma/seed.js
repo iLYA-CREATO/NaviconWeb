@@ -272,6 +272,51 @@ async function main() {
         console.log('✅ Created equipment:', equipment.name, 'with product code:', equipment.productCode);
     }
 
+    // Create demo suppliers
+    const suppliersList = [
+        {
+            name: 'Инкотекст',
+            entityType: 'Юр. лицо',
+            inn: '123456789012',
+            phone: '+380501234567',
+            email: 'info@inkotext.com'
+        },
+        {
+            name: 'СпецПроект2',
+            entityType: 'Юр. лицо',
+            inn: '987654321098',
+            phone: '+380507654321',
+            email: 'contact@specproject2.com'
+        },
+        {
+            name: 'Навтелеком',
+            entityType: 'Юр. лицо',
+            inn: '456789012345',
+            phone: '+380509876543',
+            email: 'support@navtelecom.com'
+        },
+        {
+            name: 'ЧипДип',
+            entityType: 'Юр. лицо',
+            inn: '789012345678',
+            phone: '+380501112233',
+            email: 'sales@chipdip.com'
+        },
+    ];
+
+    for (const supplier of suppliersList) {
+        await prisma.supplier.create({
+            data: {
+                name: supplier.name,
+                entityType: supplier.entityType,
+                inn: supplier.inn,
+                phone: supplier.phone,
+                email: supplier.email,
+            },
+        });
+        console.log('✅ Created supplier:', supplier.name);
+    }
+
     console.log('🎉 Seed completed successfully!');
 }
 
