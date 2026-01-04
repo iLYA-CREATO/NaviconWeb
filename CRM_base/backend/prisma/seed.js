@@ -317,6 +317,22 @@ async function main() {
         console.log('✅ Created supplier:', supplier.name);
     }
 
+    // Create demo warehouses
+    const warehousesList = [
+        { name: 'Навикон' },
+        { name: 'Навикон+' },
+        { name: 'Парсек' },
+    ];
+
+    for (const warehouse of warehousesList) {
+        await prisma.warehouse.create({
+            data: {
+                name: warehouse.name,
+            },
+        });
+        console.log('✅ Created warehouse:', warehouse.name);
+    }
+
     console.log('🎉 Seed completed successfully!');
 }
 

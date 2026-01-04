@@ -96,6 +96,14 @@ export const createSupplier = (data) => api.post('/suppliers', data); // Соз�
 export const updateSupplier = (id, data) => api.put(`/suppliers/${id}`, data); // Обновление поставщика
 export const deleteSupplier = (id) => api.delete(`/suppliers/${id}`); // Удаление поставщика
 
+// === СКЛАДЫ ===
+// CRUD операции для складов
+export const getWarehouses = () => api.get('/warehouses'); // Получение всех складов
+export const getWarehouse = (id) => api.get(`/warehouses/${id}`); // Получение склада по ID
+export const createWarehouse = (data) => api.post('/warehouses', data); // Создание нового склада
+export const updateWarehouse = (id, data) => api.put(`/warehouses/${id}`, data); // Обновление склада
+export const deleteWarehouse = (id) => api.delete(`/warehouses/${id}`); // Удаление склада
+
 // === ПОЛЬЗОВАТЕЛИ ===
 // CRUD операции для пользователей
 export const getUsers = () => api.get('/users'); // Получение всех пользователей

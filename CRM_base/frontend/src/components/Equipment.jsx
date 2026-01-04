@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier, getArrivalDocuments, getBids } from '../services/api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier, getArrivalDocuments, getBids, getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../services/api';
 import EquipmentArrival from './EquipmentArrival';
 import SupplierCreate from './SupplierCreate';
 import ArrivalDetail from './ArrivalDetail';
@@ -9,15 +9,19 @@ const Equipment = () => {
     const navigate = useNavigate();
     const [equipment, setEquipment] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
+    const [warehouses, setWarehouses] = useState([]);
     const [arrivalDocuments, setArrivalDocuments] = useState([]);
     const [selectedArrivalDocument, setSelectedArrivalDocument] = useState(null);
     const [bids, setBids] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [showSupplierForm, setShowSupplierForm] = useState(false);
+    const [showWarehouseForm, setShowWarehouseForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
+    const [warehouseSearchTerm, setWarehouseSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState(null);
     const [editingSupplier, setEditingSupplier] = useState(null);
+    const [editingWarehouse, setEditingWarehouse] = useState(null);
     const [activeTab, setActiveTab] = useState('nomenclature');
     const [customTabs, setCustomTabs] = useState([]);
     const [formData, setFormData] = useState({
@@ -32,14 +36,21 @@ const Equipment = () => {
         phone: '',
         email: '',
     });
+    const [warehouseFormData, setWarehouseFormData] = useState({
+        name: '',
+        description: '',
+    });
+    const [warehouseError, setWarehouseError] = useState('');
 
     useEffect(() => {
         fetchEquipment();
         fetchSuppliers();
+        fetchWarehouses();
         fetchArrivalDocuments();
         fetchBids();
         setShowForm(false);
         setShowSupplierForm(false);
+        setShowWarehouseForm(false);
     }, []);
 
     useEffect(() => {
@@ -84,6 +95,15 @@ const Equipment = () => {
             setBids(response.data);
         } catch (error) {
             console.error('Error fetching bids:', error);
+        }
+    };
+
+    const fetchWarehouses = async () => {
+        try {
+            const response = await getWarehouses();
+            setWarehouses(response.data);
+        } catch (error) {
+            console.error('Error fetching warehouses:', error);
         }
     };
 
@@ -190,6 +210,52 @@ const Equipment = () => {
         setEditingSupplier(null);
     };
 
+    const handleWarehouseSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingWarehouse) {
+                await updateWarehouse(editingWarehouse.id, warehouseFormData);
+                fetchWarehouses();
+                closeCustomTab('edit-warehouse');
+            } else {
+                await createWarehouse(warehouseFormData);
+                fetchWarehouses();
+                closeCustomTab('create-warehouse');
+            }
+        } catch (error) {
+            window.alert(error.response?.data?.message || 'Ошибка при сохранении склада');
+        }
+    };
+
+    const handleWarehouseEdit = (warehouse) => {
+        setEditingWarehouse(warehouse);
+        setWarehouseFormData({
+            name: warehouse.name,
+            description: warehouse.description || '',
+        });
+        openCustomTab('edit-warehouse', `Редактирование склада: ${warehouse.name}`, warehouse);
+    };
+
+    const handleWarehouseDelete = async (warehouse) => {
+        if (window.confirm(`Вы уверены, что хотите удалить склад "${warehouse.name}"?`)) {
+            try {
+                await deleteWarehouse(warehouse.id);
+                fetchWarehouses();
+            } catch (error) {
+                console.error('Error deleting warehouse:', error);
+            }
+        }
+    };
+
+    const resetWarehouseForm = () => {
+        setWarehouseFormData({
+            name: '',
+            description: '',
+        });
+        setShowWarehouseForm(false);
+        setEditingWarehouse(null);
+    };
+
     const filteredEquipment = equipment.filter(item =>
         item.id.toString().includes(searchTerm) ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -198,6 +264,11 @@ const Equipment = () => {
     const filteredSuppliers = suppliers.filter(supplier =>
         supplier.id.toString().includes(supplierSearchTerm) ||
         supplier.name.toLowerCase().includes(supplierSearchTerm.toLowerCase())
+    );
+
+    const filteredWarehouses = warehouses.filter(warehouse =>
+        warehouse.id.toString().includes(warehouseSearchTerm) ||
+        warehouse.name.toLowerCase().includes(warehouseSearchTerm.toLowerCase())
     );
 
     const baseTabs = [
@@ -349,6 +420,48 @@ const Equipment = () => {
                             <button
                                 type="button"
                                 onClick={resetSupplierForm}
+                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                            >
+                                Отмена
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {showWarehouseForm && (
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                    <h3 className="text-xl font-bold mb-4">{editingWarehouse ? 'Редактировать склад' : 'Добавить новый склад'}</h3>
+                    <form onSubmit={handleWarehouseSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                            <input
+                                type="text"
+                                value={warehouseFormData.name}
+                                onChange={(e) => setWarehouseFormData({ ...warehouseFormData, name: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                            <textarea
+                                value={warehouseFormData.description}
+                                onChange={(e) => setWarehouseFormData({ ...warehouseFormData, description: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows="3"
+                            />
+                        </div>
+                        <div className="flex gap-2 pt-4">
+                            <button
+                                type="submit"
+                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                            >
+                                {editingWarehouse ? 'Сохранить' : 'Создать'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={resetWarehouseForm}
                                 className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                             >
                                 Отмена
@@ -511,6 +624,51 @@ const Equipment = () => {
                         <ArrivalDetail arrivalDocument={selectedArrivalDocument} closeTab={() => closeCustomTab('arrival-detail')} />
                     )}
 
+                    {(activeTab === 'create-warehouse' || activeTab === 'edit-warehouse') && (
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-xl font-bold mb-4">{editingWarehouse ? 'Редактировать склад' : 'Добавить новый склад'}</h3>
+                            <form onSubmit={handleWarehouseSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                                    <input
+                                        type="text"
+                                        value={warehouseFormData.name}
+                                        onChange={(e) => setWarehouseFormData({ ...warehouseFormData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                                    <textarea
+                                        value={warehouseFormData.description}
+                                        onChange={(e) => setWarehouseFormData({ ...warehouseFormData, description: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        rows="3"
+                                    />
+                                </div>
+                                <div className="flex gap-2 pt-4">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                    >
+                                        {editingWarehouse ? 'Сохранить' : 'Создать'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            resetWarehouseForm();
+                                            closeCustomTab(activeTab);
+                                        }}
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
                     {activeTab === 'expenses' && (
                         <div className="bg-white rounded-lg shadow p-6">
                             <h3 className="text-lg font-medium mb-4">Расходы со склада</h3>
@@ -625,14 +783,78 @@ const Equipment = () => {
                             </div>
                         </>
                     )}
+                    {activeTab === 'warehouses' && (
+                        <>
+                            <div className="mb-4 flex justify-between items-center">
+                                <button
+                                    onClick={() => openCustomTab('create-warehouse', 'Создание склада')}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Создать склад
+                                </button>
+                            </div>
+                            <div className="mb-4">
+                                <input
+                                    type="text"
+                                    placeholder="Поиск по ID или названию..."
+                                    value={warehouseSearchTerm}
+                                    onChange={(e) => setWarehouseSearchTerm(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="bg-white rounded-lg shadow overflow-hidden">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID склада</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {filteredWarehouses.map((warehouse) => (
+                                            <tr key={warehouse.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap">{warehouse.id}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">{warehouse.name}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="max-w-xs truncate">{warehouse.description || '-'}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <button
+                                                        onClick={() => handleWarehouseEdit(warehouse)}
+                                                        className="text-blue-600 hover:text-blue-900 mr-2"
+                                                    >
+                                                        Редактировать
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleWarehouseDelete(warehouse)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                    >
+                                                        Удалить
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
                     {activeTab === 'other' && (
                         <div>
-                            <div className="mb-4">
+                            <div className="mb-4 flex gap-2">
                                 <button
                                     onClick={() => openCustomTab('suppliers', 'Поставщики')}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Поставщики
+                                </button>
+                                <button
+                                    onClick={() => openCustomTab('warehouses', 'Склады')}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Склады
                                 </button>
                             </div>
                         </div>
