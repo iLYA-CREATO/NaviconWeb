@@ -154,7 +154,7 @@ const Dashboard = () => {
                                         } block px-4 py-2 rounded-lg font-medium transition`
                                     }
                                 >
-                                    Оборудование
+                                    Склад
                                 </NavLink>
                             </div>
                         </nav>

@@ -147,10 +147,8 @@ async function main() {
     ];
 
     for (const categoryName of categories) {
-        await prisma.specificationCategory.upsert({
-            where: { name: categoryName },
-            update: {},
-            create: {
+        await prisma.specificationCategory.create({
+            data: {
                 name: categoryName,
             },
         });
@@ -158,7 +156,7 @@ async function main() {
     }
 
     // Get the tachograph category
-    const tachographCategory = await prisma.specificationCategory.findUnique({
+    const tachographCategory = await prisma.specificationCategory.findFirst({
         where: { name: 'Тахографы' }
     });
 
@@ -203,7 +201,7 @@ async function main() {
     }
 
     // Get the prochee category
-    const procheeCategory = await prisma.specificationCategory.findUnique({
+    const procheeCategory = await prisma.specificationCategory.findFirst({
         where: { name: 'Прочее' }
     });
 
@@ -249,6 +247,29 @@ async function main() {
             },
         });
         console.log('✅ Created specification:', spec.name);
+    }
+
+    // Create demo equipment
+    const equipmentList = [
+        { name: 'Smart-2430', productCode: 2430 },
+        { name: 'Smart-2435', productCode: 2435 },
+        { name: 'Smart-2421', productCode: 2421 },
+        { name: 'Smart-2411', productCode: 2411 },
+        { name: 'Smart-2413', productCode: 2413 },
+        { name: 'Smart-2423', productCode: 2423 },
+        { name: 'Smart-2412', productCode: 2412 },
+        { name: 'Smart-2425', productCode: 2425 },
+        { name: 'Smart-2433', productCode: 2433 },
+    ];
+
+    for (const equipment of equipmentList) {
+        await prisma.equipment.create({
+            data: {
+                name: equipment.name,
+                productCode: equipment.productCode,
+            },
+        });
+        console.log('✅ Created equipment:', equipment.name, 'with product code:', equipment.productCode);
     }
 
     console.log('🎉 Seed completed successfully!');
