@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../services/api';
+import EquipmentArrival from './EquipmentArrival';
 
 const Equipment = () => {
     const navigate = useNavigate();
@@ -418,7 +419,7 @@ const Equipment = () => {
                         <div>
                             <div className="mb-4">
                                 <button
-                                    onClick={() => navigate('/dashboard/equipment/arrival')}
+                                    onClick={() => openCustomTab('create-arrival', 'Создание прихода')}
                                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Создать приход
@@ -428,6 +429,10 @@ const Equipment = () => {
                                 <p className="text-gray-500">Приходы в разработке</p>
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'create-arrival' && (
+                        <EquipmentArrival />
                     )}
 
                     {activeTab === 'expenses' && (

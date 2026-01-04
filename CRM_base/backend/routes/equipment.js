@@ -135,7 +135,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.post('/:id/items', authMiddleware, async (req, res) => {
     try {
         const equipmentId = parseInt(req.params.id);
-        const { items } = req.body; // items: [{ imei, purchasePrice }, ...]
+        const { items, supplierId } = req.body; // items: [{ imei, purchasePrice }, ...], supplierId: number
 
         // Check if equipment exists
         const equipment = await prisma.equipment.findUnique({
@@ -146,9 +146,21 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Equipment not found' });
         }
 
+        // Check if supplier exists
+        if (supplierId) {
+            const supplier = await prisma.supplier.findUnique({
+                where: { id: parseInt(supplierId) },
+            });
+
+            if (!supplier) {
+                return res.status(404).json({ message: 'Supplier not found' });
+            }
+        }
+
         const newItems = await prisma.equipmentItem.createMany({
             data: items.map(item => ({
                 equipmentId,
+                supplierId: supplierId ? parseInt(supplierId) : null,
                 imei: item.imei || null,
                 purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
             })),

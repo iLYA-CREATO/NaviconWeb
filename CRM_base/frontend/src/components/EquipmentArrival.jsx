@@ -1,16 +1,14 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipmentItems } from '../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { getEquipment, createEquipmentItems, getSuppliers } from '../services/api';
 
 const EquipmentArrival = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [equipment, setEquipment] = useState([]);
-    const [selectedEquipment, setSelectedEquipment] = useState('');
-    const [items, setItems] = useState([{ imei: '', purchasePrice: '' }]);
-
-    useEffect(() => {
-        fetchEquipment();
-    }, []);
+    const [suppliers, setSuppliers] = useState([]);
+    const [selectedSupplier, setSelectedSupplier] = useState('');
+    const [items, setItems] = useState([{ equipmentId: '', imei: '', purchasePrice: '' }]);
 
     const fetchEquipment = async () => {
         try {
@@ -21,8 +19,32 @@ const EquipmentArrival = () => {
         }
     };
 
+    const fetchSuppliers = useCallback(async () => {
+        try {
+            const response = await getSuppliers();
+            setSuppliers(response.data);
+        } catch (error) {
+            console.error('Error fetching suppliers:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchEquipment();
+        fetchSuppliers();
+    }, []);
+
+    // Handle new supplier from creation
+    useEffect(() => {
+        if (location.state?.newSupplier) {
+            fetchSuppliers(); // Refresh suppliers list
+            setSelectedSupplier(location.state.newSupplier.id);
+            // Clear the state to avoid re-setting on re-render
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate, fetchSuppliers]);
+
     const addItem = () => {
-        setItems([...items, { imei: '', purchasePrice: '' }]);
+        setItems([...items, { equipmentId: '', imei: '', purchasePrice: '' }]);
     };
 
     const updateItem = (index, field, value) => {
@@ -40,8 +62,25 @@ const EquipmentArrival = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const validItems = items.filter(item => item.purchasePrice);
-            await createEquipmentItems(selectedEquipment, { items: validItems });
+            const validItems = items.filter(item => item.purchasePrice && item.equipmentId);
+            // Group items by equipmentId and create separate API calls
+            const equipmentGroups = {};
+            validItems.forEach(item => {
+                if (!equipmentGroups[item.equipmentId]) {
+                    equipmentGroups[item.equipmentId] = [];
+                }
+                equipmentGroups[item.equipmentId].push({
+                    imei: item.imei,
+                    purchasePrice: item.purchasePrice
+                });
+            });
+
+            // Create items for each equipment type
+            const promises = Object.entries(equipmentGroups).map(([equipmentId, items]) =>
+                createEquipmentItems(equipmentId, { items, supplierId: selectedSupplier })
+            );
+
+            await Promise.all(promises);
             navigate('/dashboard/equipment');
         } catch (error) {
             console.error('Error adding items:', error);
@@ -63,17 +102,26 @@ const EquipmentArrival = () => {
             <div className="bg-white rounded-lg shadow p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Выберите оборудование</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Выберите поставщика</label>
                         <select
-                            value={selectedEquipment}
-                            onChange={(e) => setSelectedEquipment(e.target.value)}
+                            value={selectedSupplier}
+                            onChange={(e) => {
+                                if (e.target.value === 'create') {
+                                    navigate('/dashboard/suppliers/create', { state: { from: '/dashboard/equipment' } });
+                                } else {
+                                    setSelectedSupplier(e.target.value);
+                                }
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                         >
-                            <option value="">Выберите тип оборудования</option>
-                            {equipment.map((item) => (
-                                <option key={item.id} value={item.id}>
-                                    {item.name} (Код: {item.productCode})
+                            <option value="">Выберите поставщика</option>
+                            <option value="create" className="bg-green-50 text-green-700 font-medium">
+                                + Создать нового поставщика
+                            </option>
+                            {suppliers.map((supplier) => (
+                                <option key={supplier.id} value={supplier.id}>
+                                    {supplier.name}
                                 </option>
                             ))}
                         </select>
@@ -91,41 +139,70 @@ const EquipmentArrival = () => {
                             </button>
                         </div>
 
-                        {items.map((item, index) => (
-                            <div key={index} className="flex gap-4 items-end mb-4 p-4 border rounded-lg">
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">IMEI</label>
-                                    <input
-                                        type="text"
-                                        value={item.imei}
-                                        onChange={(e) => updateItem(index, 'imei', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Опционально"
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Цена закупки</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={item.purchasePrice}
-                                        onChange={(e) => updateItem(index, 'purchasePrice', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Обязательно"
-                                        required
-                                    />
-                                </div>
-                                {items.length > 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => removeItem(index)}
-                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded"
-                                    >
-                                        Удалить
-                                    </button>
-                                )}
-                            </div>
-                        ))}
+                        <div className="bg-white border rounded-lg overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Оборудование</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Цена закупки</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {items.map((item, index) => (
+                                        <tr key={index}>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <select
+                                                    value={item.equipmentId}
+                                                    onChange={(e) => updateItem(index, 'equipmentId', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    required
+                                                >
+                                                    <option value="">Выберите оборудование</option>
+                                                    {equipment.map((eq) => (
+                                                        <option key={eq.id} value={eq.id}>
+                                                            {eq.name} (Код: {eq.productCode})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <input
+                                                    type="text"
+                                                    value={item.imei}
+                                                    onChange={(e) => updateItem(index, 'imei', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Опционально"
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={item.purchasePrice}
+                                                    onChange={(e) => updateItem(index, 'purchasePrice', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Обязательно"
+                                                    required
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {items.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeItem(index)}
+                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm"
+                                                    >
+                                                        Удалить
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <div className="flex gap-2 pt-4">

@@ -23,6 +23,7 @@ import Objects from './components/Objects';
 import Equipment from './components/Equipment';
 import EquipmentDetail from './components/EquipmentDetail';
 import EquipmentArrival from './components/EquipmentArrival';
+import SupplierCreate from './components/SupplierCreate';
 import Settings from './components/Settings';
 // Импорт глобальных стилей
 import './index.css';
@@ -57,6 +58,7 @@ function App() {
                         <Route path="equipment" element={<Equipment />} /> {/* Список оборудования */}
                         <Route path="equipment/:id" element={<EquipmentDetail />} /> {/* Детали оборудования */}
                         <Route path="equipment/arrival" element={<EquipmentArrival />} /> {/* Приход оборудования */}
+                        <Route path="suppliers/create" element={<SupplierCreate />} /> {/* Создание поставщика */}
                         <Route path="settings" element={<Settings />} /> {/* Настройки */}
                     </Route>
 
