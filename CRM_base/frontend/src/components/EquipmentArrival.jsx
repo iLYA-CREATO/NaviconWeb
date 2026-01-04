@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getEquipment, createEquipmentItems, getSuppliers } from '../services/api';
+import { getEquipment, createEquipmentItems, getSuppliers, getArrivalDocuments } from '../services/api';
 
-const EquipmentArrival = () => {
+const EquipmentArrival = ({ openCustomTab }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [equipment, setEquipment] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [items, setItems] = useState([{ equipmentId: '', imei: '', purchasePrice: '' }]);
+    const [arrivalDocuments, setArrivalDocuments] = useState([]);
 
     const fetchEquipment = async () => {
         try {
@@ -28,9 +29,19 @@ const EquipmentArrival = () => {
         }
     }, []);
 
+    const fetchArrivalDocuments = useCallback(async () => {
+        try {
+            const response = await getArrivalDocuments();
+            setArrivalDocuments(response.data);
+        } catch (error) {
+            console.error('Error fetching arrival documents:', error);
+        }
+    }, []);
+
     useEffect(() => {
         fetchEquipment();
         fetchSuppliers();
+        fetchArrivalDocuments();
     }, []);
 
     // Handle new supplier from creation
@@ -104,27 +115,25 @@ const EquipmentArrival = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Выберите поставщика</label>
                         <select
-                            value={selectedSupplier}
-                            onChange={(e) => {
-                                if (e.target.value === 'create') {
-                                    navigate('/dashboard/suppliers/create', { state: { from: '/dashboard/equipment' } });
-                                } else {
-                                    setSelectedSupplier(e.target.value);
-                                }
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        >
-                            <option value="">Выберите поставщика</option>
-                            <option value="create" className="bg-green-50 text-green-700 font-medium">
-                                + Создать нового поставщика
-                            </option>
-                            {suppliers.map((supplier) => (
-                                <option key={supplier.id} value={supplier.id}>
-                                    {supplier.name}
-                                </option>
-                            ))}
-                        </select>
+                             value={selectedSupplier}
+                             onChange={(e) => {
+                                 if (e.target.value === 'create-new') {
+                                     openCustomTab('create-supplier', 'Создание поставщика');
+                                 } else {
+                                     setSelectedSupplier(e.target.value);
+                                 }
+                             }}
+                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                             required
+                         >
+                             <option value="">Выберите поставщика</option>
+                             <option value="create-new" className="font-medium text-green-600">+ Создать нового поставщика</option>
+                             {suppliers.map((supplier) => (
+                                 <option key={supplier.id} value={supplier.id}>
+                                     {supplier.name}
+                                 </option>
+                             ))}
+                         </select>
                     </div>
 
                     <div>
@@ -221,6 +230,41 @@ const EquipmentArrival = () => {
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6 mt-6">
+                <h3 className="text-lg font-medium mb-4">Список принятых накладных</h3>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата прихода</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Поставщик</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Номер документа</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {arrivalDocuments.map((doc) => (
+                                <tr key={doc.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {new Date(doc.date).toLocaleDateString('ru-RU')}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {doc.supplier?.name || 'Не указан'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.documentNumber}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.warehouse}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {arrivalDocuments.length === 0 && (
+                        <p className="text-center text-gray-500 py-4">Нет принятых накладных</p>
+                    )}
+                </div>
             </div>
         </div>
     );

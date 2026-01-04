@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createSupplier } from '../services/api';
 
-const SupplierCreate = () => {
+const SupplierCreate = ({ closeTab }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from || '/dashboard/equipment/arrival';
@@ -19,8 +19,9 @@ const SupplierCreate = () => {
         e.preventDefault();
         try {
             const response = await createSupplier(formData);
-            // Redirect back to where we came from
-            navigate(from, { state: { newSupplier: response.data } });
+            // Close the tab and pass the new supplier data
+            closeTab();
+            // Optionally, you can pass data back if needed
         } catch (error) {
             console.error('Error creating supplier:', error);
         }
@@ -31,7 +32,7 @@ const SupplierCreate = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Создание поставщика</h2>
                 <button
-                    onClick={() => navigate(from)}
+                    onClick={closeTab}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
                 >
                     Назад
@@ -97,7 +98,7 @@ const SupplierCreate = () => {
                         </button>
                         <button
                             type="button"
-                            onClick={() => navigate(from)}
+                            onClick={closeTab}
                             className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                         >
                             Отмена

@@ -176,6 +176,46 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
     }
 });
 
+// Get arrival documents
+router.get('/arrivals/documents', authMiddleware, async (req, res) => {
+    try {
+        // Group equipment items by creation date and supplier to simulate arrival documents
+        const items = await prisma.equipmentItem.findMany({
+            include: {
+                supplier: true,
+                equipment: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        // Group by date and supplier (simulating arrival documents)
+        const arrivalDocuments = {};
+        items.forEach(item => {
+            const dateKey = item.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const supplierKey = item.supplierId || 'no-supplier';
+            const key = `${dateKey}-${supplierKey}`;
+
+            if (!arrivalDocuments[key]) {
+                arrivalDocuments[key] = {
+                    id: Object.keys(arrivalDocuments).length + 1,
+                    date: item.createdAt,
+                    supplier: item.supplier,
+                    documentNumber: `Д-${String(Object.keys(arrivalDocuments).length + 1).padStart(4, '0')}`,
+                    warehouse: 'Основной склад',
+                    items: [],
+                };
+            }
+            arrivalDocuments[key].items.push(item);
+        });
+
+        const documents = Object.values(arrivalDocuments);
+        res.json(documents);
+    } catch (error) {
+        console.error('Get arrival documents error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Delete equipment
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {

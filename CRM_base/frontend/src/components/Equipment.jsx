@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../services/api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier, getArrivalDocuments } from '../services/api';
 import EquipmentArrival from './EquipmentArrival';
+import SupplierCreate from './SupplierCreate';
 
 const Equipment = () => {
     const navigate = useNavigate();
     const [equipment, setEquipment] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
+    const [arrivalDocuments, setArrivalDocuments] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [showSupplierForm, setShowSupplierForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -31,9 +33,16 @@ const Equipment = () => {
     useEffect(() => {
         fetchEquipment();
         fetchSuppliers();
+        fetchArrivalDocuments();
         setShowForm(false);
         setShowSupplierForm(false);
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'create-arrival') {
+            fetchSuppliers(); // Refresh suppliers list when returning to arrival creation
+        }
+    }, [activeTab]);
 
     const fetchEquipment = async () => {
         try {
@@ -50,6 +59,15 @@ const Equipment = () => {
             setSuppliers(response.data);
         } catch (error) {
             console.error('Error fetching suppliers:', error);
+        }
+    };
+
+    const fetchArrivalDocuments = async () => {
+        try {
+            const response = await getArrivalDocuments();
+            setArrivalDocuments(response.data);
+        } catch (error) {
+            console.error('Error fetching arrival documents:', error);
         }
     };
 
@@ -425,14 +443,49 @@ const Equipment = () => {
                                     Создать приход
                                 </button>
                             </div>
-                            <div className="text-center py-8">
-                                <p className="text-gray-500">Приходы в разработке</p>
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h3 className="text-lg font-medium mb-4">Список принятых накладных</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата прихода</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Поставщик</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Номер документа</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {arrivalDocuments.map((doc) => (
+                                                <tr key={doc.id}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.id}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {new Date(doc.date).toLocaleDateString('ru-RU')}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {doc.supplier?.name || 'Не указан'}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.documentNumber}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.warehouse}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {arrivalDocuments.length === 0 && (
+                                        <p className="text-center text-gray-500 py-4">Нет принятых накладных</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'create-arrival' && (
-                        <EquipmentArrival />
+                        <EquipmentArrival openCustomTab={openCustomTab} />
+                    )}
+
+                    {activeTab === 'create-supplier' && (
+                        <SupplierCreate closeTab={() => closeCustomTab('create-supplier')} />
                     )}
 
                     {activeTab === 'expenses' && (
