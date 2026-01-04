@@ -65,6 +65,7 @@ router.get('/', authMiddleware, async (req, res) => {
             creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             createdAt: bid.createdAt,
             updatedAt: bid.updatedAt,
+            equipmentItems: bid.equipmentItems, // Включаем назначенное оборудование
         }));
 
         res.json(formattedBids); // Отправляем отформатированные данные

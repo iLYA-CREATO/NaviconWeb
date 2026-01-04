@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier, getArrivalDocuments } from '../services/api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier, getArrivalDocuments, getBids } from '../services/api';
 import EquipmentArrival from './EquipmentArrival';
 import SupplierCreate from './SupplierCreate';
 import ArrivalDetail from './ArrivalDetail';
@@ -11,6 +11,7 @@ const Equipment = () => {
     const [suppliers, setSuppliers] = useState([]);
     const [arrivalDocuments, setArrivalDocuments] = useState([]);
     const [selectedArrivalDocument, setSelectedArrivalDocument] = useState(null);
+    const [bids, setBids] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [showSupplierForm, setShowSupplierForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -36,6 +37,7 @@ const Equipment = () => {
         fetchEquipment();
         fetchSuppliers();
         fetchArrivalDocuments();
+        fetchBids();
         setShowForm(false);
         setShowSupplierForm(false);
     }, []);
@@ -43,6 +45,9 @@ const Equipment = () => {
     useEffect(() => {
         if (activeTab === 'create-arrival') {
             fetchSuppliers(); // Refresh suppliers list when returning to arrival creation
+        }
+        if (activeTab === 'nomenclature') {
+            fetchEquipment(); // Refresh equipment list when returning to nomenclature
         }
     }, [activeTab]);
 
@@ -70,6 +75,15 @@ const Equipment = () => {
             setArrivalDocuments(response.data);
         } catch (error) {
             console.error('Error fetching arrival documents:', error);
+        }
+    };
+
+    const fetchBids = async () => {
+        try {
+            const response = await getBids();
+            setBids(response.data);
+        } catch (error) {
+            console.error('Error fetching bids:', error);
         }
     };
 
@@ -498,8 +512,49 @@ const Equipment = () => {
                     )}
 
                     {activeTab === 'expenses' && (
-                        <div className="text-center py-8">
-                            <p className="text-gray-500">Расходы в разработке</p>
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-medium mb-4">Расходы со склада</h3>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название оборудования</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№ Заявки</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата выдачи</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название клиента</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {bids
+                                            .filter(bid => bid.equipmentItems && bid.equipmentItems.length > 0)
+                                            .flatMap((bid) =>
+                                                bid.equipmentItems.map((item) => (
+                                                    <tr key={`${bid.id}-${item.id}`}>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800" onClick={() => navigate(`/dashboard/bids/${bid.id}`)}>
+                                                            {item.equipment?.name || 'Неизвестно'}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {bid.id}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            {new Date(bid.createdAt).toLocaleDateString('ru-RU')}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {bid.clientName}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            -
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                    </tbody>
+                                </table>
+                                {bids.filter(bid => bid.equipmentItems && bid.equipmentItems.length > 0).length === 0 && (
+                                    <p className="text-center text-gray-500 py-4">Нет расходов со склада</p>
+                                )}
+                            </div>
                         </div>
                     )}
 
