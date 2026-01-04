@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getEquipment, createEquipmentItems, getSuppliers, getArrivalDocuments } from '../services/api';
 
-const EquipmentArrival = ({ openCustomTab }) => {
+const EquipmentArrival = ({ openCustomTab, closeTab }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [equipment, setEquipment] = useState([]);
@@ -158,59 +158,63 @@ const EquipmentArrival = ({ openCustomTab }) => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {items.map((item, index) => (
-                                        <tr key={index}>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <select
-                                                    value={item.equipmentId}
-                                                    onChange={(e) => updateItem(index, 'equipmentId', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    required
-                                                >
-                                                    <option value="">Выберите оборудование</option>
-                                                    {equipment.map((eq) => (
-                                                        <option key={eq.id} value={eq.id}>
-                                                            {eq.name} (Код: {eq.productCode})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <input
-                                                    type="text"
-                                                    value={item.imei}
-                                                    onChange={(e) => updateItem(index, 'imei', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    placeholder="Опционально"
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={item.purchasePrice}
-                                                    onChange={(e) => updateItem(index, 'purchasePrice', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    placeholder="Обязательно"
-                                                    required
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {items.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeItem(index)}
-                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm"
-                                                    >
-                                                        Удалить
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
                             </table>
+                            <div className={`overflow-y-auto ${items.length > 5 ? 'max-h-64' : ''}`}>
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {items.map((item, index) => (
+                                            <tr key={index}>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <select
+                                                        value={item.equipmentId}
+                                                        onChange={(e) => updateItem(index, 'equipmentId', e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        required
+                                                    >
+                                                        <option value="">Выберите оборудование</option>
+                                                        {equipment.map((eq) => (
+                                                            <option key={eq.id} value={eq.id}>
+                                                                {eq.name} (Код: {eq.productCode})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <input
+                                                        type="text"
+                                                        value={item.imei}
+                                                        onChange={(e) => updateItem(index, 'imei', e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="Опционально"
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.purchasePrice}
+                                                        onChange={(e) => updateItem(index, 'purchasePrice', e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="Обязательно"
+                                                        required
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {items.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeItem(index)}
+                                                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm"
+                                                        >
+                                                            Удалить
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
@@ -223,48 +227,13 @@ const EquipmentArrival = ({ openCustomTab }) => {
                         </button>
                         <button
                             type="button"
-                            onClick={() => navigate('/dashboard/equipment')}
+                            onClick={closeTab}
                             className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                         >
                             Отмена
                         </button>
                     </div>
                 </form>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6 mt-6">
-                <h3 className="text-lg font-medium mb-4">Список принятых накладных</h3>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата прихода</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Поставщик</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Номер документа</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {arrivalDocuments.map((doc) => (
-                                <tr key={doc.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {new Date(doc.date).toLocaleDateString('ru-RU')}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {doc.supplier?.name || 'Не указан'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.documentNumber}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.warehouse}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {arrivalDocuments.length === 0 && (
-                        <p className="text-center text-gray-500 py-4">Нет принятых накладных</p>
-                    )}
-                </div>
             </div>
         </div>
     );

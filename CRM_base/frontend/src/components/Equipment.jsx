@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier, getArrivalDocuments } from '../services/api';
 import EquipmentArrival from './EquipmentArrival';
 import SupplierCreate from './SupplierCreate';
+import ArrivalDetail from './ArrivalDetail';
 
 const Equipment = () => {
     const navigate = useNavigate();
     const [equipment, setEquipment] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [arrivalDocuments, setArrivalDocuments] = useState([]);
+    const [selectedArrivalDocument, setSelectedArrivalDocument] = useState(null);
     const [showForm, setShowForm] = useState(false);
     const [showSupplierForm, setShowSupplierForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -194,9 +196,12 @@ const Equipment = () => {
 
     const allTabs = [...baseTabs, ...customTabs];
 
-    const openCustomTab = (tabId, tabLabel) => {
+    const openCustomTab = (tabId, tabLabel, data = null) => {
         if (!customTabs.find(tab => tab.id === tabId)) {
             setCustomTabs([...customTabs, { id: tabId, label: tabLabel }]);
+        }
+        if (data) {
+            setSelectedArrivalDocument(data);
         }
         setActiveTab(tabId);
     };
@@ -458,7 +463,7 @@ const Equipment = () => {
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {arrivalDocuments.map((doc) => (
-                                                <tr key={doc.id}>
+                                                <tr key={doc.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openCustomTab('arrival-detail', `Накладная ${doc.documentNumber}`, doc)}>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{doc.id}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                         {new Date(doc.date).toLocaleDateString('ru-RU')}
@@ -481,11 +486,15 @@ const Equipment = () => {
                     )}
 
                     {activeTab === 'create-arrival' && (
-                        <EquipmentArrival openCustomTab={openCustomTab} />
+                        <EquipmentArrival openCustomTab={openCustomTab} closeTab={() => closeCustomTab('create-arrival')} />
                     )}
 
                     {activeTab === 'create-supplier' && (
                         <SupplierCreate closeTab={() => closeCustomTab('create-supplier')} />
+                    )}
+
+                    {activeTab === 'arrival-detail' && (
+                        <ArrivalDetail arrivalDocument={selectedArrivalDocument} closeTab={() => closeCustomTab('arrival-detail')} />
                     )}
 
                     {activeTab === 'expenses' && (
