@@ -517,7 +517,7 @@ router.get('/:id/specifications', authMiddleware, async (req, res) => {
             coExecutors: coExecutorsMap[spec.id] || [],
         }));
 
-        res.json(specifications);
+        res.json(specificationsWithCoExecutors);
     } catch (error) {
         console.error('Get specifications error:', error);
         res.status(500).json({ message: 'Server error' });

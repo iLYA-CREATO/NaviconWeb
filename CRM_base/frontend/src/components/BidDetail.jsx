@@ -46,10 +46,13 @@ const BidDetail = () => {
     const [bidSpecifications, setBidSpecifications] = useState([]);
     const [showAddSpecModal, setShowAddSpecModal] = useState(false);
     const [editingSpec, setEditingSpec] = useState(null);
+    const [viewingSpec, setViewingSpec] = useState(null);
+    const [showViewSpecModal, setShowViewSpecModal] = useState(false);
     const [availableUsers, setAvailableUsers] = useState([]);
     const [specifications, setSpecifications] = useState([]);
     const [specCategories, setSpecCategories] = useState([]);
     const [expandedCategories, setExpandedCategories] = useState(new Set());
+    const [discount, setDiscount] = useState(0);
 
     useEffect(() => {
         fetchBid();
@@ -476,13 +479,22 @@ const BidDetail = () => {
                         )}
                         {activeTab === 'spec' && (
                             <div>
-                                <div className="mb-4">
+                                <div className="mb-4 flex items-center space-x-4">
                                     <button
                                         onClick={() => setShowAddSpecModal(true)}
                                         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                     >
                                         Добавить спецификацию
                                     </button>
+                                    <div className="flex items-center space-x-2">
+                                        <label className="text-sm font-medium text-gray-700">Скидка (%):</label>
+                                        <input
+                                            type="number"
+                                            value={discount}
+                                            onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                                            className="w-20 px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
                                 </div>
                                 {bidSpecifications.length > 0 ? (
                                     <div className="overflow-x-auto">
@@ -492,6 +504,7 @@ const BidDetail = () => {
                                                     <th className="px-4 py-2 border-b text-left">Категория</th>
                                                     <th className="px-4 py-2 border-b text-left">Спецификация</th>
                                                     <th className="px-4 py-2 border-b text-left">Стоимость</th>
+                                                    <th className="px-4 py-2 border-b text-left">%</th>
                                                     <th className="px-4 py-2 border-b text-left">Исполнитель</th>
                                                     <th className="px-4 py-2 border-b text-left">Соисполнитель</th>
                                                     <th className="px-4 py-2 border-b text-left">Комментарий</th>
@@ -500,16 +513,25 @@ const BidDetail = () => {
                                             </thead>
                                             <tbody>
                                                 {bidSpecifications.map(spec => (
-                                                    <tr key={spec.id} className="hover:bg-gray-50">
+                                                    <tr
+                                                        key={spec.id}
+                                                        className="hover:bg-gray-50 cursor-pointer"
+                                                        onClick={() => {
+                                                            setViewingSpec(spec);
+                                                            setShowViewSpecModal(true);
+                                                        }}
+                                                    >
                                                         <td className="px-4 py-2 border-b">{spec.specification.category.name}</td>
                                                         <td className="px-4 py-2 border-b">{spec.specification.name}</td>
                                                         <td className="px-4 py-2 border-b">{spec.specification.cost} руб.</td>
+                                                        <td className="px-4 py-2 border-b">{(spec.specification.cost * discount / 100).toFixed(2)} руб.</td>
                                                         <td className="px-4 py-2 border-b">{spec.executor ? spec.executor.fullName : 'Не назначен'}</td>
                                                         <td className="px-4 py-2 border-b">{spec.coExecutors && spec.coExecutors.length > 0 ? spec.coExecutors.map(ce => ce.fullName).join(', ') : 'Не назначены'}</td>
                                                         <td className="px-4 py-2 border-b">{spec.comment || '-'}</td>
                                                         <td className="px-4 py-2 border-b">
                                                             <button
-                                                                onClick={() => {
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
                                                                     setEditingSpec(spec);
                                                                     setShowAddSpecModal(true);
                                                                 }}
@@ -518,7 +540,10 @@ const BidDetail = () => {
                                                                 Редактировать
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDeleteSpec(spec.id)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteSpec(spec.id);
+                                                                }}
                                                                 className="text-red-500 hover:text-red-700"
                                                             >
                                                                 Удалить
@@ -531,6 +556,52 @@ const BidDetail = () => {
                                     </div>
                                 ) : (
                                     <p className="text-gray-500 text-center py-4">Спецификации не добавлены</p>
+                                )}
+
+                                {/* Earnings Summary */}
+                                {bidSpecifications.length > 0 && (
+                                    <div className="mt-6">
+                                        <h4 className="text-lg font-semibold text-gray-800 mb-4">Сводка заработка</h4>
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            {(() => {
+                                                const earnings = {};
+                                                bidSpecifications.forEach(spec => {
+                                                    const cost = spec.specification.cost * (1 + discount / 100);
+                                                    const users = [];
+                                                    if (spec.executor) users.push(spec.executor);
+                                                    if (spec.coExecutors) users.push(...spec.coExecutors);
+                                                    const share = cost / users.length;
+                                                    users.forEach(user => {
+                                                        if (!earnings[user.id]) {
+                                                            earnings[user.id] = { user, total: 0 };
+                                                        }
+                                                        earnings[user.id].total += share;
+                                                    });
+                                                });
+                                                const sortedEarnings = Object.values(earnings).sort((a, b) => b.total - a.total);
+                                                return sortedEarnings.length > 0 ? (
+                                                    <table className="min-w-full bg-white border border-gray-300">
+                                                        <thead>
+                                                            <tr className="bg-gray-100">
+                                                                <th className="px-4 py-2 border-b text-left">Пользователь</th>
+                                                                <th className="px-4 py-2 border-b text-left">Заработок</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {sortedEarnings.map(({ user, total }) => (
+                                                                <tr key={user.id} className="hover:bg-gray-50">
+                                                                    <td className="px-4 py-2 border-b font-medium">{user.fullName}</td>
+                                                                    <td className="px-4 py-2 border-b text-green-600 font-semibold">{total.toFixed(2)} руб.</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                ) : (
+                                                    <p className="text-gray-500">Нет данных о заработке</p>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -861,6 +932,77 @@ const BidDetail = () => {
                     setExpandedCategories={setExpandedCategories}
                 />
             )}
+
+            {/* View Specification Modal */}
+            {showViewSpecModal && viewingSpec && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-lg font-semibold mb-4">Просмотр спецификации</h3>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+                                <p className="text-gray-900">{viewingSpec.specification.category.name}</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Спецификация</label>
+                                <p className="text-gray-900">{viewingSpec.specification.name}</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Стоимость</label>
+                                <p className="text-gray-900">{viewingSpec.specification.cost} руб.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Исполнитель</label>
+                                <p className="text-gray-900">{viewingSpec.executor ? viewingSpec.executor.fullName : 'Не назначен'}</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Соисполнители</label>
+                                <p className="text-gray-900">
+                                    {viewingSpec.coExecutors && viewingSpec.coExecutors.length > 0
+                                        ? viewingSpec.coExecutors.map(ce => ce.fullName).join(', ')
+                                        : 'Не назначены'
+                                    }
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
+                                <p className="text-gray-900">{viewingSpec.comment || 'Нет комментария'}</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Дата создания</label>
+                                <p className="text-gray-900">
+                                    {new Date(viewingSpec.createdAt).toLocaleString('ru-RU', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2 mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowViewSpecModal(false);
+                                    setViewingSpec(null);
+                                }}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                            >
+                                Закрыть
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -880,11 +1022,28 @@ const SpecificationModal = ({
 }) => {
     const [selectedSpecId, setSelectedSpecId] = useState(editingSpec?.specificationId || '');
     const [executorId, setExecutorId] = useState(editingSpec?.executorId || currentUser?.id || '');
-    const [coExecutorId, setCoExecutorId] = useState(editingSpec?.coExecutorIds?.[0] || '');
     const [coExecutorIds, setCoExecutorIds] = useState(editingSpec?.coExecutorIds || []);
+    const [selectedCoExecutor, setSelectedCoExecutor] = useState('');
     const [comment, setComment] = useState(editingSpec?.comment || '');
 
     const selectedSpec = specifications.find(s => s.id === parseInt(selectedSpecId));
+
+    useEffect(() => {
+        if (executorId) {
+            setCoExecutorIds(coExecutorIds.filter(id => id !== parseInt(executorId)));
+        }
+    }, [executorId]);
+
+    const addCoExecutor = () => {
+        if (selectedCoExecutor && !coExecutorIds.includes(parseInt(selectedCoExecutor))) {
+            setCoExecutorIds([...coExecutorIds, parseInt(selectedCoExecutor)]);
+            setSelectedCoExecutor('');
+        }
+    };
+
+    const removeCoExecutor = (id) => {
+        setCoExecutorIds(coExecutorIds.filter(coId => coId !== id));
+    };
 
     const handleSave = () => {
         if (!selectedSpecId) {
@@ -894,7 +1053,7 @@ const SpecificationModal = ({
         onSave({
             specificationId: selectedSpecId,
             executorId: executorId || null,
-            coExecutorIds: coExecutorId ? [coExecutorId] : [],
+            coExecutorIds: coExecutorIds,
             comment: comment.trim() || null,
         });
     };
@@ -1019,19 +1178,46 @@ const SpecificationModal = ({
 
                 {/* Co-Executor */}
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Соисполнитель</label>
-                    <select
-                        value={coExecutorId}
-                        onChange={(e) => setCoExecutorId(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Не назначен</option>
-                        {availableUsers.map(user => (
-                            <option key={user.id} value={user.id}>
-                                {user.fullName} ({user.username})
-                            </option>
-                        ))}
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Соисполнители</label>
+                    <div className="flex space-x-2 mb-2">
+                        <select
+                            value={selectedCoExecutor}
+                            onChange={(e) => setSelectedCoExecutor(e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Выберите соисполнителя</option>
+                            {availableUsers.filter(user => user.id !== parseInt(executorId) && !coExecutorIds.includes(user.id)).map(user => (
+                                <option key={user.id} value={user.id}>
+                                    {user.fullName}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={addCoExecutor}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                            disabled={!selectedCoExecutor}
+                        >
+                            Добавить
+                        </button>
+                    </div>
+                    {coExecutorIds.length > 0 && (
+                        <div className="space-y-1">
+                            {coExecutorIds.map(id => {
+                                const user = availableUsers.find(u => u.id === id);
+                                return (
+                                    <div key={id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                        <span>{user ? user.fullName : 'Неизвестный пользователь'}</span>
+                                        <button
+                                            onClick={() => removeCoExecutor(id)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            Удалить
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* Comment */}
