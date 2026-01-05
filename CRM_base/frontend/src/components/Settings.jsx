@@ -12,7 +12,7 @@ const Settings = () => {
         fullName: '',
         email: '',
         password: '',
-        role: 'User',
+        role: '',
     });
     const [showRoleForm, setShowRoleForm] = useState(false);
     const [editingRole, setEditingRole] = useState(null);
@@ -180,7 +180,7 @@ const Settings = () => {
 
     const handleDeleteUser = async (id) => {
         const userToDelete = users.find(u => u.id === id);
-        if (userToDelete.role === 'admin') {
+        if (userToDelete.role === 'Админ') {
             setNotification({ type: 'error', message: 'Нельзя удалить администратора' });
             return;
         }
@@ -463,12 +463,12 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление пользователями</h2>
-                        {user?.role === 'admin' && (
+                        {user?.role === 'Админ' && (
                             <button
                                 onClick={() => {
                                     setShowForm(!showForm);
                                     setEditingUser(null);
-                                    setFormData({ username: '', fullName: '', email: '', password: '', role: 'user' });
+                                    setFormData({ username: '', fullName: '', email: '', password: '', role: '' });
                                 }}
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                             >
@@ -501,7 +501,7 @@ const Settings = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ФИО</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Почта</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
-                                        {user?.role === 'admin' && (
+                                        {user?.role === 'Админ' && (
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                         )}
                                     </tr>
@@ -512,8 +512,17 @@ const Settings = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">{u.username}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{u.fullName}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{u.email}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{u.role === 'admin' ? 'Администратор' : 'Пользователь'}</td>
-                                            {user?.role === 'admin' && (
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {u.role === 'Админ' ? 'Администратор' :
+                                                 u.role === 'Склад' ? 'Сотрудник склада' :
+                                                 u.role === 'Менеджер' ? 'Менеджер' :
+                                                 u.role === 'Технический специалист' ? 'Технический специалист' :
+                                                 u.role === 'Бухгалтер' ? 'Бухгалтер' :
+                                                 u.role === 'Монтажник' ? 'Монтажник' :
+                                                 u.role === 'Пользователь' ? 'Пользователь' :
+                                                 u.role}
+                                            </td>
+                                            {user?.role === 'Админ' && (
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <button
                                                         onClick={() => handleEditUser(u)}
@@ -521,7 +530,7 @@ const Settings = () => {
                                                     >
                                                         Редактировать
                                                     </button>
-                                                    {u.role !== 'admin' && (
+                                                    {u.role !== 'Админ' && (
                                                         <button
                                                             onClick={() => handleDeleteUser(u.id)}
                                                             className="text-red-600 hover:text-red-900"
@@ -576,13 +585,16 @@ const Settings = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Пароль</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Пароль {editingUser && <span className="text-gray-500">(оставьте пустым, чтобы не менять)</span>}
+                                    </label>
                                     <input
                                         type="password"
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        required
+                                        required={!editingUser}
+                                        placeholder={editingUser ? "Оставьте пустым, чтобы сохранить текущий пароль" : ""}
                                     />
                                 </div>
                                 <div>
@@ -592,8 +604,8 @@ const Settings = () => {
                                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
-                                        {roles.map((role) => (
-                                            <option key={role.id} value={role.name.toLowerCase()}>
+                                        {roles.filter(role => role.name !== 'Пользователь').map((role) => (
+                                            <option key={role.id} value={role.name}>
                                                 {role.name}
                                             </option>
                                         ))}
@@ -624,7 +636,7 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление ролями</h2>
-                        {user?.role === 'admin' && (
+                        {user?.role === 'Админ' && (
                             <button
                                 onClick={() => setShowRoleForm(!showRoleForm)}
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
@@ -641,7 +653,7 @@ const Settings = () => {
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
-                                    {user?.role === 'admin' && (
+                                    {user?.role === 'Админ' && (
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                     )}
                                 </tr>
@@ -651,7 +663,7 @@ const Settings = () => {
                                     <tr key={role.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">{role.name}</td>
                                         <td className="px-6 py-4">{role.description}</td>
-                                        {user?.role === 'admin' && (
+                                        {user?.role === 'Админ' && (
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <button
                                                     onClick={() => handleEditRole(role)}

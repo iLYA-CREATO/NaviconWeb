@@ -41,6 +41,11 @@ const Equipment = () => {
         description: '',
     });
     const [warehouseError, setWarehouseError] = useState('');
+    const [expenseStartDate, setExpenseStartDate] = useState('');
+    const [expenseEndDate, setExpenseEndDate] = useState('');
+    const [expenseEquipmentFilter, setExpenseEquipmentFilter] = useState('all');
+    const [selectedReport, setSelectedReport] = useState(null);
+    const [showExpenseReport, setShowExpenseReport] = useState(false);
 
     useEffect(() => {
         fetchEquipment();
@@ -717,8 +722,135 @@ const Equipment = () => {
                     )}
 
                     {activeTab === 'reports' && (
-                        <div className="text-center py-8">
-                            <p className="text-gray-500">Отчёты в разработке</p>
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-medium mb-4">Отчёты</h3>
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    className="text-blue-600 hover:text-blue-800 text-left transition"
+                                    onClick={() => openCustomTab('expense-report', 'Отчёт по расходам')}
+                                >
+                                    Отчёты по расходам
+                                </button>
+                                <button
+                                    className="text-blue-600 hover:text-blue-800 text-left transition"
+                                    onClick={() => openCustomTab('arrival-report', 'Отчёт по приходам')}
+                                >
+                                    Отчёты по приходом
+                                </button>
+                                <button
+                                    className="text-blue-600 hover:text-blue-800 text-left transition"
+                                    onClick={() => openCustomTab('balance-report', 'Отчёт по остаткам')}
+                                >
+                                    Отчёты по остатку
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'expense-report' && (
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-medium mb-4">Отчёт по расходам</h3>
+                            <div className="mb-4 flex gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+                                    <input
+                                        type="date"
+                                        value={expenseStartDate}
+                                        onChange={(e) => setExpenseStartDate(e.target.value)}
+                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+                                    <input
+                                        type="date"
+                                        value={expenseEndDate}
+                                        onChange={(e) => setExpenseEndDate(e.target.value)}
+                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Оборудование</label>
+                                    <select
+                                        value={expenseEquipmentFilter}
+                                        onChange={(e) => setExpenseEquipmentFilter(e.target.value)}
+                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="all">Все</option>
+                                        {equipment.map(eq => (
+                                            <option key={eq.id} value={eq.id}>{eq.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="mb-4">
+                                <button
+                                    onClick={() => setShowExpenseReport(true)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Сформировать отчёт
+                                </button>
+                            </div>
+                            {showExpenseReport && (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название оборудования</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№ Заявки</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата выдачи</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название клиента</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {bids
+                                                .filter(bid => bid.equipmentItems && bid.equipmentItems.length > 0)
+                                                .filter(bid => {
+                                                    const bidDate = new Date(bid.createdAt);
+                                                    const start = expenseStartDate ? new Date(expenseStartDate) : null;
+                                                    const end = expenseEndDate ? new Date(expenseEndDate) : null;
+                                                    const dateMatch = (!start || bidDate >= start) && (!end || bidDate <= end);
+                                                    const equipmentMatch = expenseEquipmentFilter === 'all' || bid.equipmentItems.some(item => item.equipmentId === parseInt(expenseEquipmentFilter));
+                                                    return dateMatch && equipmentMatch;
+                                                })
+                                                .flatMap((bid) =>
+                                                    bid.equipmentItems
+                                                        .filter(item => expenseEquipmentFilter === 'all' || item.equipmentId === parseInt(expenseEquipmentFilter))
+                                                        .map((item) => (
+                                                            <tr key={`${bid.id}-${item.id}`}>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800" onClick={() => navigate(`/dashboard/bids/${bid.id}`)}>
+                                                                    {item.equipment?.name || 'Неизвестно'}
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                    {bid.id}
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                    {new Date(bid.createdAt).toLocaleDateString('ru-RU')}
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                    {bid.clientName}
+                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                    {item.warehouse?.name || '-'}
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                )}
+                                        </tbody>
+                                    </table>
+                                    {bids.filter(bid => bid.equipmentItems && bid.equipmentItems.length > 0).filter(bid => {
+                                        const bidDate = new Date(bid.createdAt);
+                                        const start = expenseStartDate ? new Date(expenseStartDate) : null;
+                                        const end = expenseEndDate ? new Date(expenseEndDate) : null;
+                                        const dateMatch = (!start || bidDate >= start) && (!end || bidDate <= end);
+                                        const equipmentMatch = expenseEquipmentFilter === 'all' || bid.equipmentItems.some(item => item.equipmentId === parseInt(expenseEquipmentFilter));
+                                        return dateMatch && equipmentMatch;
+                                    }).length === 0 && (
+                                        <p className="text-center text-gray-500 py-4">Нет расходов за выбранный период</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                     {activeTab === 'suppliers' && (

@@ -4,7 +4,7 @@
   "description": "CRM System Backend with Express",
   "main": "server.js",
   "prisma": {
-    "seed": "node prisma/seed_large.js"
+    "seed": "node prisma/seed.js"
   },
   "scripts": {
     "start": "node server.js",

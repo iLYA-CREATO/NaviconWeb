@@ -24,9 +24,9 @@ const Dashboard = () => {
     const [activeSettingsTab, setActiveSettingsTab] = useState('user');
 
     return (
-        <div className="min-h-screen bg-gray-100 flex">
+        <div className="min-h-screen bg-gray-100">
             {/* Боковая панель: ширина зависит от того, на странице настроек ли пользователь */}
-            <aside className={`${isSettings ? 'w-48 px-4 py-6' : 'w-64 bg-white shadow-lg flex flex-col'}`}>
+            <aside className={`${isSettings ? 'w-48 px-4 py-6 bg-white fixed left-0 top-0 h-screen' : 'w-64 bg-white shadow-lg flex flex-col fixed left-0 top-0 h-screen'}`}>
                 {/* Условный рендеринг: если на странице настроек */}
                 {isSettings ? (
                     <div>
@@ -183,7 +183,7 @@ const Dashboard = () => {
             </aside>
 
             {/* Основная область для отображения дочерних компонентов */}
-            <main className="flex-1 p-8">
+            <main className={`${isSettings ? 'ml-48' : 'ml-64'} p-8`}>
                 <Outlet context={{ activeSettingsTab }} /> {/* Передача контекста дочерним маршрутам */}
             </main>
         </div>

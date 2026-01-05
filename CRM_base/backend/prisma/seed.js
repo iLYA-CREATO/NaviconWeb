@@ -6,7 +6,7 @@ async function main() {
     console.log('🌱 Starting database seed...');
 
     // Create roles
-    const userRole = await prisma.role.upsert({
+    const skladRole = await prisma.role.upsert({
         where: { name: 'Sklad' },
         update: {},
         create: {
@@ -14,17 +14,67 @@ async function main() {
             description: 'Сотрудник склада',
         },
     });
-    console.log('✅ Created role:', userRole);
+    console.log('✅ Created role:', skladRole);
 
     const adminRole = await prisma.role.upsert({
-        where: { name: 'Admin' },
+        where: { name: 'Админ' },
         update: {},
         create: {
-            name: 'Admin',
+            name: 'Админ',
             description: 'Администратор',
         },
     });
     console.log('✅ Created role:', adminRole);
+
+    const managerRole = await prisma.role.upsert({
+        where: { name: 'Менеджер' },
+        update: {},
+        create: {
+            name: 'Менеджер',
+            description: 'Менеджер',
+        },
+    });
+    console.log('✅ Created role:', managerRole);
+
+    const techSpecialistRole = await prisma.role.upsert({
+        where: { name: 'Технический специалист' },
+        update: {},
+        create: {
+            name: 'Технический специалист',
+            description: 'Технический специалист',
+        },
+    });
+    console.log('✅ Created role:', techSpecialistRole);
+
+    const accountantRole = await prisma.role.upsert({
+        where: { name: 'Бухгалтер' },
+        update: {},
+        create: {
+            name: 'Бухгалтер',
+            description: 'Бухгалтер',
+        },
+    });
+    console.log('✅ Created role:', accountantRole);
+
+    const installerRole = await prisma.role.upsert({
+        where: { name: 'Монтажник' },
+        update: {},
+        create: {
+            name: 'Монтажник',
+            description: 'Монтажник',
+        },
+    });
+    console.log('✅ Created role:', installerRole);
+
+    const userRole = await prisma.role.upsert({
+        where: { name: 'Пользователь' },
+        update: {},
+        create: {
+            name: 'Пользователь',
+            description: 'Пользователь',
+        },
+    });
+    console.log('✅ Created role:', userRole);
 
     // Hash password
     const hashedPassword = await bcrypt.hash('123', 10);
@@ -35,34 +85,141 @@ async function main() {
         update: {
             fullName: 'Беляев Сергей',
             password: hashedPassword,
-            role: 'Admin',
+            role: 'Админ',
         },
         create: {
             username: 'Sergei',
             fullName: 'Беляев Сергей',
             email: 'admin@mail.ru',
             password: hashedPassword,
-            role: 'Admin',
+            role: 'Админ',
         },
     });
-    console.log('✅ Created admin user:', adminUser);
+
     // Create Sklad user
     const skladUser = await prisma.user.upsert({
         where: { username: 'Demidov' },
         update: {
             fullName: 'Демидов Илья',
             password: hashedPassword,
-            role: 'Sklad',
+            role: 'Склад',
         },
         create: {
             username: 'Demidov',
             fullName: 'Демидов Илья',
             email: 'sklad@mail.ru',
             password: hashedPassword,
-            role: 'Sklad',
+            role: 'Склад',
         },
     });
-    console.log('✅ Created admin user:', adminUser);
+    const skladUser2 = await prisma.user.upsert({
+        where: { username: 'Potapova' },
+        update: {
+            fullName: 'Потапова Людмила',
+            password: hashedPassword,
+            role: 'Склад',
+        },
+        create: {
+            username: 'Potapova',
+            fullName: 'Потапова Людмила',
+            email: 'None',
+            password: hashedPassword,
+            role: 'Склад',
+        },
+    });
+
+    // Менеджеры
+    const managerUser1 = await prisma.user.upsert({
+        where: { username: 'Olga' },
+        update: {
+            fullName: 'Кречетова Ольга',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+        create: {
+            username: 'Olga',
+            fullName: 'Кречетова Ольга',
+            email: 'None',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+    });
+    const managerUser2 = await prisma.user.upsert({
+        where: { username: 'Nasty999' },
+        update: {
+            fullName: 'Горбунова Анастасия',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+        create: {
+            username: 'Nasty999',
+            fullName: 'Демидов Илья',
+            email: 'None',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+    });
+    const managerUser3 = await prisma.user.upsert({
+        where: { username: 'VV' },
+        update: {
+            fullName: 'Василенко Вадим',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+        create: {
+            username: 'VV',
+            fullName: 'Василенко Вадим',
+            email: 'None',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+    });
+    const managerUser4 = await prisma.user.upsert({
+        where: { username: 'CV' },
+        update: {
+            fullName: 'Стариков Вадим',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+        create: {
+            username: 'CV',
+            fullName: 'Стариков Вадим',
+            email: 'None',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+    });
+    // Монтажники
+    const montagUser1 = await prisma.user.upsert({
+        where: { username: 'Vladik' },
+        update: {
+            fullName: 'Евдокимов Владислав',
+            password: hashedPassword,
+            role: 'Монтажник',
+        },
+        create: {
+            username: 'Vladik',
+            fullName: 'Евдокимов Владислав',
+            email: 'None',
+            password: hashedPassword,
+            role: 'Монтажник',
+        },
+    });
+    const montagUser2 = await prisma.user.upsert({
+        where: { username: 'Zuev' },
+        update: {
+            fullName: 'Зуев Сергей',
+            password: hashedPassword,
+            role: 'Монтажник',
+        },
+        create: {
+            username: 'Zuev',
+            fullName: 'Зуев Сергей',
+            email: 'None',
+            password: hashedPassword,
+            role: 'Монтажник',
+        },
+    });
 
     // Create demo clients
     const client1 = await prisma.client.create({
@@ -332,6 +489,12 @@ async function main() {
         });
         console.log('✅ Created warehouse:', warehouse.name);
     }
+
+    // Update all users to Admin role
+    await prisma.user.updateMany({
+        data: { role: 'Админ' }
+    });
+    console.log('✅ Updated all users to Admin role');
 
     console.log('🎉 Seed completed successfully!');
 }
