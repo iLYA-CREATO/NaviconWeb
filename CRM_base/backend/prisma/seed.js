@@ -122,7 +122,7 @@ async function main() {
         create: {
             username: 'Potapova',
             fullName: 'Потапова Людмила',
-            email: 'None',
+            email: 'sklad2@mail.ru',
             password: hashedPassword,
             role: 'Склад',
         },
@@ -139,7 +139,7 @@ async function main() {
         create: {
             username: 'Olga',
             fullName: 'Кречетова Ольга',
-            email: 'None',
+            email: 'manager1@mail.ru',
             password: hashedPassword,
             role: 'Менеджер',
         },
@@ -153,8 +153,8 @@ async function main() {
         },
         create: {
             username: 'Nasty999',
-            fullName: 'Демидов Илья',
-            email: 'None',
+            fullName: 'Горбунова Анастасия',
+            email: 'manager2@mail.ru',
             password: hashedPassword,
             role: 'Менеджер',
         },
@@ -169,7 +169,7 @@ async function main() {
         create: {
             username: 'VV',
             fullName: 'Василенко Вадим',
-            email: 'None',
+            email: 'manager3@mail.ru',
             password: hashedPassword,
             role: 'Менеджер',
         },
@@ -184,7 +184,7 @@ async function main() {
         create: {
             username: 'CV',
             fullName: 'Стариков Вадим',
-            email: 'None',
+            email: 'manager4@mail.ru',
             password: hashedPassword,
             role: 'Менеджер',
         },
@@ -200,7 +200,7 @@ async function main() {
         create: {
             username: 'Vladik',
             fullName: 'Евдокимов Владислав',
-            email: 'None',
+            email: 'installer1@mail.ru',
             password: hashedPassword,
             role: 'Монтажник',
         },
@@ -215,7 +215,7 @@ async function main() {
         create: {
             username: 'Zuev',
             fullName: 'Зуев Сергей',
-            email: 'None',
+            email: 'installer2@mail.ru',
             password: hashedPassword,
             role: 'Монтажник',
         },

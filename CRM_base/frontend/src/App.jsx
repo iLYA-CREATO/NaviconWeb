@@ -25,6 +25,7 @@ import EquipmentDetail from './components/EquipmentDetail';
 import EquipmentArrival from './components/EquipmentArrival';
 import SupplierCreate from './components/SupplierCreate';
 import Settings from './components/Settings';
+import Salary from './components/Salary';
 // Импорт глобальных стилей
 import './index.css';
 
@@ -59,6 +60,7 @@ function App() {
                         <Route path="equipment/:id" element={<EquipmentDetail />} /> {/* Детали оборудования */}
                         <Route path="equipment/arrival" element={<EquipmentArrival />} /> {/* Приход оборудования */}
                         <Route path="suppliers/create" element={<SupplierCreate />} /> {/* Создание поставщика */}
+                        <Route path="salary" element={<Salary />} /> {/* Зарплата */}
                         <Route path="settings" element={<Settings />} /> {/* Настройки */}
                     </Route>
 

@@ -24,6 +24,7 @@ const supplierRoutes = require('./routes/suppliers'); // Маршруты пос
 const warehouseRoutes = require('./routes/warehouses'); // Маршруты складов
 const specificationRoutes = require('./routes/specifications'); // Маршруты спецификаций
 const specificationCategoryRoutes = require('./routes/specificationCategories'); // Маршруты категорий спецификаций
+const salaryRoutes = require('./routes/salary'); // Маршруты зарплаты
 
 // Создание экземпляра Express приложения
 const app = express();
@@ -49,6 +50,7 @@ app.use('/api/suppliers', supplierRoutes); // /api/suppliers/*
 app.use('/api/warehouses', warehouseRoutes); // /api/warehouses/*
 app.use('/api/specifications', specificationRoutes); // /api/specifications/*
 app.use('/api/specification-categories', specificationCategoryRoutes); // /api/specification-categories/*
+app.use('/api/salary', salaryRoutes); // /api/salary/*
 
 // === Health check endpoint ===
 // Проверка работоспособности сервера

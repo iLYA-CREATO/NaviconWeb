@@ -350,7 +350,7 @@ const BidDetail = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Создатель</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Заявку составил/ла</label>
                             <p className="text-gray-900 text-lg">{bid.creatorName}</p>
                         </div>
                     </div>

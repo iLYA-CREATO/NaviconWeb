@@ -24,6 +24,25 @@ const Equipment = () => {
     const [editingWarehouse, setEditingWarehouse] = useState(null);
     const [activeTab, setActiveTab] = useState('nomenclature');
     const [customTabs, setCustomTabs] = useState([]);
+    // Define all possible columns for equipment
+    const equipmentAllColumns = ['id', 'name', 'description', 'productCode', 'quantity'];
+    // Load initial states from localStorage for equipment
+    const savedEquipmentColumns = localStorage.getItem('equipmentVisibleColumns');
+    const initialEquipmentVisibleColumns = savedEquipmentColumns ? JSON.parse(savedEquipmentColumns) : {
+        id: true,
+        name: true,
+        description: true,
+        productCode: true,
+        quantity: true,
+    };
+    const savedEquipmentOrder = localStorage.getItem('equipmentColumnOrder');
+    const initialEquipmentColumnOrder = savedEquipmentOrder ? JSON.parse(savedEquipmentOrder) : equipmentAllColumns;
+    // State for equipment column order
+    const [equipmentColumnOrder, setEquipmentColumnOrder] = useState(initialEquipmentColumnOrder);
+    // State for visible equipment columns in the table
+    const [equipmentVisibleColumns, setEquipmentVisibleColumns] = useState(initialEquipmentVisibleColumns);
+    // State for showing equipment column settings dropdown
+    const [showEquipmentColumnSettings, setShowEquipmentColumnSettings] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -66,6 +85,27 @@ const Equipment = () => {
             fetchEquipment(); // Refresh equipment list when returning to nomenclature
         }
     }, [activeTab]);
+
+    // useEffect to save equipment column preferences to localStorage
+    useEffect(() => {
+        localStorage.setItem('equipmentVisibleColumns', JSON.stringify(equipmentVisibleColumns));
+    }, [equipmentVisibleColumns]);
+
+    // useEffect to save equipment column order to localStorage
+    useEffect(() => {
+        localStorage.setItem('equipmentColumnOrder', JSON.stringify(equipmentColumnOrder));
+    }, [equipmentColumnOrder]);
+
+    // useEffect to close equipment dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showEquipmentColumnSettings && !event.target.closest('.equipment-column-settings')) {
+                setShowEquipmentColumnSettings(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showEquipmentColumnSettings]);
 
     const fetchEquipment = async () => {
         try {
@@ -275,6 +315,60 @@ const Equipment = () => {
         warehouse.id.toString().includes(warehouseSearchTerm) ||
         warehouse.name.toLowerCase().includes(warehouseSearchTerm.toLowerCase())
     );
+
+    // Определение видимых столбцов оборудования в порядке equipmentColumnOrder
+    const displayEquipmentColumns = equipmentColumnOrder.filter(col => equipmentVisibleColumns[col]);
+
+    const handleEquipmentColumnToggle = (column) => {
+        setEquipmentVisibleColumns(prev => ({
+            ...prev,
+            [column]: !prev[column]
+        }));
+    };
+
+    const moveEquipmentUp = (index) => {
+        if (index > 0) {
+            const newOrder = [...equipmentColumnOrder];
+            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+            setEquipmentColumnOrder(newOrder);
+        }
+    };
+
+    const moveEquipmentDown = (index) => {
+        if (index < equipmentColumnOrder.length - 1) {
+            const newOrder = [...equipmentColumnOrder];
+            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+            setEquipmentColumnOrder(newOrder);
+        }
+    };
+
+    const getEquipmentColumnLabel = (column) => {
+        const labels = {
+            id: 'ID',
+            name: 'Название',
+            description: 'Описание',
+            productCode: 'Код товара',
+            quantity: 'Количество',
+        };
+        return labels[column] || column;
+    };
+
+    const getEquipmentCellContent = (item, column) => {
+        switch (column) {
+            case 'id':
+                return item.id;
+            case 'name':
+                return item.name;
+            case 'description':
+                return item.description || '-';
+            case 'productCode':
+                return item.productCode || '-';
+            case 'quantity':
+                return item._aggr_count_items || 0;
+            default:
+                return '';
+        }
+    };
 
     const baseTabs = [
         { id: 'nomenclature', label: 'Номенклатура' },
@@ -517,37 +611,81 @@ const Equipment = () => {
                                     {showForm ? 'Отмена' : 'Новое оборудование'}
                                 </button>
                             </div>
-                            <div className="mb-4">
+                            <div className="mb-4 flex gap-4">
                                 <input
                                     type="text"
                                     placeholder="Поиск по ID или названию..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
+                                <div className="relative equipment-column-settings">
+                                    <button
+                                        onClick={() => setShowEquipmentColumnSettings(!showEquipmentColumnSettings)}
+                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                                    >
+                                        Настройки столбцов
+                                    </button>
+                                    {showEquipmentColumnSettings && (
+                                        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 equipment-column-settings">
+                                            <div className="p-4">
+                                                <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                                {equipmentColumnOrder.map((column, index) => (
+                                                    <div key={column} className="flex items-center justify-between mb-2">
+                                                        <label className="flex items-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={equipmentVisibleColumns[column]}
+                                                                onChange={() => handleEquipmentColumnToggle(column)}
+                                                                className="mr-2"
+                                                            />
+                                                            {getEquipmentColumnLabel(column)}
+                                                        </label>
+                                                        {equipmentVisibleColumns[column] && (
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => moveEquipmentUp(index)}
+                                                                    disabled={index === 0}
+                                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                >
+                                                                    ↑
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => moveEquipmentDown(index)}
+                                                                    disabled={index === equipmentColumnOrder.length - 1}
+                                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                >
+                                                                    ↓
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="bg-white rounded-lg shadow overflow-hidden">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Код товара</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Количество</th>
+                                            {displayEquipmentColumns.map(column => (
+                                                <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    {getEquipmentColumnLabel(column)}
+                                                </th>
+                                            ))}
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {filteredEquipment.map((item) => (
                                             <tr key={item.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.id}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.name}</td>
-                                                <td className="px-6 py-4 cursor-pointer" onClick={() => handleView(item)}>
-                                                    <div className="max-w-xs truncate">{item.description || '-'}</div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.productCode || '-'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => handleView(item)}>{item.quantity}</td>
+                                                {displayEquipmentColumns.map(column => (
+                                                    <td key={column} className={`px-6 py-4 ${column === 'description' ? '' : 'whitespace-nowrap'} cursor-pointer`} onClick={() => handleView(item)}>
+                                                        {getEquipmentCellContent(item, column)}
+                                                    </td>
+                                                ))}
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <button
                                                         onClick={() => handleEdit(item)}

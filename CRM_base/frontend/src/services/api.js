@@ -155,4 +155,8 @@ export const createSpecificationCategory = (data) => api.post('/specification-ca
 export const updateSpecificationCategory = (id, data) => api.put(`/specification-categories/${id}`, data); // Обновление категории
 export const deleteSpecificationCategory = (id) => api.delete(`/specification-categories/${id}`); // Удаление категории
 
+// === ЗАРПЛАТА ===
+// Отчет по зарплате
+export const getSalaryReport = (params) => api.get('/salary/report', { params }); // Получение отчета по зарплате
+
 export default api;

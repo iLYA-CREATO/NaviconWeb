@@ -12,6 +12,7 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
     const [selectedWarehouse, setSelectedWarehouse] = useState('');
     const [items, setItems] = useState([{ equipmentId: '', imei: '', purchasePrice: '' }]);
     const [arrivalDocuments, setArrivalDocuments] = useState([]);
+    const [showCancelModal, setShowCancelModal] = useState(false);
 
     const fetchEquipment = async () => {
         try {
@@ -189,63 +190,59 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                     </tr>
                                 </thead>
-                            </table>
-                            <div className={`overflow-y-auto ${items.length > 5 ? 'max-h-64' : ''}`}>
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {items.map((item, index) => (
-                                            <tr key={index}>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <select
-                                                        value={item.equipmentId}
-                                                        onChange={(e) => updateItem(index, 'equipmentId', e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        required
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {items.map((item, index) => (
+                                        <tr key={index}>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <select
+                                                    value={item.equipmentId}
+                                                    onChange={(e) => updateItem(index, 'equipmentId', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    required
+                                                >
+                                                    <option value="">Выберите оборудование</option>
+                                                    {equipment.map((eq) => (
+                                                        <option key={eq.id} value={eq.id}>
+                                                            {eq.name} (Код: {eq.productCode})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <input
+                                                    type="text"
+                                                    value={item.imei}
+                                                    onChange={(e) => updateItem(index, 'imei', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Опционально"
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={item.purchasePrice}
+                                                    onChange={(e) => updateItem(index, 'purchasePrice', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Обязательно"
+                                                    required
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {items.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeItem(index)}
+                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm"
                                                     >
-                                                        <option value="">Выберите оборудование</option>
-                                                        {equipment.map((eq) => (
-                                                            <option key={eq.id} value={eq.id}>
-                                                                {eq.name} (Код: {eq.productCode})
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <input
-                                                        type="text"
-                                                        value={item.imei}
-                                                        onChange={(e) => updateItem(index, 'imei', e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        placeholder="Опционально"
-                                                    />
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <input
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={item.purchasePrice}
-                                                        onChange={(e) => updateItem(index, 'purchasePrice', e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        placeholder="Обязательно"
-                                                        required
-                                                    />
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {items.length > 1 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeItem(index)}
-                                                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm"
-                                                        >
-                                                            Удалить
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                        Удалить
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -254,11 +251,11 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
                             type="submit"
                             className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
                         >
-                            Добавить оборудование
+                            Создать накладную
                         </button>
                         <button
                             type="button"
-                            onClick={closeTab}
+                            onClick={() => setShowCancelModal(true)}
                             className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                         >
                             Отмена
@@ -266,6 +263,31 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
                     </div>
                 </form>
             </div>
+
+            {showCancelModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-8 rounded-lg shadow-lg min-w-80">
+                        <h3 className="text-lg font-medium mb-4">Вы уверены?</h3>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => {
+                                    setShowCancelModal(false);
+                                    closeTab();
+                                }}
+                                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg text-lg"
+                            >
+                                Продолжить
+                            </button>
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-4 rounded-lg text-lg"
+                            >
+                                Закрыть
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
