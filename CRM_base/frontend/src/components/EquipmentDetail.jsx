@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEquipmentItem } from '../services/api';
 
-const EquipmentDetail = () => {
-    const { id } = useParams();
+const EquipmentDetail = ({ id: propId, closeTab }) => {
+    const { id: paramId } = useParams();
     const navigate = useNavigate();
+    const id = propId || paramId;
     const [equipment, setEquipment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        fetchEquipment();
+        if (id) {
+            fetchEquipment();
+        }
     }, [id]);
 
     const fetchEquipment = async () => {
@@ -52,7 +55,7 @@ const EquipmentDetail = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Информация об оборудовании</h2>
                 <button
-                    onClick={() => navigate('/dashboard/equipment')}
+                    onClick={closeTab || (() => navigate('/dashboard/equipment'))}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
                 >
                     Назад
