@@ -104,28 +104,36 @@ const ClientDetail = () => {
                 <div className="flex space-x-1 mb-4">
                     {[
                         'Заявки',
-                        `Оборудование${client.equipmentItems && client.equipmentItems.length > 0 ? ` (${client.equipmentItems.length})` : ''}`,
+                        'Оборудование',
                         'Файлы',
                         'Объекты',
                         'Договоры'
-                    ].map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => {
-                                if (tab.includes('Оборудование')) {
-                                    console.log('Оборудование tab clicked');
-                                }
-                                setActiveTab(tab);
-                            }}
-                            className={`px-4 py-2 rounded-t-lg font-medium transition ${
-                                activeTab === tab
-                                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
+                    ].map((tab) => {
+                        let displayTab = tab;
+                        if (tab === 'Заявки') {
+                            displayTab = `Заявки${client.bids && client.bids.length > 0 ? ` (${client.bids.length})` : ''}`;
+                        } else if (tab === 'Оборудование') {
+                            displayTab = `Оборудование${client.equipmentItems && client.equipmentItems.length > 0 ? ` (${client.equipmentItems.length})` : ''}`;
+                        }
+                        return (
+                            <button
+                                key={tab}
+                                onClick={() => {
+                                    if (tab === 'Оборудование') {
+                                        console.log('Оборудование tab clicked');
+                                    }
+                                    setActiveTab(tab);
+                                }}
+                                className={`px-4 py-2 rounded-t-lg font-medium transition ${
+                                    activeTab === tab
+                                        ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                            >
+                                {displayTab}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 <div className="bg-white rounded-lg shadow p-6">
@@ -172,7 +180,7 @@ const ClientDetail = () => {
                             )}
                         </div>
                     )}
-                    {activeTab === 'Оборудование' && (
+                    {activeTab.startsWith('Оборудование') && (
                         <div>
                             <h3 className="text-lg font-semibold mb-4">Оборудование</h3>
                             {client.equipmentItems && client.equipmentItems.length > 0 ? (

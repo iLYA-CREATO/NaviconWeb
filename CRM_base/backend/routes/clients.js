@@ -82,6 +82,12 @@ router.get('/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Client not found' });
         }
 
+        console.log('Client data being returned:', {
+            id: client.id,
+            name: client.name,
+            equipmentItemsCount: client.equipmentItems?.length || 0,
+            equipmentItems: client.equipmentItems
+        });
         res.json(client);
     } catch (error) {
         console.error('Get client error:', error);
