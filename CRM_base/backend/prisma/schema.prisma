@@ -37,16 +37,17 @@ model Role {
 }
 
 model Client {
-   id           Int      @id @default(autoincrement())
-   name         String
-   email        String
-   phone        String?
-   responsibleId Int?
-   responsible  User?    @relation(fields: [responsibleId], references: [id])
-   createdAt    DateTime @default(now())
-   updatedAt    DateTime @updatedAt
-   bids         Bid[]
-   clientObjects ClientObject[]
+    id           Int      @id @default(autoincrement())
+    name         String
+    email        String
+    phone        String?
+    responsibleId Int?
+    responsible  User?    @relation(fields: [responsibleId], references: [id])
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
+    bids         Bid[]
+    clientObjects ClientObject[]
+    equipmentItems EquipmentItem[]
 }
 
 model ClientObject {
@@ -92,18 +93,20 @@ model Equipment {
 }
 
 model EquipmentItem {
-  id            Int      @id @default(autoincrement())
-  equipmentId   Int
-  supplierId    Int?
-  warehouseId   Int?
-  imei          String?
-  purchasePrice Decimal? @db.Decimal(10, 2)
-  bidId         Int?
-  createdAt     DateTime @default(now())
-  equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  supplier      Supplier? @relation(fields: [supplierId], references: [id])
-  warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
-  bid           Bid?     @relation(fields: [bidId], references: [id])
+    id            Int      @id @default(autoincrement())
+    equipmentId   Int
+    supplierId    Int?
+    clientId      Int?
+    imei          String?
+    purchasePrice Decimal? @db.Decimal(10, 2)
+    bidId         Int?
+    warehouseId   Int?
+    createdAt     DateTime @default(now())
+    equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+    supplier      Supplier? @relation(fields: [supplierId], references: [id])
+    client        Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+    bid           Bid?     @relation(fields: [bidId], references: [id])
+    warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
 }
 
 model Comment {

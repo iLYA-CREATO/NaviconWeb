@@ -102,10 +102,21 @@ const ClientDetail = () => {
 
             <div className="mt-6">
                 <div className="flex space-x-1 mb-4">
-                    {['Заявки', 'Оборудование', 'Файлы', 'Объекты', 'Договоры'].map((tab) => (
+                    {[
+                        'Заявки',
+                        `Оборудование${client.equipmentItems && client.equipmentItems.length > 0 ? ` (${client.equipmentItems.length})` : ''}`,
+                        'Файлы',
+                        'Объекты',
+                        'Договоры'
+                    ].map((tab) => (
                         <button
                             key={tab}
-                            onClick={() => setActiveTab(tab)}
+                            onClick={() => {
+                                if (tab.includes('Оборудование')) {
+                                    console.log('Оборудование tab clicked');
+                                }
+                                setActiveTab(tab);
+                            }}
                             className={`px-4 py-2 rounded-t-lg font-medium transition ${
                                 activeTab === tab
                                     ? 'bg-white text-blue-600 border-b-2 border-blue-600'
@@ -164,7 +175,49 @@ const ClientDetail = () => {
                     {activeTab === 'Оборудование' && (
                         <div>
                             <h3 className="text-lg font-semibold mb-4">Оборудование</h3>
-                            <p className="text-gray-500">В разработке</p>
+                            {client.equipmentItems && client.equipmentItems.length > 0 ? (
+                                <div className="bg-white rounded-lg shadow overflow-hidden">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заявка</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {client.equipmentItems.map((item) => (
+                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap">{item.equipment.name}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">{item.imei || 'Не указан'}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        {item.bid ? (
+                                                            <button
+                                                                onClick={() => navigate(`/dashboard/bids/${item.bid.id}`)}
+                                                                className="text-blue-600 hover:text-blue-800"
+                                                            >
+                                                                {item.bid.tema}
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-gray-500">Не назначено</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                                            item.bid ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                                        }`}>
+                                                            {item.bid ? 'Назначено' : 'Доступно'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500">У клиента нет оборудования</p>
+                            )}
                         </div>
                     )}
                     {activeTab === 'Файлы' && (

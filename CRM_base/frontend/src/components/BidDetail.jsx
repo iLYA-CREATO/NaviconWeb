@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree } from '../services/api';
+import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, createClientObject } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 
@@ -39,6 +39,12 @@ const BidDetail = () => {
     const [selectedClientObjectId, setSelectedClientObjectId] = useState('');
     const [showChangeClientObjectModal, setShowChangeClientObjectModal] = useState(false);
     const [searchClientObject, setSearchClientObject] = useState('');
+    const [showCreateClientObjectForm, setShowCreateClientObjectForm] = useState(false);
+    const [createClientObjectFormData, setCreateClientObjectFormData] = useState({
+        brandModel: '',
+        stateNumber: '',
+        equipment: '',
+    });
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [activeTab, setActiveTab] = useState('comments');
     const [comments, setComments] = useState([]);
@@ -217,6 +223,26 @@ const BidDetail = () => {
         }
     };
 
+    const handleCreateClientObject = async (e) => {
+        e.preventDefault();
+        try {
+            await createClientObject({
+                clientId: bid.clientId,
+                ...createClientObjectFormData,
+            });
+            setCreateClientObjectFormData({
+                brandModel: '',
+                stateNumber: '',
+                equipment: '',
+            });
+            setShowCreateClientObjectForm(false);
+            fetchAvailableClientObjects();
+        } catch (error) {
+            console.error('Error creating client object:', error);
+            alert('Ошибка при создании объекта обслуживания');
+        }
+    };
+
     const handleChangeStatus = async (newStatus) => {
         try {
             await updateBid(id, { status: newStatus });
@@ -384,7 +410,7 @@ const BidDetail = () => {
                             {bid.equipmentItems.map(item => (
                                 <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                     <div>
-                                        <p className="font-medium">{item.equipment.name}</p>
+                                        <p className="font-medium">{item.equipment ? item.equipment.name : 'Неизвестное оборудование'}</p>
                                         <p className="text-sm text-gray-600">IMEI: {item.imei || 'N/A'}</p>
                                     </div>
                                     <p className="text-sm text-gray-600">Цена: {item.purchasePrice ? `${item.purchasePrice} руб.` : 'N/A'}</p>
@@ -741,7 +767,7 @@ const BidDetail = () => {
                                             }
                                         }}
                                     />
-                                    <span>{item.equipment.name} - IMEI: {item.imei || 'N/A'}</span>
+                                    <span>{item.equipment ? item.equipment.name : 'Неизвестное оборудование'} - IMEI: {item.imei || 'N/A'}</span>
                                 </label>
                             ))}
                         </div>
@@ -826,6 +852,68 @@ const BidDetail = () => {
                         />
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                             <div
+                                onClick={() => setShowCreateClientObjectForm(!showCreateClientObjectForm)}
+                                className="p-2 cursor-pointer rounded bg-green-100 hover:bg-green-200 flex items-center"
+                            >
+                                <span className="text-green-600 font-medium">+ Создать объект обслуживания</span>
+                            </div>
+                            {showCreateClientObjectForm && (
+                                <form onSubmit={handleCreateClientObject} className="mb-4 p-4 bg-gray-50 rounded-lg mx-2">
+                                    <div className="mb-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Марка/Модель</label>
+                                        <input
+                                            type="text"
+                                            value={createClientObjectFormData.brandModel}
+                                            onChange={(e) => setCreateClientObjectFormData({ ...createClientObjectFormData, brandModel: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="mb-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Гос. Номер</label>
+                                        <input
+                                            type="text"
+                                            value={createClientObjectFormData.stateNumber}
+                                            onChange={(e) => setCreateClientObjectFormData({ ...createClientObjectFormData, stateNumber: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="mb-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Оборудование</label>
+                                        <textarea
+                                            value={createClientObjectFormData.equipment}
+                                            onChange={(e) => setCreateClientObjectFormData({ ...createClientObjectFormData, equipment: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            rows="2"
+                                            placeholder="Необязательно"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="submit"
+                                            className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg"
+                                        >
+                                            Создать
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowCreateClientObjectForm(false);
+                                                setCreateClientObjectFormData({
+                                                    brandModel: '',
+                                                    stateNumber: '',
+                                                    equipment: '',
+                                                });
+                                            }}
+                                            className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg"
+                                        >
+                                            Отмена
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                            <div
                                 onClick={() => setSelectedClientObjectId('')}
                                 className={`p-2 cursor-pointer rounded ${selectedClientObjectId === '' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
                             >
@@ -861,6 +949,12 @@ const BidDetail = () => {
                                     setShowChangeClientObjectModal(false);
                                     setSearchClientObject('');
                                     setSelectedClientObjectId('');
+                                    setShowCreateClientObjectForm(false);
+                                    setCreateClientObjectFormData({
+                                        brandModel: '',
+                                        stateNumber: '',
+                                        equipment: '',
+                                    });
                                 }}
                                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                             >

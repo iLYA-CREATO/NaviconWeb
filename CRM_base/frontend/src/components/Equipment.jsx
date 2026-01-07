@@ -13,7 +13,6 @@ const Equipment = () => {
     const [arrivalDocuments, setArrivalDocuments] = useState([]);
     const [selectedArrivalDocument, setSelectedArrivalDocument] = useState(null);
     const [bids, setBids] = useState([]);
-    const [showForm, setShowForm] = useState(false);
     const [showSupplierForm, setShowSupplierForm] = useState(false);
     const [showWarehouseForm, setShowWarehouseForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -65,6 +64,7 @@ const Equipment = () => {
     const [expenseEquipmentFilter, setExpenseEquipmentFilter] = useState('all');
     const [selectedReport, setSelectedReport] = useState(null);
     const [showExpenseReport, setShowExpenseReport] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         fetchEquipment();
@@ -72,12 +72,12 @@ const Equipment = () => {
         fetchWarehouses();
         fetchArrivalDocuments();
         fetchBids();
-        setShowForm(false);
         setShowSupplierForm(false);
         setShowWarehouseForm(false);
     }, []);
 
     useEffect(() => {
+        console.log('useEffect activeTab:', activeTab);
         if (activeTab === 'create-arrival') {
             fetchSuppliers(); // Refresh suppliers list when returning to arrival creation
         }
@@ -108,8 +108,10 @@ const Equipment = () => {
     }, [showEquipmentColumnSettings]);
 
     const fetchEquipment = async () => {
+        console.log('fetchEquipment called');
         try {
             const response = await getEquipment();
+            console.log('fetched equipment:', response.data);
             setEquipment(response.data);
         } catch (error) {
             console.error('Error fetching equipment:', error);
@@ -154,6 +156,7 @@ const Equipment = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
         try {
             if (editingItem) {
                 await updateEquipment(editingItem.id, formData);
@@ -162,9 +165,11 @@ const Equipment = () => {
             } else {
                 const response = await createEquipment(formData);
                 navigate(`/dashboard/equipment/${response.data.id}`);
+                closeCustomTab('create-equipment');
             }
         } catch (error) {
             console.error('Error saving equipment:', error);
+            setError(error.response?.data?.message || 'Ошибка при сохранении оборудования');
         }
     };
 
@@ -201,6 +206,7 @@ const Equipment = () => {
         });
         setShowForm(false);
         setEditingItem(null);
+        setError('');
     };
 
     const handleSupplierSubmit = async (e) => {
@@ -364,7 +370,8 @@ const Equipment = () => {
             case 'productCode':
                 return item.productCode || '-';
             case 'quantity':
-                return item._aggr_count_items || 0;
+                console.log('quantity for item', item.id, item.quantity);
+                return item.quantity || 0;
             default:
                 return '';
         }
@@ -402,57 +409,12 @@ const Equipment = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Оборудование</h2>
             </div>
-
-            {showForm && (
-                <div className="bg-white rounded-lg shadow p-6 mb-6">
-                    <h3 className="text-xl font-bold mb-4">{editingItem ? 'Редактировать оборудование' : 'Добавить новое оборудование'}</h3>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows="3"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Код товара</label>
-                            <input
-                                type="number"
-                                value={formData.productCode}
-                                onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                        <div className="flex gap-2 pt-4">
-                            <button
-                                type="submit"
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                            >
-                                {editingItem ? 'Сохранить' : 'Создать'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                            >
-                                Отмена
-                            </button>
-                        </div>
-                    </form>
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                    {error}
                 </div>
             )}
+
 
             {showSupplierForm && (
                 <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -570,7 +532,7 @@ const Equipment = () => {
                 </div>
             )}
 
-            {!showForm && !showSupplierForm && (
+            {!showSupplierForm && (
                 <div>
                     {/* Tabs */}
                     <div className="border-b border-gray-200 mb-6">
@@ -605,10 +567,10 @@ const Equipment = () => {
                         <>
                             <div className="mb-4 flex justify-between items-center">
                                 <button
-                                    onClick={() => setShowForm(!showForm)}
+                                    onClick={() => openCustomTab('create-equipment', 'Создание оборудования')}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
-                                    {showForm ? 'Отмена' : 'Новое оборудование'}
+                                    Новое оборудование
                                 </button>
                             </div>
                             <div className="mb-4 flex gap-4">
@@ -756,7 +718,7 @@ const Equipment = () => {
                     )}
 
                     {activeTab === 'create-arrival' && (
-                        <EquipmentArrival openCustomTab={openCustomTab} closeTab={() => closeCustomTab('create-arrival')} />
+                        <EquipmentArrival openCustomTab={openCustomTab} closeTab={() => closeCustomTab('create-arrival')} refreshEquipment={fetchEquipment} />
                     )}
 
                     {activeTab === 'create-supplier' && (
@@ -765,6 +727,60 @@ const Equipment = () => {
 
                     {activeTab === 'arrival-detail' && (
                         <ArrivalDetail arrivalDocument={selectedArrivalDocument} closeTab={() => closeCustomTab('arrival-detail')} />
+                    )}
+
+                    {activeTab === 'create-equipment' && (
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-xl font-bold mb-4">Добавить новое оборудование</h3>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        rows="3"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Код товара</label>
+                                    <input
+                                        type="number"
+                                        value={formData.productCode}
+                                        onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div className="flex gap-2 pt-4">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                    >
+                                        Создать
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            closeCustomTab('create-equipment');
+                                            resetForm();
+                                        }}
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     )}
 
                     {(activeTab === 'create-warehouse' || activeTab === 'edit-warehouse') && (

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getEquipment, createEquipmentItems, getSuppliers, getArrivalDocuments, getWarehouses } from '../services/api';
 
-const EquipmentArrival = ({ openCustomTab, closeTab }) => {
+const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [equipment, setEquipment] = useState([]);
@@ -85,8 +85,10 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log('handleSubmit called');
         try {
             const validItems = items.filter(item => item.purchasePrice && item.equipmentId);
+            console.log('validItems:', validItems);
             // Group items by equipmentId and create separate API calls
             const equipmentGroups = {};
             validItems.forEach(item => {
@@ -98,14 +100,18 @@ const EquipmentArrival = ({ openCustomTab, closeTab }) => {
                     purchasePrice: item.purchasePrice
                 });
             });
+            console.log('equipmentGroups:', equipmentGroups);
 
             // Create items for each equipment type
             const promises = Object.entries(equipmentGroups).map(([equipmentId, items]) =>
                 createEquipmentItems(equipmentId, { items, supplierId: selectedSupplier, warehouseId: selectedWarehouse })
             );
+            console.log('promises created, awaiting...');
 
             await Promise.all(promises);
-            navigate('/dashboard/equipment');
+            console.log('Promise.all resolved, calling closeTab and refreshEquipment');
+            closeTab();
+            refreshEquipment();
         } catch (error) {
             console.error('Error adding items:', error);
         }

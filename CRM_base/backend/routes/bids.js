@@ -232,6 +232,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
             }
         }
 
+        // Определяем, меняется ли клиент
+        const isClientChanging = clientId && parseInt(clientId) !== currentBid.clientId;
+
         // Обновляем заявку в базе данных
         const updatedBid = await prisma.bid.update({
             where: { id: parseInt(req.params.id) },
@@ -252,6 +255,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 clientObject: true,
             },
         });
+
+        // Если клиент изменился, возвращаем все оборудование
+        if (isClientChanging) {
+            await prisma.equipmentItem.updateMany({
+                where: { bidId: parseInt(req.params.id) },
+                data: { bidId: null },
+            });
+        }
 
         // Отправляем обновленную заявку
         res.json({
@@ -322,7 +333,7 @@ router.post('/:id/equipment', authMiddleware, async (req, res) => {
         // Назначаем элементы на заявку
         await prisma.equipmentItem.updateMany({
             where: { id: { in: equipmentItemIds } },
-            data: { bidId },
+            data: { bidId, clientId: bid.clientId },
         });
 
         res.json({ message: `${items.length} equipment items assigned to bid` });

@@ -48,7 +48,26 @@ router.get('/:id', authMiddleware, async (req, res) => {
         const client = await prisma.client.findUnique({
             where: { id: parseInt(req.params.id) },
             include: {
-                bids: true,
+                bids: {
+                    include: {
+                        equipmentItems: {
+                            include: {
+                                equipment: true,
+                            },
+                        },
+                    },
+                },
+                equipmentItems: {
+                    include: {
+                        equipment: true,
+                        bid: {
+                            select: {
+                                id: true,
+                                tema: true,
+                            },
+                        },
+                    },
+                },
                 responsible: {
                     select: {
                         id: true,

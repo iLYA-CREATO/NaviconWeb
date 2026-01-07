@@ -12,7 +12,7 @@ router.get('/', authMiddleware, async (req, res) => {
                 items: {
                     orderBy: { createdAt: 'desc' },
                     include: {
-                        warehouse: true
+                        client: true
                     }
                 },
                 _count: {
@@ -53,7 +53,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
             where: { id: parseInt(req.params.id) },
             include: {
                 items: {
-                    orderBy: { createdAt: 'desc' }
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        client: true
+                    }
                 },
                 _count: {
                     select: { items: true }
@@ -87,6 +90,22 @@ router.post('/', authMiddleware, async (req, res) => {
     try {
         const { name, description, productCode, sellingPrice } = req.body;
 
+        const existingName = await prisma.equipment.findFirst({
+            where: { name: name }
+        });
+        if (existingName) {
+            return res.status(400).json({ message: 'Оборудование с таким названием уже существует' });
+        }
+
+        if (productCode) {
+            const existingCode = await prisma.equipment.findFirst({
+                where: { productCode: parseInt(productCode) }
+            });
+            if (existingCode) {
+                return res.status(400).json({ message: 'Оборудование с таким кодом товара уже существует' });
+            }
+        }
+
         const newEquipment = await prisma.equipment.create({
             data: {
                 name,
@@ -110,9 +129,38 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const { name, description, productCode, sellingPrice } = req.body;
+        const equipmentId = parseInt(req.params.id);
+
+        const currentEquipment = await prisma.equipment.findUnique({
+            where: { id: equipmentId }
+        });
+
+        if (!currentEquipment) {
+            return res.status(404).json({ message: 'Equipment not found' });
+        }
+
+        if (name !== undefined && name !== currentEquipment.name) {
+            const existingName = await prisma.equipment.findFirst({
+                where: { name: name }
+            });
+            if (existingName) {
+                return res.status(400).json({ message: 'Оборудование с таким названием уже существует' });
+            }
+        }
+
+        if (productCode !== undefined && (productCode ? parseInt(productCode) : null) !== currentEquipment.productCode) {
+            if (productCode) {
+                const existingCode = await prisma.equipment.findFirst({
+                    where: { productCode: parseInt(productCode) }
+                });
+                if (existingCode) {
+                    return res.status(400).json({ message: 'Оборудование с таким кодом товара уже существует' });
+                }
+            }
+        }
 
         const updatedEquipment = await prisma.equipment.update({
-            where: { id: parseInt(req.params.id) },
+            where: { id: equipmentId },
             data: {
                 ...(name !== undefined && { name }),
                 ...(description !== undefined && { description }),
@@ -176,6 +224,7 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
                 equipmentId,
                 supplierId: supplierId ? parseInt(supplierId) : null,
                 warehouseId: warehouseId ? parseInt(warehouseId) : null,
+                clientId: null,
                 imei: item.imei || null,
                 purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
             })),
@@ -194,30 +243,30 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
 // Get arrival documents
 router.get('/arrivals/documents', authMiddleware, async (req, res) => {
     try {
-        // Group equipment items by creation date, supplier, and warehouse to simulate arrival documents
+        // Group equipment items by creation date, supplier, and client to simulate arrival documents
         const items = await prisma.equipmentItem.findMany({
             include: {
                 supplier: true,
                 equipment: true,
-                warehouse: true,
+                client: true,
             },
             orderBy: { createdAt: 'desc' },
         });
 
-        // Group by date, supplier, and warehouse (simulating arrival documents)
+        // Group by date, supplier, and client (simulating arrival documents)
         const arrivalDocuments = {};
         items.forEach(item => {
             const dateKey = item.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD format
             const supplierKey = item.supplierId || 'no-supplier';
-            const warehouseKey = item.warehouseId || 'no-warehouse';
-            const key = `${dateKey}-${supplierKey}-${warehouseKey}`;
+            const clientKey = item.clientId || 'no-client';
+            const key = `${dateKey}-${supplierKey}-${clientKey}`;
 
             if (!arrivalDocuments[key]) {
                 arrivalDocuments[key] = {
                     id: Object.keys(arrivalDocuments).length + 1,
                     date: item.createdAt,
                     supplier: item.supplier,
-                    warehouse: item.warehouse?.name || 'Не указан',
+                    client: item.client?.name || 'Не указан',
                     documentNumber: `Д-${String(Object.keys(arrivalDocuments).length + 1).padStart(4, '0')}`,
                     items: [],
                 };
