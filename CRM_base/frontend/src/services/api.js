@@ -147,6 +147,7 @@ export const getBidSpecifications = (bidId) => api.get(`/bids/${bidId}/specifica
 export const createBidSpecification = (bidId, data) => api.post(`/bids/${bidId}/specifications`, data); // Создание спецификации заявки
 export const updateBidSpecification = (bidId, specId, data) => api.put(`/bids/${bidId}/specifications/${specId}`, data); // Обновление спецификации заявки
 export const deleteBidSpecification = (bidId, specId) => api.delete(`/bids/${bidId}/specifications/${specId}`); // Удаление спецификации заявки
+export const getBidHistory = (bidId) => api.get(`/bids/${bidId}/history`); // Получение истории заявки
 
 // === КАТЕГОРИИ СПЕЦИФИКАЦИЙ ===
 // CRUD операции для категорий спецификаций

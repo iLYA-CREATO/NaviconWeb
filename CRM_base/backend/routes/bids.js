@@ -560,6 +560,16 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
             return res.status(403).json({ message: 'You can only delete your own comments' });
         }
 
+        // Создаем запись в audit log перед удалением
+        await prisma.auditLog.create({
+            data: {
+                bidId,
+                userId: req.user.id,
+                action: 'Удален комментарий',
+                details: `Комментарий: "${comment.content}"`,
+            },
+        });
+
         // Удаляем комментарий
         await prisma.comment.delete({
             where: { id: commentId },
@@ -833,6 +843,138 @@ router.delete('/:id/specifications/:specId', authMiddleware, async (req, res) =>
         res.json({ message: 'Bid specification deleted' });
     } catch (error) {
         console.error('Delete bid specification error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Получить историю заявки
+router.get('/:id/history', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+
+        // Проверяем существование заявки
+        const bid = await prisma.bid.findUnique({
+            where: { id: bidId },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+        });
+
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        const history = [];
+
+        // Создание заявки
+        history.push({
+            date: bid.createdAt,
+            user: bid.creator.fullName,
+            action: 'Заявка создана',
+        });
+
+        // Изменение статуса (упрощенное, используем updatedAt)
+        if (bid.updatedAt > bid.createdAt) {
+            history.push({
+                date: bid.updatedAt,
+                user: bid.creator.fullName, // Предполагаем создателя
+                action: `Статус изменен на ${bid.status}`,
+            });
+        }
+
+        // Комментарии
+        const comments = await prisma.comment.findMany({
+            where: { bidId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        comments.forEach(comment => {
+            history.push({
+                date: comment.createdAt,
+                user: comment.user.fullName,
+                action: `Добавлен комментарий: ${comment.content}`,
+            });
+        });
+
+        // Спецификации
+        const specifications = await prisma.bidSpecification.findMany({
+            where: { bidId },
+            include: {
+                specification: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        specifications.forEach(spec => {
+            history.push({
+                date: spec.createdAt,
+                user: bid.creator.fullName, // Предполагаем создателя
+                action: `Добавлена спецификация: ${spec.specification.name}`,
+            });
+            if (spec.updatedAt > spec.createdAt) {
+                history.push({
+                    date: spec.updatedAt,
+                    user: bid.creator.fullName,
+                    action: `Спецификация изменена: ${spec.specification.name}`,
+                });
+            }
+        });
+
+        // Оборудование: упрощенное, используем updatedAt для назначения
+        if (bid.equipmentItems && bid.equipmentItems.length > 0) {
+            // Предполагаем, что оборудование назначено при обновлении
+            history.push({
+                date: bid.updatedAt,
+                user: bid.creator.fullName,
+                action: `Оборудование назначено (${bid.equipmentItems.length} шт.)`,
+            });
+        }
+
+        // Audit logs
+        const auditLogs = await prisma.auditLog.findMany({
+            where: { bidId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        auditLogs.forEach(log => {
+            history.push({
+                date: log.createdAt,
+                user: log.user.fullName,
+                action: log.action + (log.details ? `: ${log.details}` : ''),
+            });
+        });
+
+        // Сортируем по дате
+        history.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        res.json(history);
+    } catch (error) {
+        console.error('Get bid history error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

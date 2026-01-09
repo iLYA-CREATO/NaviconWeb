@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree } from '../services/api';
+import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 
@@ -47,6 +47,8 @@ const BidDetail = () => {
     const [specCategories, setSpecCategories] = useState([]);
     const [expandedCategories, setExpandedCategories] = useState(new Set());
     const [discount, setDiscount] = useState(0);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [history, setHistory] = useState([]);
 
     useEffect(() => {
         fetchBid();
@@ -56,6 +58,7 @@ const BidDetail = () => {
         fetchUsers();
         fetchSpecifications();
         fetchSpecCategories();
+        fetchHistory();
     }, [id]);
 
 
@@ -132,6 +135,15 @@ const BidDetail = () => {
         }
     };
 
+    const fetchHistory = async () => {
+        try {
+            const response = await getBidHistory(id);
+            setHistory(response.data);
+        } catch (error) {
+            console.error('Error fetching bid history:', error);
+        }
+    };
+
     const handleAssignEquipment = async () => {
         if (selectedAssign.length === 0) return;
         try {
@@ -143,6 +155,7 @@ const BidDetail = () => {
             setSearchWarehouse('');
             fetchBid();
             fetchAvailableEquipment();
+            fetchHistory();
         } catch (error) {
             console.error('Error assigning equipment:', error);
         }
@@ -156,6 +169,7 @@ const BidDetail = () => {
             setShowReturnModal(false);
             fetchBid();
             fetchAvailableEquipment();
+            fetchHistory();
         } catch (error) {
             console.error('Error returning equipment:', error);
         }
@@ -169,6 +183,7 @@ const BidDetail = () => {
             await updateBid(id, { status: newStatus });
             setShowStatusModal(false);
             fetchBid();
+            fetchHistory();
         } catch (error) {
             console.error('Error changing status:', error);
         }
@@ -181,6 +196,7 @@ const BidDetail = () => {
             await createComment(id, { content: newComment });
             setNewComment('');
             fetchComments();
+            fetchHistory();
         } catch (error) {
             console.error('Error creating comment:', error);
             alert('Ошибка при добавлении комментария. Возможно, истек срок действия токена.');
@@ -204,6 +220,7 @@ const BidDetail = () => {
             setEditingCommentId(null);
             setEditingCommentContent('');
             fetchComments();
+            fetchHistory();
         } catch (error) {
             console.error('Error updating comment:', error);
             alert('Ошибка при обновлении комментария. Возможно, истек срок действия токена.');
@@ -215,6 +232,7 @@ const BidDetail = () => {
         try {
             await deleteComment(id, commentId);
             fetchComments();
+            fetchHistory();
         } catch (error) {
             console.error('Error deleting comment:', error);
             alert('Ошибка при удалении комментария. Возможно, истек срок действия токена.');
@@ -226,6 +244,7 @@ const BidDetail = () => {
         try {
             await deleteBidSpecification(id, specId);
             fetchBidSpecifications();
+            fetchHistory();
         } catch (error) {
             console.error('Error deleting specification:', error);
             alert('Ошибка при удалении спецификации.');
@@ -242,6 +261,7 @@ const BidDetail = () => {
             setShowAddSpecModal(false);
             setEditingSpec(null);
             fetchBidSpecifications();
+            fetchHistory();
         } catch (error) {
             console.error('Error saving specification:', error);
             alert('Ошибка при сохранении спецификации.');
@@ -640,6 +660,14 @@ const BidDetail = () => {
                     <label className="block text-xs text-gray-500 mb-1">Дата и время создания</label>
                     <p className="text-gray-900">{formattedCreatedAt}</p>
                 </div>
+                <div className='p-2'>
+                    <button
+                        onClick={() => setShowHistoryModal(true)}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        История
+                    </button>
+                </div>
             </div>
 
 
@@ -893,6 +921,48 @@ const BidDetail = () => {
                                     setShowViewSpecModal(false);
                                     setViewingSpec(null);
                                 }}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                            >
+                                Закрыть
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* History Modal */}
+            {showHistoryModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-lg font-semibold mb-4">История заявки</h3>
+                        {history.length > 0 ? (
+                            <div className="space-y-4">
+                                {history.map((item, index) => (
+                                    <div key={index} className="border-b pb-2">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-medium text-gray-900">{item.action}</p>
+                                                <p className="text-sm text-gray-600">Кто: {item.user}</p>
+                                            </div>
+                                            <p className="text-sm text-gray-500">
+                                                {new Date(item.date).toLocaleString('ru-RU', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-gray-500 text-center py-4">История пуста</p>
+                        )}
+                        <div className="flex justify-end space-x-2 mt-6">
+                            <button
+                                onClick={() => setShowHistoryModal(false)}
                                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                             >
                                 Закрыть

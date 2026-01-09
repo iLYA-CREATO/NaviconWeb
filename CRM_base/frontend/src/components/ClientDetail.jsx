@@ -79,8 +79,8 @@ const ClientDetail = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await updateClient(id, formData);
-            setClient(prev => ({ ...prev, ...formData }));
+            const response = await updateClient(id, formData);
+            setClient(response.data);
             setIsEditing(false);
         } catch (error) {
             console.error('Error updating client:', error);

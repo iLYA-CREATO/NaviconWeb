@@ -129,6 +129,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 phone,
                 responsibleId: responsibleId ? parseInt(responsibleId) : null,
             },
+            include: {
+                responsible: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        email: true,
+                    },
+                },
+            },
         });
 
         res.json(updatedClient);
