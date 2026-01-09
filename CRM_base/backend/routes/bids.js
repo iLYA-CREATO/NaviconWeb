@@ -467,6 +467,111 @@ router.post('/:id/comments', authMiddleware, async (req, res) => {
     }
 });
 
+// Обновить комментарий к заявке
+router.put('/:id/comments/:commentId', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        const commentId = parseInt(req.params.commentId);
+        const { content } = req.body;
+
+        // Проверяем аутентификацию
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        // Проверяем существование комментария и что он принадлежит пользователю
+        const comment = await prisma.comment.findUnique({
+            where: { id: commentId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+        });
+
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
+        if (comment.bidId !== bidId) {
+            return res.status(400).json({ message: 'Comment does not belong to this bid' });
+        }
+
+        if (comment.userId !== req.user.id) {
+            return res.status(403).json({ message: 'You can only edit your own comments' });
+        }
+
+        // Проверяем содержание комментария
+        if (!content || content.trim() === '') {
+            return res.status(400).json({ message: 'Comment content is required' });
+        }
+
+        // Обновляем комментарий
+        const updatedComment = await prisma.comment.update({
+            where: { id: commentId },
+            data: {
+                content: content.trim(),
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+        });
+
+        res.json(updatedComment);
+    } catch (error) {
+        console.error('Update comment error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Удалить комментарий к заявке
+router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        const commentId = parseInt(req.params.commentId);
+
+        // Проверяем аутентификацию
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        // Проверяем существование комментария и что он принадлежит пользователю
+        const comment = await prisma.comment.findUnique({
+            where: { id: commentId },
+        });
+
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
+        if (comment.bidId !== bidId) {
+            return res.status(400).json({ message: 'Comment does not belong to this bid' });
+        }
+
+        if (comment.userId !== req.user.id) {
+            return res.status(403).json({ message: 'You can only delete your own comments' });
+        }
+
+        // Удаляем комментарий
+        await prisma.comment.delete({
+            where: { id: commentId },
+        });
+
+        res.json({ message: 'Comment deleted' });
+    } catch (error) {
+        console.error('Delete comment error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Получить спецификации заявки
 router.get('/:id/specifications', authMiddleware, async (req, res) => {
     try {

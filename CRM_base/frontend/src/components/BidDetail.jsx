@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree } from '../services/api';
+import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 
@@ -35,6 +35,8 @@ const BidDetail = () => {
     const [activeTab, setActiveTab] = useState('comments');
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingCommentContent, setEditingCommentContent] = useState('');
     const [bidSpecifications, setBidSpecifications] = useState([]);
     const [showAddSpecModal, setShowAddSpecModal] = useState(false);
     const [editingSpec, setEditingSpec] = useState(null);
@@ -182,6 +184,40 @@ const BidDetail = () => {
         } catch (error) {
             console.error('Error creating comment:', error);
             alert('Ошибка при добавлении комментария. Возможно, истек срок действия токена.');
+        }
+    };
+
+    const handleEditComment = (comment) => {
+        setEditingCommentId(comment.id);
+        setEditingCommentContent(comment.content);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCommentId(null);
+        setEditingCommentContent('');
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingCommentContent.trim()) return;
+        try {
+            await updateComment(id, editingCommentId, { content: editingCommentContent.trim() });
+            setEditingCommentId(null);
+            setEditingCommentContent('');
+            fetchComments();
+        } catch (error) {
+            console.error('Error updating comment:', error);
+            alert('Ошибка при обновлении комментария. Возможно, истек срок действия токена.');
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        if (!confirm('Вы уверены, что хотите удалить этот комментарий?')) return;
+        try {
+            await deleteComment(id, commentId);
+            fetchComments();
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+            alert('Ошибка при удалении комментария. Возможно, истек срок действия токена.');
         }
     };
 
@@ -372,28 +408,73 @@ const BidDetail = () => {
                                     </form>
                                 </div>
                                 <div className="space-y-4">
-                                    {comments.length > 0 ? (
-                                        comments.map(comment => (
-                                            <div key={comment.id} className="bg-gray-50 p-4 rounded-lg">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <p className="font-medium text-gray-900">{comment.user.fullName}</p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {new Date(comment.createdAt).toLocaleString('ru-RU', {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: '2-digit',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                    </p>
-                                                </div>
-                                                <p className="text-gray-700">{comment.content}</p>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p className="text-gray-500 text-center py-4">Комментариев пока нет</p>
-                                    )}
-                                </div>
+                                     {comments.length > 0 ? (
+                                         comments.map(comment => (
+                                             <div key={comment.id} className="bg-gray-50 p-4 rounded-lg">
+                                                 <div className="flex justify-between items-start mb-2">
+                                                     <p className="font-medium text-gray-900">{comment.user.fullName}</p>
+                                                     <div className="flex items-center space-x-2">
+                                                         <p className="text-sm text-gray-500">
+                                                             {new Date(comment.createdAt).toLocaleString('ru-RU', {
+                                                                 year: 'numeric',
+                                                                 month: 'short',
+                                                                 day: '2-digit',
+                                                                 hour: '2-digit',
+                                                                 minute: '2-digit'
+                                                             })}
+                                                         </p>
+                                                         {user && comment.userId === user.id && (
+                                                             <div className="flex space-x-1">
+                                                                 <button
+                                                                     onClick={() => handleEditComment(comment)}
+                                                                     className="text-blue-500 hover:text-blue-700 text-sm"
+                                                                     title="Редактировать"
+                                                                 >
+                                                                     ✏️
+                                                                 </button>
+                                                                 <button
+                                                                     onClick={() => handleDeleteComment(comment.id)}
+                                                                     className="text-red-500 hover:text-red-700 text-sm"
+                                                                     title="Удалить"
+                                                                 >
+                                                                     🗑️
+                                                                 </button>
+                                                             </div>
+                                                         )}
+                                                     </div>
+                                                 </div>
+                                                 {editingCommentId === comment.id ? (
+                                                     <div className="space-y-2">
+                                                         <textarea
+                                                             value={editingCommentContent}
+                                                             onChange={(e) => setEditingCommentContent(e.target.value)}
+                                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                             rows={3}
+                                                         />
+                                                         <div className="flex space-x-2">
+                                                             <button
+                                                                 onClick={handleSaveEdit}
+                                                                 className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                                                             >
+                                                                 Сохранить
+                                                             </button>
+                                                             <button
+                                                                 onClick={handleCancelEdit}
+                                                                 className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
+                                                             >
+                                                                 Отмена
+                                                             </button>
+                                                         </div>
+                                                     </div>
+                                                 ) : (
+                                                     <p className="text-gray-700">{comment.content}</p>
+                                                 )}
+                                             </div>
+                                         ))
+                                     ) : (
+                                         <p className="text-gray-500 text-center py-4">Комментариев пока нет</p>
+                                     )}
+                                 </div>
                             </div>
                         )}
                         {activeTab === 'files' && (
