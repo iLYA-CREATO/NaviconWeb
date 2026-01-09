@@ -1002,10 +1002,11 @@ router.get('/:id/history', authMiddleware, async (req, res) => {
         // Оборудование: упрощенное, используем updatedAt для назначения
         if (bid.equipmentItems && bid.equipmentItems.length > 0) {
             // Предполагаем, что оборудование назначено при обновлении
+            const totalQuantity = bid.equipmentItems.reduce((sum, item) => sum + item.quantity, 0);
             history.push({
                 date: bid.updatedAt,
                 user: bid.creator.fullName,
-                action: `Оборудование назначено (${bid.equipmentItems.length} шт.)`,
+                action: `Оборудование назначено (${totalQuantity} шт.)`,
             });
         }
 

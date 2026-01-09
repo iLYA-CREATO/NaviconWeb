@@ -410,7 +410,7 @@ const BidDetail = () => {
                                             <div key={group.equipment?.id || 'unknown'} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                                 <div>
                                                     <p className="font-medium">{group.equipment ? group.equipment.name : 'Неизвестное оборудование'}</p>
-                                                    <p className="text-sm text-gray-600">Количество: {group.items.length}</p>
+                                                    <p className="text-sm text-gray-600">Количество: {group.items.reduce((sum, item) => sum + item.quantity, 0)}</p>
                                                 </div>
                                                 <p className="text-sm text-gray-600">Цена: {totalPrice ? `${totalPrice} руб.` : 'N/A'}</p>
                                             </div>
@@ -718,37 +718,39 @@ const BidDetail = () => {
             {/* Assign Modal */}
             {showAssignModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                         <h3 className="text-lg font-semibold mb-4">Вставить оборудование</h3>
-                        <div className="mb-4 space-y-2">
-                            <input
-                                type="text"
-                                placeholder="Поиск по названию"
-                                value={searchName}
-                                onChange={(e) => setSearchName(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Поиск по коду товара"
-                                value={searchCode}
-                                onChange={(e) => setSearchCode(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <select
-                                value={searchWarehouse}
-                                onChange={(e) => setSearchWarehouse(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Все склады</option>
-                                {Array.from(new Set(availableEquipment.flatMap(eq => eq.availableItems.map(item => item.warehouse?.name)).filter(Boolean))).map(warehouseName => (
-                                    <option key={warehouseName} value={warehouseName}>
-                                        {warehouseName}
-                                    </option>
-                                ))}
-                            </select>
+                        <div className="mb-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Поиск по названию"
+                                    value={searchName}
+                                    onChange={(e) => setSearchName(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Поиск по коду товара"
+                                    value={searchCode}
+                                    onChange={(e) => setSearchCode(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <select
+                                    value={searchWarehouse}
+                                    onChange={(e) => setSearchWarehouse(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Все склады</option>
+                                    {Array.from(new Set(availableEquipment.flatMap(eq => eq.availableItems.map(item => item.warehouse?.name)).filter(Boolean))).map(warehouseName => (
+                                        <option key={warehouseName} value={warehouseName}>
+                                            {warehouseName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-                        <div className="space-y-4 max-h-60 overflow-y-auto">
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
                             {(() => {
                                 // Group by warehouse and equipment
                                 const warehouses = {};
@@ -827,6 +829,20 @@ const BidDetail = () => {
                                 ));
                             })()}
                         </div>
+                        {(selectedAssign.length > 0 || Object.values(selectedQuantities).some(q => q > 0)) && (
+                            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                                <h4 className="font-medium text-blue-800 mb-2">Выбрано для вставки:</h4>
+                                <div className="space-y-1 text-sm text-blue-700">
+                                    {selectedAssign.length > 0 && (
+                                        <div>IMEI оборудование: {selectedAssign.length} шт.</div>
+                                    )}
+                                    {Object.entries(selectedQuantities).filter(([_, q]) => q > 0).map(([eqId, qty]) => {
+                                        const eq = availableEquipment.find(e => e.id === parseInt(eqId));
+                                        return <div key={eqId}>{eq?.name}: {qty} шт.</div>;
+                                    })}
+                                </div>
+                            </div>
+                        )}
                         <div className="flex justify-end space-x-2 mt-4">
                             <button
                                 onClick={() => {
