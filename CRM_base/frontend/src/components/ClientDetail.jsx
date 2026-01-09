@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getClient, getClientObjects } from '../services/api';
+import { getClient, getClientObjects, updateClient, getUsers } from '../services/api';
 
 const ClientDetail = () => {
     const { id } = useParams();
@@ -10,10 +10,20 @@ const ClientDetail = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('Заявки');
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        responsibleId: null
+    });
+    const [users, setUsers] = useState([]);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         fetchClient();
         fetchClientObjects();
+        fetchUsers();
     }, [id]);
 
     const fetchClient = async () => {
@@ -35,6 +45,57 @@ const ClientDetail = () => {
         } catch (error) {
             console.error('Error fetching client objects:', error);
         }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const response = await getUsers();
+            setUsers(response.data);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
+
+    const handleEdit = () => {
+        setFormData({
+            name: client.name || '',
+            email: client.email || '',
+            phone: client.phone || '',
+            responsibleId: client.responsibleId || null
+        });
+        setIsEditing(true);
+    };
+
+    const handleCancel = () => {
+        setIsEditing(false);
+        setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            responsibleId: null
+        });
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await updateClient(id, formData);
+            setClient(prev => ({ ...prev, ...formData }));
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Error updating client:', error);
+            setError('Ошибка при сохранении изменений');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: name === 'responsibleId' ? (value ? parseInt(value) : null) : value
+        }));
     };
 
     if (loading) {
@@ -63,31 +124,110 @@ const ClientDetail = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Информация о клиенте</h2>
-                <button
-                    onClick={() => navigate('/dashboard/clients')}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
-                >
-                    Назад
-                </button>
+                <div className="flex space-x-2">
+                    {!isEditing ? (
+                        <>
+                            <button
+                                onClick={handleEdit}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                Редактировать
+                            </button>
+                            <button
+                                onClick={() => navigate('/dashboard/clients')}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                Назад
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition disabled:opacity-50"
+                            >
+                                {saving ? 'Сохранение...' : 'Сохранить'}
+                            </button>
+                            <button
+                                onClick={handleCancel}
+                                disabled={saving}
+                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition disabled:opacity-50"
+                            >
+                                Отмена
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Имя</label>
-                        <p className="text-gray-900 text-lg">{client.name}</p>
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={saving}
+                            />
+                        ) : (
+                            <p className="text-gray-900 text-lg">{client.name}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <p className="text-gray-900 text-lg">{client.email}</p>
+                        {isEditing ? (
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={saving}
+                            />
+                        ) : (
+                            <p className="text-gray-900 text-lg">{client.email}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                        <p className="text-gray-900 text-lg">{client.phone}</p>
+                        {isEditing ? (
+                            <input
+                                type="tel"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={saving}
+                            />
+                        ) : (
+                            <p className="text-gray-900 text-lg">{client.phone}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Ответственный</label>
-                        <p className="text-gray-900 text-lg">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</p>
+                        {isEditing ? (
+                            <select
+                                name="responsibleId"
+                                value={formData.responsibleId || ''}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={saving}
+                            >
+                                <option value="">Не назначен</option>
+                                {users.map(user => (
+                                    <option key={user.id} value={user.id}>
+                                        {user.fullName || user.email}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <p className="text-gray-900 text-lg">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Количество заявок</label>
