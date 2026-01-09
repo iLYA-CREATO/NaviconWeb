@@ -84,6 +84,7 @@ export const deleteComment = (bidId, commentId) => api.delete(`/bids/${bidId}/co
 // CRUD операции для оборудования
 export const getEquipment = () => api.get('/equipment'); // Получение всего оборудования
 export const getEquipmentItem = (id) => api.get(`/equipment/${id}`); // Получение оборудования по ID
+export const getEquipmentItems = () => api.get('/equipment/items'); // Получение всех экземпляров оборудования
 export const createEquipment = (data) => api.post('/equipment', data); // Создание нового оборудования
 export const updateEquipment = (id, data) => api.put(`/equipment/${id}`, data); // Обновление оборудования
 export const deleteEquipment = (id) => api.delete(`/equipment/${id}`); // Удаление оборудования

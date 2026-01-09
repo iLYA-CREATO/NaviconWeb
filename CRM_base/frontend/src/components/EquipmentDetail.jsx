@@ -103,6 +103,7 @@ const EquipmentDetail = ({ id: propId, closeTab }) => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Цена закупки</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата добавления</th>
                                 </tr>
                             </thead>
@@ -113,12 +114,13 @@ const EquipmentDetail = ({ id: propId, closeTab }) => {
                                             <td className="px-6 py-4 whitespace-nowrap">{item.id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{item.imei || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{item.purchasePrice ? `${item.purchasePrice} ₽` : '-'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">{item.warehouse?.name || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{new Date(item.createdAt).toLocaleDateString('ru-RU')}</td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                                        <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
                                             Нет доступных элементов оборудования
                                         </td>
                                     </tr>

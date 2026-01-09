@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier, getArrivalDocuments, getBids, getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../services/api';
+import { getEquipment, getEquipmentItems, createEquipment, updateEquipment, deleteEquipment, getSuppliers, createSupplier, updateSupplier, deleteSupplier, getArrivalDocuments, getBids, getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../services/api';
 import EquipmentArrival from './EquipmentArrival';
 import SupplierCreate from './SupplierCreate';
 import ArrivalDetail from './ArrivalDetail';
@@ -9,6 +9,7 @@ import EquipmentDetail from './EquipmentDetail';
 const Equipment = () => {
     const navigate = useNavigate();
     const [equipment, setEquipment] = useState([]);
+    const [equipmentItems, setEquipmentItems] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [arrivalDocuments, setArrivalDocuments] = useState([]);
@@ -25,7 +26,7 @@ const Equipment = () => {
     const [activeTab, setActiveTab] = useState('nomenclature');
     const [customTabs, setCustomTabs] = useState([]);
     // Define all possible columns for equipment
-    const equipmentAllColumns = ['id', 'name', 'description', 'productCode', 'quantity'];
+    const equipmentAllColumns = ['id', 'name', 'description', 'productCode', 'sellingPrice', 'quantity', 'createdAt'];
     // Load initial states from localStorage for equipment
     const savedEquipmentColumns = localStorage.getItem('equipmentVisibleColumns');
     const initialEquipmentVisibleColumns = savedEquipmentColumns ? JSON.parse(savedEquipmentColumns) : {
@@ -33,7 +34,9 @@ const Equipment = () => {
         name: true,
         description: true,
         productCode: true,
+        sellingPrice: true,
         quantity: true,
+        createdAt: true,
     };
     const savedEquipmentOrder = localStorage.getItem('equipmentColumnOrder');
     const initialEquipmentColumnOrder = savedEquipmentOrder ? JSON.parse(savedEquipmentOrder) : equipmentAllColumns;
@@ -43,6 +46,26 @@ const Equipment = () => {
     const [equipmentVisibleColumns, setEquipmentVisibleColumns] = useState(initialEquipmentVisibleColumns);
     // State for showing equipment column settings dropdown
     const [showEquipmentColumnSettings, setShowEquipmentColumnSettings] = useState(false);
+    // Define all possible columns for equipment items
+    const equipmentItemsAllColumns = ['id', 'equipmentName', 'imei', 'quantity', 'warehouse', 'purchasePrice', 'createdAt'];
+    // Load initial states from localStorage for equipment items
+    const savedEquipmentItemsColumns = localStorage.getItem('equipmentItemsVisibleColumns');
+    const initialEquipmentItemsVisibleColumns = savedEquipmentItemsColumns ? JSON.parse(savedEquipmentItemsColumns) : {
+        id: true,
+        equipmentName: true,
+        imei: true,
+        warehouse: true,
+        purchasePrice: true,
+        createdAt: true,
+    };
+    const savedEquipmentItemsOrder = localStorage.getItem('equipmentItemsColumnOrder');
+    const initialEquipmentItemsColumnOrder = savedEquipmentItemsOrder ? JSON.parse(savedEquipmentItemsOrder) : equipmentItemsAllColumns;
+    // State for equipment items column order
+    const [equipmentItemsColumnOrder, setEquipmentItemsColumnOrder] = useState(initialEquipmentItemsColumnOrder);
+    // State for visible equipment items columns in the table
+    const [equipmentItemsVisibleColumns, setEquipmentItemsVisibleColumns] = useState(initialEquipmentItemsVisibleColumns);
+    // State for showing equipment items column settings dropdown
+    const [showEquipmentItemsColumnSettings, setShowEquipmentItemsColumnSettings] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -69,6 +92,7 @@ const Equipment = () => {
 
     useEffect(() => {
         fetchEquipment();
+        fetchEquipmentItems();
         fetchSuppliers();
         fetchWarehouses();
         fetchArrivalDocuments();
@@ -97,6 +121,16 @@ const Equipment = () => {
         localStorage.setItem('equipmentColumnOrder', JSON.stringify(equipmentColumnOrder));
     }, [equipmentColumnOrder]);
 
+    // useEffect to save equipment items column preferences to localStorage
+    useEffect(() => {
+        localStorage.setItem('equipmentItemsVisibleColumns', JSON.stringify(equipmentItemsVisibleColumns));
+    }, [equipmentItemsVisibleColumns]);
+
+    // useEffect to save equipment items column order to localStorage
+    useEffect(() => {
+        localStorage.setItem('equipmentItemsColumnOrder', JSON.stringify(equipmentItemsColumnOrder));
+    }, [equipmentItemsColumnOrder]);
+
     // useEffect to close equipment dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -116,6 +150,17 @@ const Equipment = () => {
             setEquipment(response.data);
         } catch (error) {
             console.error('Error fetching equipment:', error);
+        }
+    };
+
+    const fetchEquipmentItems = async () => {
+        console.log('fetchEquipmentItems called');
+        try {
+            const response = await getEquipmentItems();
+            console.log('fetched equipment items:', response.data);
+            setEquipmentItems(response.data);
+        } catch (error) {
+            console.error('Error fetching equipment items:', error);
         }
     };
 
@@ -165,6 +210,7 @@ const Equipment = () => {
                 resetForm();
             } else {
                 const response = await createEquipment(formData);
+                fetchEquipment();
                 navigate(`/dashboard/equipment/${response.data.id}`);
                 closeCustomTab('create-equipment');
             }
@@ -186,7 +232,7 @@ const Equipment = () => {
             description: item.description || '',
             productCode: item.productCode || '',
         });
-        setShowForm(true);
+        openCustomTab('create-equipment', 'Редактирование оборудования');
     };
 
     const handleDelete = async (item) => {
@@ -311,7 +357,9 @@ const Equipment = () => {
 
     const filteredEquipment = equipment.filter(item =>
         item.id.toString().includes(searchTerm) ||
-        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.productCode?.toString().includes(searchTerm)
     );
 
     const filteredSuppliers = suppliers.filter(supplier =>
@@ -356,7 +404,9 @@ const Equipment = () => {
             name: 'Название',
             description: 'Описание',
             productCode: 'Код товара',
+            sellingPrice: 'Цена продажи',
             quantity: 'Количество',
+            createdAt: 'Дата добавления',
         };
         return labels[column] || column;
     };
@@ -371,9 +421,12 @@ const Equipment = () => {
                 return item.description || '-';
             case 'productCode':
                 return item.productCode || '-';
+            case 'sellingPrice':
+                return item.sellingPrice ? `${item.sellingPrice} ₽` : '-';
             case 'quantity':
-                console.log('quantity for item', item.id, item.quantity);
                 return item.quantity || 0;
+            case 'createdAt':
+                return new Date(item.createdAt).toLocaleDateString('ru-RU');
             default:
                 return '';
         }
@@ -597,7 +650,7 @@ const Equipment = () => {
                             <div className="mb-4 flex gap-4">
                                 <input
                                     type="text"
-                                    placeholder="Поиск по ID или названию..."
+                                    placeholder="Поиск по ID, названию или коду..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 const ArrivalDetail = ({ arrivalDocument, closeTab }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -6,6 +6,40 @@ const ArrivalDetail = ({ arrivalDocument, closeTab }) => {
     if (!arrivalDocument) {
         return <div>Накладная не найдена</div>;
     }
+
+    const groupedItems = useMemo(() => {
+        const groups = {};
+        const individualItems = [];
+
+        arrivalDocument.items.forEach(item => {
+            if (item.imei && item.imei.trim() !== '') {
+                // Items with IMEI are individual
+                individualItems.push({ ...item, quantity: 1, isGrouped: false });
+            } else {
+                // Group items without IMEI by equipmentId
+                const key = item.equipmentId;
+                if (!groups[key]) {
+                    groups[key] = {
+                        equipment: item.equipment,
+                        equipmentId: item.equipmentId,
+                        items: [],
+                        quantity: 0,
+                        purchasePrice: item.purchasePrice, // Assume same price
+                        status: item.bidId ? 'Назначено на заявку' : 'Доступно', // Assume same status
+                        isGrouped: true
+                    };
+                }
+                groups[key].items.push(item);
+                groups[key].quantity += 1;
+            }
+        });
+
+        // Convert groups to array
+        const groupedArray = Object.values(groups);
+
+        // Combine individual and grouped
+        return [...individualItems, ...groupedArray];
+    }, [arrivalDocument.items]);
 
     return (
         <div>
@@ -68,24 +102,28 @@ const ArrivalDetail = ({ arrivalDocument, closeTab }) => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Оборудование</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Количество</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Цена закупки</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {arrivalDocument.items.map((item) => (
-                                <tr key={item.id}>
+                            {groupedItems.map((item) => (
+                                <tr key={item.isGrouped ? `group-${item.equipmentId}` : item.id}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {item.equipment?.name || 'Неизвестно'} (Код: {item.equipment?.productCode})
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {item.imei || 'Не указан'}
+                                        {item.isGrouped ? 'Без IMEI' : (item.imei || 'Не указан')}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {item.quantity}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {item.purchasePrice ? parseFloat(item.purchasePrice).toFixed(2) : 'Не указана'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {item.bidId ? 'Назначено на заявку' : 'Доступно'}
+                                        {item.status}
                                     </td>
                                 </tr>
                             ))}

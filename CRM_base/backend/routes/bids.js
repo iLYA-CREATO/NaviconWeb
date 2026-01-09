@@ -306,7 +306,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 router.post('/:id/equipment', authMiddleware, async (req, res) => {
     try {
         const bidId = parseInt(req.params.id);
-        const { equipmentItemIds } = req.body;
+        const { equipmentItemIds, equipmentAssignments } = req.body;
 
         // Проверяем существование заявки
         const bid = await prisma.bid.findUnique({
@@ -317,26 +317,88 @@ router.post('/:id/equipment', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Bid not found' });
         }
 
-        // Проверяем существование и доступность элементов оборудования
-        const items = await prisma.equipmentItem.findMany({
-            where: {
-                id: { in: equipmentItemIds },
-                bidId: null, // Назначаем только неназначенные элементы
-                imei: { not: null }, // Назначаем только элементы с IMEI
-            },
-        });
+        let totalAssigned = 0;
 
-        if (items.length !== equipmentItemIds.length) {
-            return res.status(400).json({ message: 'Some equipment items not found or already assigned' });
+        // Handle equipmentItemIds (for IMEI items)
+        if (equipmentItemIds && equipmentItemIds.length > 0) {
+            // Проверяем существование и доступность элементов оборудования
+            const items = await prisma.equipmentItem.findMany({
+                where: {
+                    id: { in: equipmentItemIds },
+                    bidId: null, // Назначаем только неназначенные элементы
+                },
+            });
+
+            if (items.length !== equipmentItemIds.length) {
+                return res.status(400).json({ message: 'Some equipment items not found or already assigned' });
+            }
+
+            // Назначаем элементы на заявку
+            await prisma.equipmentItem.updateMany({
+                where: { id: { in: equipmentItemIds } },
+                data: { bidId, clientId: bid.clientId },
+            });
+
+            totalAssigned += items.length;
         }
 
-        // Назначаем элементы на заявку
-        await prisma.equipmentItem.updateMany({
-            where: { id: { in: equipmentItemIds } },
-            data: { bidId, clientId: bid.clientId },
-        });
+        // Handle equipmentAssignments (for bulk items)
+        if (equipmentAssignments && equipmentAssignments.length > 0) {
+            for (const assignment of equipmentAssignments) {
+                const { equipmentId, quantity } = assignment;
 
-        res.json({ message: `${items.length} equipment items assigned to bid` });
+                // Find available items for this equipment
+                const availableItems = await prisma.equipmentItem.findMany({
+                    where: {
+                        equipmentId,
+                        bidId: null,
+                    },
+                    orderBy: { createdAt: 'asc' }, // Assign oldest first
+                });
+
+                const totalAvailable = availableItems.reduce((sum, item) => sum + item.quantity, 0);
+                if (quantity > totalAvailable) {
+                    return res.status(400).json({ message: `Not enough available quantity for equipment ${equipmentId}. Requested: ${quantity}, Available: ${totalAvailable}` });
+                }
+
+                let remaining = quantity;
+                for (const item of availableItems) {
+                    if (remaining <= 0) break;
+
+                    if (item.quantity <= remaining) {
+                        // Assign entire item
+                        await prisma.equipmentItem.update({
+                            where: { id: item.id },
+                            data: { bidId, clientId: bid.clientId },
+                        });
+                        remaining -= item.quantity;
+                        totalAssigned += 1; // Count as one item assigned
+                    } else {
+                        // Split item: create new item with remaining quantity, assign it, update original
+                        await prisma.equipmentItem.create({
+                            data: {
+                                equipmentId: item.equipmentId,
+                                supplierId: item.supplierId,
+                                warehouseId: item.warehouseId,
+                                clientId: bid.clientId,
+                                imei: item.imei,
+                                purchasePrice: item.purchasePrice,
+                                quantity: remaining,
+                                bidId,
+                            },
+                        });
+                        await prisma.equipmentItem.update({
+                            where: { id: item.id },
+                            data: { quantity: item.quantity - remaining },
+                        });
+                        remaining = 0;
+                        totalAssigned += 1;
+                    }
+                }
+            }
+        }
+
+        res.json({ message: `${totalAssigned} equipment items assigned to bid` });
     } catch (error) {
         console.error('Assign equipment error:', error);
         res.status(500).json({ message: 'Server error' });

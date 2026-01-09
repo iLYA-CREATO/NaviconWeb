@@ -10,7 +10,7 @@ const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
     const [warehouses, setWarehouses] = useState([]);
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [selectedWarehouse, setSelectedWarehouse] = useState('');
-    const [items, setItems] = useState([{ equipmentId: '', imei: '', purchasePrice: '' }]);
+    const [items, setItems] = useState([{ equipmentId: '', imei: '', purchasePrice: '', quantity: 1 }]);
     const [arrivalDocuments, setArrivalDocuments] = useState([]);
     const [showCancelModal, setShowCancelModal] = useState(false);
 
@@ -68,12 +68,17 @@ const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
     }, [location.state, navigate, fetchSuppliers]);
 
     const addItem = () => {
-        setItems([...items, { equipmentId: '', imei: '', purchasePrice: '' }]);
+        setItems([...items, { equipmentId: '', imei: '', purchasePrice: '', quantity: 1 }]);
     };
 
     const updateItem = (index, field, value) => {
         const newItems = [...items];
         newItems[index][field] = value;
+        if (field === 'imei') {
+            if (value !== '') {
+                newItems[index].quantity = 1;
+            }
+        }
         setItems(newItems);
     };
 
@@ -89,7 +94,7 @@ const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
         try {
             const validItems = items.filter(item => item.purchasePrice && item.equipmentId);
             console.log('validItems:', validItems);
-            // Group items by equipmentId and create separate API calls
+            // Group items by equipmentId
             const equipmentGroups = {};
             validItems.forEach(item => {
                 if (!equipmentGroups[item.equipmentId]) {
@@ -97,7 +102,8 @@ const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
                 }
                 equipmentGroups[item.equipmentId].push({
                     imei: item.imei,
-                    purchasePrice: item.purchasePrice
+                    purchasePrice: item.purchasePrice,
+                    quantity: parseInt(item.quantity) || 1
                 });
             });
             console.log('equipmentGroups:', equipmentGroups);
@@ -192,7 +198,9 @@ const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Оборудование</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Количество</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Цена закупки</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Сумма</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                     </tr>
                                 </thead>
@@ -226,6 +234,17 @@ const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <input
                                                     type="number"
+                                                    min="1"
+                                                    value={item.quantity}
+                                                    onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                                    disabled={item.imei !== ''}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    required
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <input
+                                                    type="number"
                                                     step="0.01"
                                                     value={item.purchasePrice}
                                                     onChange={(e) => updateItem(index, 'purchasePrice', e.target.value)}
@@ -233,6 +252,9 @@ const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
                                                     placeholder="Обязательно"
                                                     required
                                                 />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {((parseFloat(item.quantity) || 1) * (parseFloat(item.purchasePrice) || 0)).toFixed(2)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {items.length > 1 && (
@@ -250,6 +272,13 @@ const EquipmentArrival = ({ openCustomTab, closeTab, refreshEquipment }) => {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+
+                    <div className="flex justify-end items-center mb-4">
+                        <span className="text-lg font-medium text-gray-700">Общая сумма закупки: </span>
+                        <span className="text-lg font-bold text-gray-900 ml-2">
+                            {items.reduce((sum, item) => sum + ((parseFloat(item.quantity) || 1) * (parseFloat(item.purchasePrice) || 0)), 0).toFixed(2)}
+                        </span>
                     </div>
 
                     <div className="flex gap-2 pt-4">

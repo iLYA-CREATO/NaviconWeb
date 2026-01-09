@@ -26,6 +26,7 @@ const BidDetail = () => {
     const [availableEquipment, setAvailableEquipment] = useState([]);
     const [selectedAssign, setSelectedAssign] = useState([]);
     const [selectedReturn, setSelectedReturn] = useState([]);
+    const [selectedQuantities, setSelectedQuantities] = useState({});
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [searchName, setSearchName] = useState('');
@@ -145,10 +146,15 @@ const BidDetail = () => {
     };
 
     const handleAssignEquipment = async () => {
-        if (selectedAssign.length === 0) return;
+        const equipmentAssignments = Object.entries(selectedQuantities).filter(([_, qty]) => qty > 0).map(([eqId, qty]) => ({equipmentId: parseInt(eqId), quantity: qty}));
+        if (selectedAssign.length === 0 && equipmentAssignments.length === 0) return;
         try {
-            await assignEquipmentToBid(id, { equipmentItemIds: selectedAssign });
+            const data = {};
+            if (selectedAssign.length > 0) data.equipmentItemIds = selectedAssign;
+            if (equipmentAssignments.length > 0) data.equipmentAssignments = equipmentAssignments;
+            await assignEquipmentToBid(id, data);
             setSelectedAssign([]);
+            setSelectedQuantities({});
             setShowAssignModal(false);
             setSearchName('');
             setSearchCode('');
@@ -366,15 +372,53 @@ const BidDetail = () => {
                     </div>
                     {bid.equipmentItems && bid.equipmentItems.length > 0 ? (
                         <div className="space-y-2">
-                            {bid.equipmentItems.map(item => (
-                                <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                    <div>
-                                        <p className="font-medium">{item.equipment ? item.equipment.name : 'Неизвестное оборудование'}</p>
-                                        <p className="text-sm text-gray-600">IMEI: {item.imei || 'N/A'}</p>
-                                    </div>
-                                    <p className="text-sm text-gray-600">Цена: {item.purchasePrice ? `${item.purchasePrice} руб.` : 'N/A'}</p>
-                                </div>
-                            ))}
+                            {(() => {
+                                // Group items by equipmentId
+                                const groupedItems = {};
+                                bid.equipmentItems.forEach(item => {
+                                    const eqId = item.equipmentId;
+                                    if (!groupedItems[eqId]) {
+                                        groupedItems[eqId] = {
+                                            equipment: item.equipment,
+                                            items: []
+                                        };
+                                    }
+                                    groupedItems[eqId].items.push(item);
+                                });
+
+                                // Render grouped items
+                                const renderedItems = [];
+                                Object.values(groupedItems).forEach(group => {
+                                    const hasImei = group.items.some(item => item.imei);
+                                    if (hasImei) {
+                                        // Show individual items with IMEI
+                                        group.items.forEach(item => {
+                                            renderedItems.push(
+                                                <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                                    <div>
+                                                        <p className="font-medium">{item.equipment ? item.equipment.name : 'Неизвестное оборудование'}</p>
+                                                        <p className="text-sm text-gray-600">IMEI: {item.imei || 'N/A'}</p>
+                                                    </div>
+                                                    <p className="text-sm text-gray-600">Цена: {item.purchasePrice ? `${item.purchasePrice} руб.` : 'N/A'}</p>
+                                                </div>
+                                            );
+                                        });
+                                    } else {
+                                        // Show grouped item without IMEI
+                                        const totalPrice = group.items.reduce((sum, item) => sum + (item.purchasePrice || 0), 0);
+                                        renderedItems.push(
+                                            <div key={group.equipment?.id || 'unknown'} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                                <div>
+                                                    <p className="font-medium">{group.equipment ? group.equipment.name : 'Неизвестное оборудование'}</p>
+                                                    <p className="text-sm text-gray-600">Количество: {group.items.length}</p>
+                                                </div>
+                                                <p className="text-sm text-gray-600">Цена: {totalPrice ? `${totalPrice} руб.` : 'N/A'}</p>
+                                            </div>
+                                        );
+                                    }
+                                });
+                                return renderedItems;
+                            })()}
                         </div>
                     ) : (
                         <p className="text-gray-500">Оборудование не назначено</p>
@@ -705,42 +749,90 @@ const BidDetail = () => {
                             </select>
                         </div>
                         <div className="space-y-4 max-h-60 overflow-y-auto">
-                            {availableEquipment
-                                .filter(eq =>
-                                    eq.name.toLowerCase().includes(searchName.toLowerCase()) &&
-                                    (eq.productCode ? eq.productCode.toString().toLowerCase().includes(searchCode.toLowerCase()) : searchCode === '') &&
-                                    (searchWarehouse === '' || eq.availableItems.some(item => item.warehouse?.name === searchWarehouse))
-                                )
-                                .map(eq => (
-                                    <div key={eq.id} className="border-b pb-2">
-                                        <h4 className="font-semibold text-gray-800">{eq.name} ({eq.productCode})</h4>
-                                        <div className="space-y-1 ml-4">
-                                             {eq.availableItems
-                                                 .filter(item => searchWarehouse === '' || item.warehouse?.name === searchWarehouse)
-                                                 .map(item => (
-                                                 <label key={item.id} className="flex items-center space-x-2">
-                                                     <input
-                                                         type="checkbox"
-                                                         checked={selectedAssign.includes(item.id)}
-                                                         onChange={(e) => {
-                                                             if (e.target.checked) {
-                                                                 setSelectedAssign([...selectedAssign, item.id]);
-                                                             } else {
-                                                                 setSelectedAssign(selectedAssign.filter(id => id !== item.id));
-                                                             }
-                                                         }}
-                                                     />
-                                                     <span>IMEI: {item.imei || 'N/A'} - Склад: {item.warehouse?.name || 'Не указан'}</span>
-                                                 </label>
-                                             ))}
-                                         </div>
+                            {(() => {
+                                // Group by warehouse and equipment
+                                const warehouses = {};
+                                availableEquipment
+                                    .filter(eq =>
+                                        eq.name.toLowerCase().includes(searchName.toLowerCase()) &&
+                                        (eq.productCode ? eq.productCode.toString().toLowerCase().includes(searchCode.toLowerCase()) : searchCode === '') &&
+                                        (searchWarehouse === '' || eq.availableItems.some(item => item.warehouse?.name === searchWarehouse))
+                                    )
+                                    .forEach(eq => {
+                                        eq.availableItems
+                                            .filter(item => searchWarehouse === '' || item.warehouse?.name === searchWarehouse)
+                                            .forEach(item => {
+                                                const whName = item.warehouse?.name || 'Не указан';
+                                                if (!warehouses[whName]) warehouses[whName] = {};
+                                                if (!warehouses[whName][eq.id]) {
+                                                    warehouses[whName][eq.id] = {
+                                                        equipment: eq,
+                                                        items: []
+                                                    };
+                                                }
+                                                warehouses[whName][eq.id].items.push(item);
+                                            });
+                                    });
+
+                                return Object.entries(warehouses).map(([whName, eqs]) => (
+                                    <div key={whName} className="border-b pb-2">
+                                        <h3 className="font-bold text-gray-900">{whName}</h3>
+                                        <div className="space-y-2 ml-4">
+                                            {Object.values(eqs).map(({ equipment, items }) => {
+                                                const hasImei = items.some(item => item.imei);
+                                                const allSelected = items.every(item => selectedAssign.includes(item.id));
+                                                const someSelected = items.some(item => selectedAssign.includes(item.id));
+
+                                                return (
+                                                    <div key={equipment.id}>
+                                                        <h4 className="font-semibold text-gray-800">{equipment.name} ({equipment.productCode})</h4>
+                                                        <div className="space-y-1 ml-4">
+                                                            {hasImei ? (
+                                                                items.map(item => (
+                                                                    <label key={item.id} className="flex items-center space-x-2">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selectedAssign.includes(item.id)}
+                                                                            onChange={(e) => {
+                                                                                if (e.target.checked) {
+                                                                                    setSelectedAssign([...selectedAssign, item.id]);
+                                                                                } else {
+                                                                                    setSelectedAssign(selectedAssign.filter(id => id !== item.id));
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <span>IMEI: {item.imei || 'N/A'}</span>
+                                                                    </label>
+                                                                ))
+                                                            ) : (
+                                                                <div className="flex items-center space-x-2">
+                                                                    <label>Количество:</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max={items.reduce((sum, item) => sum + item.quantity, 0)}
+                                                                        value={selectedQuantities[equipment.id] || 0}
+                                                                        onChange={(e) => setSelectedQuantities({...selectedQuantities, [equipment.id]: parseInt(e.target.value) || 0})}
+                                                                        className="w-20 px-2 py-1 border border-gray-300 rounded"
+                                                                    />
+                                                                    <span>/ {items.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                ))}
+                                ));
+                            })()}
                         </div>
                         <div className="flex justify-end space-x-2 mt-4">
                             <button
                                 onClick={() => {
                                     setShowAssignModal(false);
+                                    setSelectedAssign([]);
+                                    setSelectedQuantities({});
                                     setSearchName('');
                                     setSearchCode('');
                                     setSearchWarehouse('');

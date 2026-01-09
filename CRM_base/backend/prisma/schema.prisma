@@ -95,20 +95,21 @@ model Equipment {
 }
 
 model EquipmentItem {
-    id            Int      @id @default(autoincrement())
-    equipmentId   Int
-    supplierId    Int?
-    clientId      Int?
-    imei          String?
-    purchasePrice Decimal? @db.Decimal(10, 2)
-    bidId         Int?
-    warehouseId   Int?
-    createdAt     DateTime @default(now())
-    equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-    supplier      Supplier? @relation(fields: [supplierId], references: [id])
-    client        Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-    bid           Bid?     @relation(fields: [bidId], references: [id])
-    warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
+     id            Int      @id @default(autoincrement())
+     equipmentId   Int
+     supplierId    Int?
+     clientId      Int?
+     imei          String?
+     purchasePrice Decimal? @db.Decimal(10, 2)
+     quantity      Int      @default(1)
+     bidId         Int?
+     warehouseId   Int?
+     createdAt     DateTime @default(now())
+     equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+     supplier      Supplier? @relation(fields: [supplierId], references: [id])
+     client        Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+     bid           Bid?     @relation(fields: [bidId], references: [id])
+     warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
 }
 
 model Comment {

@@ -3,6 +3,25 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const prisma = require('../prisma/client');
 
+// Get all equipment items
+router.get('/items', authMiddleware, async (req, res) => {
+    try {
+        const items = await prisma.equipmentItem.findMany({
+            include: {
+                equipment: true,
+                warehouse: true,
+                supplier: true,
+                client: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(items);
+    } catch (error) {
+        console.error('Get equipment items error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Get all equipment
 router.get('/', authMiddleware, async (req, res) => {
     try {
@@ -12,7 +31,8 @@ router.get('/', authMiddleware, async (req, res) => {
                 items: {
                     orderBy: { createdAt: 'desc' },
                     include: {
-                        client: true
+                        client: true,
+                        warehouse: true
                     }
                 },
                 _count: {
@@ -21,15 +41,16 @@ router.get('/', authMiddleware, async (req, res) => {
             }
         });
 
-        // Format response - count only available items (not assigned to bids)
+        // Format response - sum quantity of available items (not assigned to bids)
         const formattedEquipment = equipment.map(item => {
             const availableItems = item.items.filter(item => !item.bidId);
+            const totalQuantity = availableItems.reduce((sum, item) => sum + item.quantity, 0);
             return {
                 id: item.id,
                 name: item.name,
                 description: item.description,
                 productCode: item.productCode,
-                quantity: availableItems.length, // Only count available items
+                quantity: totalQuantity, // Sum quantities of available items
                 createdAt: item.createdAt,
                 sellingPrice: item.sellingPrice ? parseFloat(item.sellingPrice) : null,
                 items: item.items.map(item => ({
@@ -55,7 +76,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
                 items: {
                     orderBy: { createdAt: 'desc' },
                     include: {
-                        client: true
+                        client: true,
+                        warehouse: true
                     }
                 },
                 _count: {
@@ -69,10 +91,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
         }
 
         const availableItems = equipment.items.filter(item => !item.bidId);
+        const totalQuantity = availableItems.reduce((sum, item) => sum + item.quantity, 0);
 
         res.json({
             ...equipment,
-            quantity: availableItems.length, // Only count available items
+            quantity: totalQuantity, // Sum quantities of available items
             sellingPrice: equipment.sellingPrice ? parseFloat(equipment.sellingPrice) : null,
             items: equipment.items.map(item => ({
                 ...item,
@@ -186,7 +209,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.post('/:id/items', authMiddleware, async (req, res) => {
     try {
         const equipmentId = parseInt(req.params.id);
-        const { items, supplierId, warehouseId } = req.body; // items: [{ imei, purchasePrice }, ...], supplierId: number, warehouseId: number
+        const { items, supplierId, warehouseId } = req.body; // items: [{ imei, purchasePrice, quantity }, ...], supplierId: number, warehouseId: number
 
         // Check if equipment exists
         const equipment = await prisma.equipment.findUnique({
@@ -219,15 +242,31 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
             }
         }
 
+        // Group items: for items with IMEI, create separate rows with quantity=1
+        // For items without IMEI, group by identical properties and sum quantity
+        const groupedItems = {};
+        items.forEach(item => {
+            const key = item.imei
+                ? `imei-${item.imei}`
+                : `noimei-${equipmentId}-${supplierId || 'nosup'}-${warehouseId || 'nowh'}-${item.purchasePrice || 'noprice'}`;
+            if (!groupedItems[key]) {
+                groupedItems[key] = {
+                    equipmentId,
+                    supplierId: supplierId ? parseInt(supplierId) : null,
+                    warehouseId: warehouseId ? parseInt(warehouseId) : null,
+                    clientId: null,
+                    imei: item.imei || null,
+                    purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
+                    quantity: 0
+                };
+            }
+            groupedItems[key].quantity += parseInt(item.quantity) || 1;
+        });
+
+        const dataToInsert = Object.values(groupedItems);
+
         const newItems = await prisma.equipmentItem.createMany({
-            data: items.map(item => ({
-                equipmentId,
-                supplierId: supplierId ? parseInt(supplierId) : null,
-                warehouseId: warehouseId ? parseInt(warehouseId) : null,
-                clientId: null,
-                imei: item.imei || null,
-                purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
-            })),
+            data: dataToInsert,
         });
 
         res.status(201).json({
@@ -236,6 +275,28 @@ router.post('/:id/items', authMiddleware, async (req, res) => {
         });
     } catch (error) {
         console.error('Add equipment items error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all equipment items
+router.get('/items', authMiddleware, async (req, res) => {
+    try {
+        const items = await prisma.equipmentItem.findMany({
+            where: {
+                bidId: null // Only available items not assigned to bids
+            },
+            include: {
+                equipment: true,
+                warehouse: true,
+                supplier: true,
+                client: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(items);
+    } catch (error) {
+        console.error('Get equipment items error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
