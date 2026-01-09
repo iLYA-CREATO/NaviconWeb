@@ -71,6 +71,9 @@ model ClientObject {
      status      String   @default("Pending")
      description String?
      clientObjectId Int?
+     updNumber   String?
+     updDate     DateTime?
+     contract    String?
      createdBy   Int
      createdAt   DateTime @default(now())
      updatedAt   DateTime @updatedAt

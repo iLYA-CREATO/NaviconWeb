@@ -163,6 +163,9 @@ router.post('/', authMiddleware, async (req, res) => {
                 description, // Описание
                 clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // ID объекта клиента (опционально)
                 createdBy: req.user.id, // ID пользователя, создавшего заявку
+                updNumber,
+                updDate: updDate ? new Date(updDate) : null,
+                contract,
             },
             include: { // Включаем связанные данные в ответ
                 client: {

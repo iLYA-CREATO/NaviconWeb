@@ -50,6 +50,11 @@ const BidDetail = () => {
     const [discount, setDiscount] = useState(0);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [history, setHistory] = useState([]);
+    const [updNumber, setUpdNumber] = useState('');
+    const [updDate, setUpdDate] = useState('');
+    const [editingUpd, setEditingUpd] = useState(false);
+    const [contract, setContract] = useState('');
+    const [editingContract, setEditingContract] = useState(false);
 
     useEffect(() => {
         fetchBid();
@@ -61,6 +66,13 @@ const BidDetail = () => {
         fetchSpecCategories();
         fetchHistory();
     }, [id]);
+    useEffect(() => {
+        if (bid) {
+            setUpdNumber(bid.updNumber || '');
+            setUpdDate(bid.updDate ? new Date(bid.updDate).toISOString().split('T')[0] : '');
+            setContract(bid.contract || '');
+        }
+    }, [bid]);
 
 
     const fetchBid = async () => {
@@ -257,6 +269,17 @@ const BidDetail = () => {
         }
     };
 
+    const handleUpdateBid = async (updates) => {
+        try {
+            await updateBid(id, updates);
+            fetchBid();
+            fetchHistory();
+        } catch (error) {
+            console.error('Error updating bid:', error);
+            alert('Ошибка при обновлении заявки.');
+        }
+    };
+
     const handleSaveSpec = async (specData) => {
         try {
             if (editingSpec) {
@@ -343,6 +366,52 @@ const BidDetail = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Заявку составил/ла</label>
                             <p className="text-gray-900 text-lg">{bid.creatorName}</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">№, дата УПД</label>
+                            <p className="text-gray-900">{updNumber || 'Не указан'} {updDate ? new Date(updDate).toLocaleDateString('ru-RU') : ''}</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Договор</label>
+                            {editingContract ? (
+                                <div className="flex space-x-2">
+                                    <input
+                                        type="text"
+                                        value={contract}
+                                        onChange={(e) => setContract(e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Номер договора"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            handleUpdateBid({ contract });
+                                            setEditingContract(false);
+                                        }}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg"
+                                    >
+                                        Сохранить
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setContract(bid.contract || '');
+                                            setEditingContract(false);
+                                        }}
+                                        className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center space-x-2">
+                                    <p className="text-gray-900">{contract || 'Не указан'}</p>
+                                    <button
+                                        onClick={() => setEditingContract(true)}
+                                        className="text-blue-500 hover:text-blue-700"
+                                    >
+                                        ✏️
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div>
