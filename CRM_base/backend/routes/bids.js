@@ -12,6 +12,21 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 // Импорт Prisma клиента для работы с базой данных
 const prisma = require('../prisma/client');
+// Импорт fs для логирования
+const fs = require('fs');
+const path = require('path');
+
+// Функция для логирования данных заявки в файл
+const logBidData = (action, data) => {
+    const logDir = path.join(__dirname, '..', 'logs');
+    if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir);
+    }
+    const logFile = path.join(logDir, 'bid_data.log');
+    const timestamp = new Date().toISOString();
+    const logEntry = `[${timestamp}] ${action}\n${JSON.stringify(data, null, 2)}\n\n`;
+    fs.appendFileSync(logFile, logEntry);
+};
 
 // Получить все заявки
 router.get('/', authMiddleware, async (req, res) => {
@@ -112,6 +127,108 @@ router.get('/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Bid not found' }); // Заявка не найдена
         }
 
+        // Получаем спецификации заявки для определения исполнителей
+        const specifications = await prisma.bidSpecification.findMany({
+            where: { bidId: parseInt(req.params.id) },
+            include: {
+                specification: true,
+            },
+        });
+
+        // Получаем всех исполнителей из спецификаций
+        const allExecutorIds = specifications.flatMap(spec => spec.executorIds);
+        const uniqueExecutorIds = [...new Set(allExecutorIds)];
+
+        let executors = [];
+        if (uniqueExecutorIds.length > 0) {
+            executors = await prisma.user.findMany({
+                where: { id: { in: uniqueExecutorIds } },
+                select: {
+                    id: true,
+                    fullName: true,
+                    role: true,
+                },
+            });
+        }
+
+        // Определяем ответственного специалиста
+        let responsibleSpecialist = null;
+        if (executors.length > 0) {
+            responsibleSpecialist = executors[0]; // Первый исполнитель
+        } else if (bid.client.responsible) {
+            responsibleSpecialist = bid.client.responsible;
+        }
+
+        // Определяем текущий статус
+        const currentStatus = bid.bidType?.statuses?.find(s => s.name === bid.status) || null;
+
+        // Получаем ответственного за текущий статус типа заявки
+        let bidTypeResponsibleName = null;
+        if (currentStatus?.responsibleUserId) {
+            const responsibleUser = await prisma.user.findUnique({
+                where: { id: parseInt(currentStatus.responsibleUserId) },
+                select: { fullName: true },
+            });
+            bidTypeResponsibleName = responsibleUser ? responsibleUser.fullName : 'Не указан';
+        }
+
+        // Определяем сроки обработки на основе типа заявки и статуса
+        let deadlines = {};
+        if (bid.bidType?.name === 'Выдача со склада') {
+            if (bid.status === 'Выдача') {
+                deadlines = {
+                    processingTime: '1 рабочий день',
+                    deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // +1 день
+                };
+            } else {
+                deadlines = {
+                    processingTime: '3 рабочих дня',
+                    deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // +3 дня
+                };
+            }
+        } else {
+            deadlines = {
+                processingTime: '5 рабочих дней',
+                deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // +5 дней
+            };
+        }
+
+        // Определяем необходимые действия на основе статуса
+        let necessaryActions = [];
+        if (currentStatus?.allowedActions) {
+            necessaryActions = currentStatus.allowedActions.map(action => {
+                switch (action) {
+                    case 'edit':
+                        return 'Редактирование заявки';
+                    case 'assign_executor':
+                        return 'Назначение исполнителя';
+                    case 'close':
+                        return 'Закрытие заявки';
+                    default:
+                        return action;
+                }
+            });
+        }
+
+        // Определяем дополнительные ресурсы и уведомления на основе типа заявки
+        let additionalResources = [];
+        let notifications = [];
+
+        if (bid.bidType?.name === 'Выдача со склада') {
+            additionalResources = ['Складской терминал', 'Документы на оборудование'];
+            if (bid.status === 'Выдача') {
+                notifications = ['Уведомить клиента о готовности оборудования', 'Отправить подтверждение выдачи'];
+            } else {
+                notifications = ['Проверить наличие оборудования на складе'];
+            }
+        } else if (bid.bidType?.name === 'Стандартная заявка') {
+            additionalResources = ['Документация', 'Техническая поддержка'];
+            notifications = ['Уведомить ответственного менеджера'];
+        } else {
+            additionalResources = ['Общие ресурсы'];
+            notifications = ['Стандартное уведомление'];
+        }
+
         // Отправляем данные заявки с дополнительными полями
         const responseData = {
             ...bid,
@@ -121,10 +238,17 @@ router.get('/:id', authMiddleware, async (req, res) => {
             creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             amount: parseFloat(bid.amount), // Преобразуем сумму в число
             bidType: bid.bidType, // Добавляем тип заявки
+            bidTypeResponsibleName, // Добавляем ответственного за тип заявки
+            statusMetadata: {
+                responsibleSpecialist,
+                deadlines,
+                necessaryActions,
+                additionalResources,
+                notifications,
+            },
         };
 
-        console.log('Отправка данных заявки ID:', req.params.id);
-        console.log('Данные заявки:', {
+        const bidResponseData = {
             clientId: responseData.clientId,
             clientName: responseData.clientName,
             tema: responseData.title,
@@ -135,13 +259,19 @@ router.get('/:id', authMiddleware, async (req, res) => {
             updNumber: responseData.updNumber,
             updDate: responseData.updDate,
             contract: responseData.contract,
+            bidType: responseData.bidType,
             bidTypeName: responseData.bidType ? responseData.bidType.name : 'Не указан',
             bidTypeStatuses: responseData.bidType ? responseData.bidType.statuses : [],
+            bidTypeResponsibleName: responseData.bidTypeResponsibleName,
             clientResponsibleName: responseData.clientResponsibleName,
             creatorName: responseData.creatorName,
             createdAt: responseData.createdAt,
             updatedAt: responseData.updatedAt,
-        });
+            statusMetadata: responseData.statusMetadata,
+        };
+        console.log('Отправка данных заявки ID:', req.params.id);
+        console.log('Данные заявки:', bidResponseData);
+        logBidData('Отправка данных заявки ID: ' + req.params.id, bidResponseData);
 
         res.json(responseData);
     } catch (error) {
@@ -162,7 +292,7 @@ router.post('/', authMiddleware, async (req, res) => {
         const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract } = req.body;
 
         // Логируем данные, отправленные в заявку
-        console.log('Создание новой заявки. Данные, отправленные в заявку:', {
+        const bidInputData = {
             clientId,
             title,
             amount,
@@ -174,7 +304,9 @@ router.post('/', authMiddleware, async (req, res) => {
             updDate,
             contract,
             createdBy: req.user.id
-        });
+        };
+        console.log('Создание новой заявки. Данные, отправленные в заявку:', bidInputData);
+        logBidData('Создание новой заявки', bidInputData);
 
         // Проверяем существование клиента
         const client = await prisma.client.findUnique({
@@ -243,7 +375,12 @@ router.post('/', authMiddleware, async (req, res) => {
 // Обновить заявку
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { clientId, title, amount, status, description, clientObjectId } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract } = req.body;
+
+        // Логируем данные обновления заявки
+        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract };
+        console.log('Обновление заявки ID:', req.params.id, 'Данные:', updateData);
+        logBidData('Обновление заявки ID: ' + req.params.id, updateData);
 
         // Если меняется клиент, проверяем его существование
         if (clientId) {
@@ -298,7 +435,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 ...(amount !== undefined && { amount: parseFloat(amount) }), // Обновляем сумму если указано
                 ...(status !== undefined && { status }), // Обновляем статус если указано
                 ...(description !== undefined && { description }), // Обновляем описание если указано
+                ...(bidTypeId !== undefined && { bidTypeId: parseInt(bidTypeId) }), // Обновляем тип заявки если указано
                 clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // Обновляем объект клиента
+                ...(updNumber !== undefined && { updNumber }), // Обновляем номер УПД если указано
+                ...(updDate !== undefined && { updDate: updDate ? new Date(updDate) : null }), // Обновляем дату УПД если указано
+                ...(contract !== undefined && { contract }), // Обновляем контракт если указано
             },
             include: {
                 client: {
@@ -308,8 +449,25 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 },
                 clientObject: true,
                 bidType: true,
+                creator: {
+                    select: {
+                        fullName: true,
+                    },
+                },
             },
         });
+
+        // Логируем изменение статуса в AuditLog
+        if (status !== undefined && status !== currentBid.status) {
+            await prisma.auditLog.create({
+                data: {
+                    bidId: parseInt(req.params.id),
+                    userId: req.user.id,
+                    action: 'Изменение статуса',
+                    details: `Статус изменен с "${currentBid.status}" на "${status}"`,
+                },
+            });
+        }
 
 
         // Если клиент изменился, возвращаем все оборудование
@@ -323,7 +481,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
         // Отправляем обновленную заявку
         res.json({
             ...updatedBid,
+            title: updatedBid.tema, // Для совместимости с фронтендом
             clientName: updatedBid.client.name,
+            creatorName: updatedBid.creator.fullName,
             amount: parseFloat(updatedBid.amount),
         });
     } catch (error) {
@@ -955,15 +1115,6 @@ router.get('/:id/history', authMiddleware, async (req, res) => {
             user: bid.creator.fullName,
             action: 'Заявка создана',
         });
-
-        // Изменение статуса (упрощенное, используем updatedAt)
-        if (bid.updatedAt > bid.createdAt) {
-            history.push({
-                date: bid.updatedAt,
-                user: bid.creator.fullName, // Предполагаем создателя
-                action: `Статус изменен на ${bid.status}`,
-            });
-        }
 
         // Комментарии
         const comments = await prisma.comment.findMany({

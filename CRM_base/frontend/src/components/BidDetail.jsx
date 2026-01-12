@@ -808,6 +808,10 @@ const BidDetail = () => {
                     <p className="text-gray-900">{bid.bidType ? bid.bidType.name : 'Не указан'}</p>
                 </div>
                 <div className='p-2'>
+                    <label className="block text-xs text-gray-500 mb-1">Ответственный</label>
+                    <p className="text-gray-900">{bid.bidTypeResponsibleName || 'Не указан'}</p>
+                </div>
+                <div className='p-2'>
                     <button
                         onClick={() => setShowHistoryModal(true)}
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
