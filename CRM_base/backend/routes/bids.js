@@ -82,7 +82,16 @@ router.get('/:id', authMiddleware, async (req, res) => {
         const bid = await prisma.bid.findUnique({
             where: { id: parseInt(req.params.id) }, // Преобразуем ID в число
             include: {
-                client: true, // Полные данные клиента
+                client: {
+                    include: {
+                        responsible: {
+                            select: {
+                                id: true,
+                                fullName: true,
+                            },
+                        },
+                    },
+                }, // Данные клиента с ответственным
                 clientObject: true, // Полные данные объекта клиента
                 bidType: true, // Данные типа заявки
                 creator: { // Данные создателя
@@ -108,6 +117,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
             ...bid,
             title: bid.tema, // Для совместимости с фронтендом
             clientName: bid.client.name, // Добавляем имя клиента
+            clientResponsibleName: bid.client.responsible ? bid.client.responsible.fullName : 'Не указан', // Добавляем ответственного клиента
             creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             amount: parseFloat(bid.amount), // Преобразуем сумму в число
             bidType: bid.bidType, // Добавляем тип заявки
@@ -126,6 +136,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
             updDate: responseData.updDate,
             contract: responseData.contract,
             bidTypeName: responseData.bidType ? responseData.bidType.name : 'Не указан',
+            bidTypeStatuses: responseData.bidType ? responseData.bidType.statuses : [],
+            clientResponsibleName: responseData.clientResponsibleName,
             creatorName: responseData.creatorName,
             createdAt: responseData.createdAt,
             updatedAt: responseData.updatedAt,

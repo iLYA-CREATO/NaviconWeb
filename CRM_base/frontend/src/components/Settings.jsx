@@ -60,6 +60,16 @@ const Settings = () => {
         position: '',
         allowedActions: [],
     });
+    const [editingStatusPosition, setEditingStatusPosition] = useState(null);
+
+    const calculateNextPosition = (statuses) => {
+        const existingPositions = statuses.map(s => s.position).sort((a, b) => a - b);
+        let position = 2;
+        while (existingPositions.includes(position) && position < 999) {
+            position++;
+        }
+        return position < 999 ? position : null;
+    };
 
     useEffect(() => {
         fetchUsers();
@@ -323,6 +333,7 @@ const Settings = () => {
             setShowBidStatusFormInEdit(false);
             setEditingBidStatusInEdit(null);
             setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
+            setEditingStatusPosition(null);
             fetchBidTypes();
         } catch (error) {
             console.error('Error saving bid type:', error);
@@ -335,13 +346,17 @@ const Settings = () => {
         setBidTypeFormData({
             name: bidType.name,
             description: bidType.description || '',
-            statuses: bidType.statuses || [],
+            statuses: (bidType.statuses || []).map(status => ({
+                ...status,
+                color: status.color || (status.position === 1 ? '#c75a5a' : status.position === 999 ? '#7a7777' : '#ffffff')
+            })),
             transitions: bidType.transitions || [],
         });
         setShowBidTypeForm(true);
         setShowBidStatusFormInEdit(false);
         setEditingBidStatusInEdit(null);
         setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
+        setEditingStatusPosition(null);
     };
 
     const handleDeleteBidType = async (id) => {
@@ -386,10 +401,8 @@ const Settings = () => {
     };
 
     const handleDeleteBidStatusInEdit = (status) => {
-        if (window.confirm('Вы уверены, что хотите удалить этот статус заявки?')) {
-            const statuses = bidTypeFormData.statuses.filter(s => s.position !== status.position);
-            setBidTypeFormData({ ...bidTypeFormData, statuses });
-        }
+        const statuses = bidTypeFormData.statuses.filter(s => s.position !== status.position);
+        setBidTypeFormData({ ...bidTypeFormData, statuses });
     };
 
     const handleCreateTransitionInEdit = (fromPosition, toPosition) => {
@@ -403,6 +416,11 @@ const Settings = () => {
     const handleDeleteTransitionInEdit = (fromPosition, toPosition) => {
         const transitions = bidTypeFormData.transitions.filter(t => !(t.fromPosition === fromPosition && t.toPosition === toPosition));
         setBidTypeFormData({ ...bidTypeFormData, transitions });
+    };
+
+    const handleStatusNameChange = (position, newName) => {
+        const statuses = bidTypeFormData.statuses.map(s => s.position === position ? { ...s, name: newName } : s);
+        setBidTypeFormData({ ...bidTypeFormData, statuses });
     };
 
     const toggleCategoryExpansion = (categoryId) => {
@@ -638,7 +656,6 @@ const Settings = () => {
                                                         value={bidStatusFormDataInEdit.position}
                                                         onChange={(e) => setBidStatusFormDataInEdit({ ...bidStatusFormDataInEdit, position: e.target.value })}
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        required
                                                         min="1"
                                                         max="999"
                                                     />
@@ -1090,9 +1107,21 @@ const Settings = () => {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                setShowBidStatusFormInEdit(!showBidStatusFormInEdit);
-                                                setEditingBidStatusInEdit(null);
-                                                setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
+                                                if (showBidStatusFormInEdit) {
+                                                    // cancel
+                                                    setShowBidStatusFormInEdit(false);
+                                                    setEditingBidStatusInEdit(null);
+                                                    setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
+                                                } else {
+                                                    // add
+                                                    const nextPos = calculateNextPosition(bidTypeFormData.statuses);
+                                                    if (nextPos === null) {
+                                                        alert('Нет доступной позиции для нового статуса');
+                                                        return;
+                                                    }
+                                                    const newStatus = { name: 'Новый статус', position: nextPos, allowedActions: [], responsibleUserId: null, color: '#ffffff' };
+                                                    setBidTypeFormData({ ...bidTypeFormData, statuses: [...bidTypeFormData.statuses, newStatus] });
+                                                }
                                             }}
                                             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                         >
@@ -1106,39 +1135,78 @@ const Settings = () => {
                                             <tr>
                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Позиция</th>
-                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Разрешенные действия</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Цвет</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ответственный</th>
                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                             </tr>
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-200">
                                             {(bidTypeFormData.statuses || []).sort((a, b) => a.position - b.position).map((status) => (
                                                 <tr key={status.position} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-2 whitespace-nowrap">{status.name}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap">
+                                                        {editingStatusPosition === status.position ? (
+                                                            <input
+                                                                type="text"
+                                                                value={status.name}
+                                                                onChange={(e) => handleStatusNameChange(status.position, e.target.value)}
+                                                                onBlur={() => setEditingStatusPosition(null)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        setEditingStatusPosition(null);
+                                                                    }
+                                                                }}
+                                                                className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                autoFocus
+                                                            />
+                                                        ) : status.position === 1 || status.position === 999 ? (
+                                                            <span className="px-1 py-1">
+                                                                {status.name}
+                                                            </span>
+                                                        ) : (
+                                                            <span
+                                                                onClick={() => setEditingStatusPosition(status.position)}
+                                                                className="cursor-pointer hover:underline px-1 py-1 rounded text-blue-600"
+                                                            >
+                                                                {status.name}
+                                                            </span>
+                                                        )}
+                                                    </td>
                                                     <td className="px-4 py-2 whitespace-nowrap">{status.position}</td>
                                                     <td className="px-4 py-2 whitespace-nowrap">
-                                                        {status.allowedActions && status.allowedActions.length > 0
-                                                            ? status.allowedActions.join(', ')
-                                                            : 'Нет'
-                                                        }
+                                                        <input
+                                                            type="color"
+                                                            value={status.color || '#ffffff'}
+                                                            onChange={(e) => {
+                                                                const newStatuses = bidTypeFormData.statuses.map(s => s.position === status.position ? { ...s, color: e.target.value } : s);
+                                                                setBidTypeFormData({ ...bidTypeFormData, statuses: newStatuses });
+                                                            }}
+                                                            className="w-8 h-8 border border-gray-300 rounded cursor-pointer"
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-2 whitespace-nowrap">
+                                                        <select
+                                                            value={status.responsibleUserId || ''}
+                                                            onChange={(e) => {
+                                                                const newStatuses = bidTypeFormData.statuses.map(s => s.position === status.position ? { ...s, responsibleUserId: e.target.value || null } : s);
+                                                                setBidTypeFormData({ ...bidTypeFormData, statuses: newStatuses });
+                                                            }}
+                                                            className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                        >
+                                                            <option value="">Не выбран</option>
+                                                            {users.map(user => (
+                                                                <option key={user.id} value={user.id}>{user.fullName}</option>
+                                                            ))}
+                                                        </select>
                                                     </td>
                                                     <td className="px-4 py-2 whitespace-nowrap">
                                                         {status.position !== 1 && status.position !== 999 && (
-                                                            <>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleEditBidStatusInEdit(status)}
-                                                                    className="text-blue-600 hover:text-blue-900 mr-3 text-sm"
-                                                                >
-                                                                    Редактировать
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDeleteBidStatusInEdit(status)}
-                                                                    className="text-red-600 hover:text-red-900 text-sm"
-                                                                >
-                                                                    Удалить
-                                                                </button>
-                                                            </>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeleteBidStatusInEdit(status)}
+                                                                className="text-red-600 hover:text-red-900 text-sm"
+                                                            >
+                                                                Удалить
+                                                            </button>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -1204,6 +1272,7 @@ const Settings = () => {
                                             setShowBidStatusFormInEdit(false);
                                             setEditingBidStatusInEdit(null);
                                             setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
+                                            setEditingStatusPosition(null);
                                         }}
                                         className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                                     >

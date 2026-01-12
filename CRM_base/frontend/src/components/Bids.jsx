@@ -36,7 +36,7 @@ const Bids = () => {
         client: '',
     });
     // Define all possible columns
-    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'bidType', 'description'];
+    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'description'];
     // Load initial states from localStorage
     const savedColumns = localStorage.getItem('bidsVisibleColumns');
     const initialVisibleColumns = savedColumns ? JSON.parse(savedColumns) : {
@@ -44,11 +44,10 @@ const Bids = () => {
         clientName: true,
         title: true,
         creatorName: true,
-        bidType: false,
         description: true,
     };
     const savedOrder = localStorage.getItem('bidsColumnOrder');
-    const initialColumnOrder = savedOrder ? JSON.parse(savedOrder) : allColumns;
+    const initialColumnOrder = savedOrder ? JSON.parse(savedOrder).filter(col => allColumns.includes(col)) : allColumns;
     // State for column order
     const [columnOrder, setColumnOrder] = useState(initialColumnOrder);
     // State for visible columns in the table
@@ -178,7 +177,6 @@ const Bids = () => {
             case 'clientName': return 'Клиент';
             case 'title': return 'Тема';
             case 'creatorName': return 'Создатель';
-            case 'bidType': return 'Тип заявки';
             case 'description': return 'Описание';
             default: return column;
         }
@@ -191,9 +189,6 @@ const Bids = () => {
             case 'clientName': return bid.clientName;
             case 'title': return bid.title;
             case 'creatorName': return bid.creatorName;
-            case 'bidType':
-                const bidType = bidTypes.find(type => type.id === bid.bidTypeId);
-                return bidType ? bidType.name : 'Не указан';
             case 'description': return <div className="max-w-xs truncate">{bid.description}</div>;
             default: return '';
         }

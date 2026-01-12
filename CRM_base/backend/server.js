@@ -44,7 +44,6 @@ app.use('/api/auth', authRoutes); // /api/auth/*
 app.use('/api/clients', clientRoutes); // /api/clients/*
 app.use('/api/bids', bidRoutes); // /api/bids/*
 app.use('/api/bid-types', bidTypeRoutes); // /api/bid-types/*
-app.use('/api/bid-statuses', bidStatusRoutes); // /api/bid-statuses/*
 app.use('/api/users', userRoutes); // /api/users/*
 app.use('/api/roles', roleRoutes); // /api/roles/*
 app.use('/api/client-objects', clientObjectRoutes); // /api/client-objects/*
