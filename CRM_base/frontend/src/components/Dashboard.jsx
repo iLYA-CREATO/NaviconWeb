@@ -79,6 +79,16 @@ const Dashboard = () => {
                             >
                                 Спецификации
                             </button>
+                            <button
+                                onClick={() => setActiveSettingsTab('bid-types')} // Установка активной вкладки "Типы заявок"
+                                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
+                                    activeSettingsTab === 'bid-types'
+                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
+                                }`}
+                            >
+                                Тип Заявки
+                            </button>
                         </nav>
                     </div>
                 ) : (

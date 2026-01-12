@@ -84,6 +84,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
             include: {
                 client: true, // Полные данные клиента
                 clientObject: true, // Полные данные объекта клиента
+                bidType: true, // Данные типа заявки
                 creator: { // Данные создателя
                     select: {
                         id: true,
@@ -103,13 +104,34 @@ router.get('/:id', authMiddleware, async (req, res) => {
         }
 
         // Отправляем данные заявки с дополнительными полями
-        res.json({
+        const responseData = {
             ...bid,
             title: bid.tema, // Для совместимости с фронтендом
             clientName: bid.client.name, // Добавляем имя клиента
             creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             amount: parseFloat(bid.amount), // Преобразуем сумму в число
+            bidType: bid.bidType, // Добавляем тип заявки
+        };
+
+        console.log('Отправка данных заявки ID:', req.params.id);
+        console.log('Данные заявки:', {
+            clientId: responseData.clientId,
+            clientName: responseData.clientName,
+            tema: responseData.title,
+            amount: responseData.amount,
+            status: responseData.status,
+            description: responseData.description,
+            clientObjectId: responseData.clientObjectId,
+            updNumber: responseData.updNumber,
+            updDate: responseData.updDate,
+            contract: responseData.contract,
+            bidTypeName: responseData.bidType ? responseData.bidType.name : 'Не указан',
+            creatorName: responseData.creatorName,
+            createdAt: responseData.createdAt,
+            updatedAt: responseData.updatedAt,
         });
+
+        res.json(responseData);
     } catch (error) {
         console.error('Get bid error:', error);
         res.status(500).json({ message: 'Server error' });
@@ -125,7 +147,7 @@ router.post('/', authMiddleware, async (req, res) => {
         }
 
         // Извлекаем данные из тела запроса
-        const { clientId, title, amount, status, description, clientObjectId } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract } = req.body;
 
         // Проверяем существование клиента
         const client = await prisma.client.findUnique({
@@ -157,6 +179,7 @@ router.post('/', authMiddleware, async (req, res) => {
         const newBid = await prisma.bid.create({
             data: {
                 clientId: parseInt(clientId), // ID клиента
+                bidTypeId: bidTypeId ? parseInt(bidTypeId) : null, // ID типа заявки
                 tema: title, // Заголовок заявки
                 amount: parseFloat(amount || 0), // Сумма (по умолчанию 0)
                 status: status || 'Pending', // Статус (по умолчанию 'Pending')
@@ -174,6 +197,7 @@ router.post('/', authMiddleware, async (req, res) => {
                     },
                 },
                 clientObject: true, // Данные объекта клиента
+                bidType: true, // Данные типа заявки
             },
         });
 
@@ -256,6 +280,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
                     },
                 },
                 clientObject: true,
+                bidType: true,
             },
         });
 
@@ -670,45 +695,39 @@ router.get('/:id/specifications', authMiddleware, async (req, res) => {
                         category: true,
                     },
                 },
-                executor: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                    },
-                },
             },
             orderBy: { createdAt: 'asc' },
         });
 
-        // Получаем соисполнителей отдельно
+        // Получаем исполнителей отдельно
         const specIds = specifications.map(s => s.id);
-        const coExecutorsData = await prisma.bidSpecification.findMany({
+        const executorsData = await prisma.bidSpecification.findMany({
             where: { id: { in: specIds } },
             select: {
                 id: true,
-                coExecutorIds: true,
+                executorIds: true,
             },
         });
 
-        // Создаем карту соисполнителей
-        const coExecutorsMap = {};
-        for (const spec of coExecutorsData) {
-            if (spec.coExecutorIds.length > 0) {
-                const coExecutors = await prisma.user.findMany({
-                    where: { id: { in: spec.coExecutorIds } },
+        // Создаем карту исполнителей
+        const executorsMap = {};
+        for (const spec of executorsData) {
+            if (spec.executorIds.length > 0) {
+                const executors = await prisma.user.findMany({
+                    where: { id: { in: spec.executorIds } },
                     select: { id: true, fullName: true },
                 });
-                coExecutorsMap[spec.id] = coExecutors;
+                executorsMap[spec.id] = executors;
             }
         }
 
-        // Добавляем соисполнителей к спецификациям
-        const specificationsWithCoExecutors = specifications.map(spec => ({
+        // Добавляем исполнителей к спецификациям
+        const specificationsWithExecutors = specifications.map(spec => ({
             ...spec,
-            coExecutors: coExecutorsMap[spec.id] || [],
+            executors: executorsMap[spec.id] || [],
         }));
 
-        res.json(specificationsWithCoExecutors);
+        res.json(specificationsWithExecutors);
     } catch (error) {
         console.error('Get specifications error:', error);
         res.status(500).json({ message: 'Server error' });
@@ -719,7 +738,7 @@ router.get('/:id/specifications', authMiddleware, async (req, res) => {
 router.post('/:id/specifications', authMiddleware, async (req, res) => {
     try {
         const bidId = parseInt(req.params.id);
-        const { specificationId, executorId, coExecutorIds, comment } = req.body;
+        const { specificationId, executorIds, comment } = req.body;
 
         // Проверяем аутентификацию
         if (!req.user || !req.user.id) {
@@ -744,23 +763,13 @@ router.post('/:id/specifications', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Specification not found' });
         }
 
-        // Проверяем исполнителя если указан
-        if (executorId) {
-            const executor = await prisma.user.findUnique({
-                where: { id: parseInt(executorId) },
+        // Проверяем исполнителей если указаны
+        if (executorIds && executorIds.length > 0) {
+            const executors = await prisma.user.findMany({
+                where: { id: { in: executorIds.map(id => parseInt(id)) } },
             });
-            if (!executor) {
-                return res.status(404).json({ message: 'Executor not found' });
-            }
-        }
-
-        // Проверяем соисполнителей если указаны
-        if (coExecutorIds && coExecutorIds.length > 0) {
-            const coExecutors = await prisma.user.findMany({
-                where: { id: { in: coExecutorIds.map(id => parseInt(id)) } },
-            });
-            if (coExecutors.length !== coExecutorIds.length) {
-                return res.status(404).json({ message: 'Some co-executors not found' });
+            if (executors.length !== executorIds.length) {
+                return res.status(404).json({ message: 'Some executors not found' });
             }
         }
 
@@ -769,8 +778,7 @@ router.post('/:id/specifications', authMiddleware, async (req, res) => {
             data: {
                 bidId,
                 specificationId: parseInt(specificationId),
-                executorId: executorId ? parseInt(executorId) : null,
-                coExecutorIds: coExecutorIds ? coExecutorIds.map(id => parseInt(id)) : [],
+                executorIds: executorIds ? executorIds.map(id => parseInt(id)) : [],
                 comment: comment || null,
             },
             include: {
@@ -779,27 +787,21 @@ router.post('/:id/specifications', authMiddleware, async (req, res) => {
                         category: true,
                     },
                 },
-                executor: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                    },
-                },
             },
         });
 
-        // Получаем соисполнителей
-        let coExecutors = [];
-        if (bidSpecification.coExecutorIds.length > 0) {
-            coExecutors = await prisma.user.findMany({
-                where: { id: { in: bidSpecification.coExecutorIds } },
+        // Получаем исполнителей
+        let executors = [];
+        if (bidSpecification.executorIds.length > 0) {
+            executors = await prisma.user.findMany({
+                where: { id: { in: bidSpecification.executorIds } },
                 select: { id: true, fullName: true },
             });
         }
 
         res.status(201).json({
             ...bidSpecification,
-            coExecutors,
+            executors,
         });
     } catch (error) {
         console.error('Create bid specification error:', error);
@@ -812,7 +814,7 @@ router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
     try {
         const bidId = parseInt(req.params.id);
         const specId = parseInt(req.params.specId);
-        const { executorId, coExecutorIds, comment } = req.body;
+        const { executorIds, comment } = req.body;
 
         // Проверяем существование спецификации заявки
         const existingSpec = await prisma.bidSpecification.findUnique({
@@ -823,23 +825,13 @@ router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Bid specification not found' });
         }
 
-        // Проверяем исполнителя если указан
-        if (executorId) {
-            const executor = await prisma.user.findUnique({
-                where: { id: parseInt(executorId) },
+        // Проверяем исполнителей если указаны
+        if (executorIds && executorIds.length > 0) {
+            const executors = await prisma.user.findMany({
+                where: { id: { in: executorIds.map(id => parseInt(id)) } },
             });
-            if (!executor) {
-                return res.status(404).json({ message: 'Executor not found' });
-            }
-        }
-
-        // Проверяем соисполнителей если указаны
-        if (coExecutorIds && coExecutorIds.length > 0) {
-            const coExecutors = await prisma.user.findMany({
-                where: { id: { in: coExecutorIds.map(id => parseInt(id)) } },
-            });
-            if (coExecutors.length !== coExecutorIds.length) {
-                return res.status(404).json({ message: 'Some co-executors not found' });
+            if (executors.length !== executorIds.length) {
+                return res.status(404).json({ message: 'Some executors not found' });
             }
         }
 
@@ -847,8 +839,7 @@ router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
         const updatedSpec = await prisma.bidSpecification.update({
             where: { id: specId },
             data: {
-                executorId: executorId ? parseInt(executorId) : null,
-                coExecutorIds: coExecutorIds ? coExecutorIds.map(id => parseInt(id)) : [],
+                executorIds: executorIds ? executorIds.map(id => parseInt(id)) : [],
                 comment: comment || null,
             },
             include: {
@@ -857,27 +848,21 @@ router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
                         category: true,
                     },
                 },
-                executor: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                    },
-                },
             },
         });
 
-        // Получаем соисполнителей
-        let coExecutors = [];
-        if (updatedSpec.coExecutorIds.length > 0) {
-            coExecutors = await prisma.user.findMany({
-                where: { id: { in: updatedSpec.coExecutorIds } },
+        // Получаем исполнителей
+        let executors = [];
+        if (updatedSpec.executorIds.length > 0) {
+            executors = await prisma.user.findMany({
+                where: { id: { in: updatedSpec.executorIds } },
                 select: { id: true, fullName: true },
             });
         }
 
         res.json({
             ...updatedSpec,
-            coExecutors,
+            executors,
         });
     } catch (error) {
         console.error('Update bid specification error:', error);

@@ -36,7 +36,7 @@ router.get('/report', authenticateToken, async (req, res) => {
         };
 
         if (userId && userId !== 'all') {
-            whereClause.executorId = parseInt(userId);
+            whereClause.executorIds = { has: parseInt(userId) };
         }
 
         const bidSpecifications = await prisma.bidSpecification.findMany({
@@ -54,14 +54,25 @@ router.get('/report', authenticateToken, async (req, res) => {
                         creator: true,
                     },
                 },
-                executor: true,
             },
             orderBy: {
                 createdAt: 'desc',
             },
         });
 
-        res.json(bidSpecifications);
+        // Fetch executors for each spec
+        const specsWithExecutors = await Promise.all(bidSpecifications.map(async (spec) => {
+            let executors = [];
+            if (spec.executorIds.length > 0) {
+                executors = await prisma.user.findMany({
+                    where: { id: { in: spec.executorIds } },
+                    select: { id: true, fullName: true, username: true },
+                });
+            }
+            return { ...spec, executors };
+        }));
+
+        res.json(specsWithExecutors);
     } catch (error) {
         console.error('Error fetching salary report:', error);
         res.status(500).json({ error: 'Internal server error' });

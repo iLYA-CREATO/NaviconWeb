@@ -80,6 +80,14 @@ export const createComment = (bidId, data) => api.post(`/bids/${bidId}/comments`
 export const updateComment = (bidId, commentId, data) => api.put(`/bids/${bidId}/comments/${commentId}`, data); // Обновление комментария к заявке
 export const deleteComment = (bidId, commentId) => api.delete(`/bids/${bidId}/comments/${commentId}`); // Удаление комментария к заявке
 
+// === ТИПЫ ЗАЯВОК ===
+// CRUD операции для типов заявок
+export const getBidTypes = () => api.get('/bid-types'); // Получение всех типов заявок
+export const getBidType = (id) => api.get(`/bid-types/${id}`); // Получение типа заявки по ID
+export const createBidType = (data) => api.post('/bid-types', data); // Создание нового типа заявки
+export const updateBidType = (id, data) => api.put(`/bid-types/${id}`, data); // Обновление типа заявки
+export const deleteBidType = (id) => api.delete(`/bid-types/${id}`); // Удаление типа заявки
+
 // === ОБОРУДОВАНИЕ ===
 // CRUD операции для оборудования
 export const getEquipment = () => api.get('/equipment'); // Получение всего оборудования

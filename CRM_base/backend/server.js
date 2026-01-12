@@ -16,6 +16,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth'); // Маршруты аутентификации
 const clientRoutes = require('./routes/clients'); // Маршруты клиентов
 const bidRoutes = require('./routes/bids'); // Маршруты заявок
+const bidTypeRoutes = require('./routes/bidTypes'); // Маршруты типов заявок
 const userRoutes = require('./routes/users'); // Маршруты пользователей
 const roleRoutes = require('./routes/roles'); // Маршруты ролей
 const clientObjectRoutes = require('./routes/clientObjects'); // Маршруты объектов клиентов
@@ -42,6 +43,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes); // /api/auth/*
 app.use('/api/clients', clientRoutes); // /api/clients/*
 app.use('/api/bids', bidRoutes); // /api/bids/*
+app.use('/api/bid-types', bidTypeRoutes); // /api/bid-types/*
 app.use('/api/users', userRoutes); // /api/users/*
 app.use('/api/roles', roleRoutes); // /api/roles/*
 app.use('/api/client-objects', clientObjectRoutes); // /api/client-objects/*

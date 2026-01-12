@@ -118,20 +118,21 @@ const Salary = () => {
 
     // Группировка по исполнителям и расчет суммы для каждого
     const executorTotals = report.reduce((acc, item) => {
-        const executorId = item.executorId;
-        const executorName = item.executor ? item.executor.fullName || item.executor.username : 'Не указан';
         const cost = parseFloat(item.specification.cost);
+        const numExecutors = item.executors.length;
+        const share = numExecutors > 0 ? cost / numExecutors : 0;
 
-        if (!acc[executorId]) {
-            acc[executorId] = {
-                name: executorName,
-                total: 0,
-                count: 0
-            };
-        }
-
-        acc[executorId].total += cost;
-        acc[executorId].count += 1;
+        item.executors.forEach(executor => {
+            if (!acc[executor.id]) {
+                acc[executor.id] = {
+                    name: executor.fullName || executor.username,
+                    total: 0,
+                    count: 0
+                };
+            }
+            acc[executor.id].total += share;
+            acc[executor.id].count += 1; // Number of specs they are involved in
+        });
 
         return acc;
     }, {});
@@ -183,7 +184,7 @@ const Salary = () => {
             case 'date': return new Date(item.createdAt).toLocaleDateString('ru-RU');
             case 'specification': return item.specification.name;
             case 'cost': return `${parseFloat(item.specification.cost).toFixed(2)} руб.`;
-            case 'executor': return item.executor ? item.executor.fullName || item.executor.username : 'Не указан';
+            case 'executor': return item.executors && item.executors.length > 0 ? item.executors.map(e => e.fullName || e.username).join(', ') : 'Не указаны';
             case 'bid': return (
                 <span
                     className="text-blue-600 hover:text-blue-800 cursor-pointer underline"

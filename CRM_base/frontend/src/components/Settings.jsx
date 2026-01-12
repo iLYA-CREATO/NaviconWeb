@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory } from '../services/api';
+import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType } from '../services/api';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -30,11 +30,8 @@ const Settings = () => {
     const [specificationFormData, setSpecificationFormData] = useState({
         categoryId: '',
         name: '',
-        executorId: '',
-        quantity: '',
         discount: '',
         cost: '',
-        comment: '',
     });
     const [specificationCategories, setSpecificationCategories] = useState([]);
     const [allSpecificationCategories, setAllSpecificationCategories] = useState([]);
@@ -47,12 +44,20 @@ const Settings = () => {
         description: '',
         parentId: '',
     });
+    const [bidTypes, setBidTypes] = useState([]);
+    const [showBidTypeForm, setShowBidTypeForm] = useState(false);
+    const [editingBidType, setEditingBidType] = useState(null);
+    const [bidTypeFormData, setBidTypeFormData] = useState({
+        name: '',
+        description: '',
+    });
 
     useEffect(() => {
         fetchUsers();
         fetchRoles();
         fetchSpecifications();
         fetchSpecificationCategories();
+        fetchBidTypes();
     }, []);
 
     useEffect(() => {
@@ -103,6 +108,15 @@ const Settings = () => {
             setAllSpecificationCategories(flatResponse.data);
         } catch (error) {
             console.error('Error fetching specification categories:', error);
+        }
+    };
+
+    const fetchBidTypes = async () => {
+        try {
+            const response = await getBidTypes();
+            setBidTypes(response.data);
+        } catch (error) {
+            console.error('Error fetching bid types:', error);
         }
     };
 
@@ -279,6 +293,48 @@ const Settings = () => {
             } catch (error) {
                 console.error('Error deleting specification category:', error);
                 setNotification({ type: 'error', message: 'Ошибка при удалении категории спецификаций' });
+            }
+        }
+    };
+
+    const handleBidTypeSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingBidType) {
+                await updateBidType(editingBidType.id, bidTypeFormData);
+                setNotification({ type: 'success', message: 'Тип заявки обновлен успешно' });
+            } else {
+                await createBidType(bidTypeFormData);
+                setNotification({ type: 'success', message: 'Тип заявки создан успешно' });
+            }
+            setBidTypeFormData({ name: '', description: '' });
+            setEditingBidType(null);
+            setShowBidTypeForm(false);
+            fetchBidTypes();
+        } catch (error) {
+            console.error('Error saving bid type:', error);
+            setNotification({ type: 'error', message: 'Ошибка при сохранении типа заявки' });
+        }
+    };
+
+    const handleEditBidType = (bidType) => {
+        setEditingBidType(bidType);
+        setBidTypeFormData({
+            name: bidType.name,
+            description: bidType.description || '',
+        });
+        setShowBidTypeForm(true);
+    };
+
+    const handleDeleteBidType = async (id) => {
+        if (window.confirm('Вы уверены, что хотите удалить этот тип заявки?')) {
+            try {
+                await deleteBidType(id);
+                setNotification({ type: 'success', message: 'Тип заявки удален успешно' });
+                fetchBidTypes();
+            } catch (error) {
+                console.error('Error deleting bid type:', error);
+                setNotification({ type: 'error', message: 'Ошибка при удалении типа заявки' });
             }
         }
     };
@@ -813,6 +869,104 @@ const Settings = () => {
                                     <button
                                         type="button"
                                         onClick={() => setShowSpecificationCategoryForm(false)}
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeSettingsTab === 'bid-types' && (
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">Управление типами заявок</h2>
+                        <button
+                            onClick={() => {
+                                setShowBidTypeForm(!showBidTypeForm);
+                                setEditingBidType(null);
+                                setBidTypeFormData({ name: '', description: '' });
+                            }}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                        >
+                            {showBidTypeForm ? 'Отмена' : '+ Добавить тип заявки'}
+                        </button>
+                    </div>
+
+                    {!showBidTypeForm && (
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                {bidTypes.map((bidType) => (
+                                    <tr key={bidType.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap">{bidType.name}</td>
+                                        <td className="px-6 py-4">{bidType.description}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <button
+                                                onClick={() => handleEditBidType(bidType)}
+                                                className="text-blue-600 hover:text-blue-900 mr-3"
+                                            >
+                                                Редактировать
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteBidType(bidType.id)}
+                                                className="text-red-600 hover:text-red-900"
+                                            >
+                                                Удалить
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {showBidTypeForm && (
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-semibold mb-4">
+                                {editingBidType ? 'Редактировать тип заявки' : 'Добавить новый тип заявки'}
+                            </h3>
+                            <form onSubmit={handleBidTypeSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                                    <input
+                                        type="text"
+                                        value={bidTypeFormData.name}
+                                        onChange={(e) => setBidTypeFormData({ ...bidTypeFormData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                                    <textarea
+                                        value={bidTypeFormData.description}
+                                        onChange={(e) => setBidTypeFormData({ ...bidTypeFormData, description: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        rows="3"
+                                    />
+                                </div>
+                                <div className="flex gap-2 pt-4">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                    >
+                                        {editingBidType ? 'Обновить' : 'Создать'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowBidTypeForm(false)}
                                         className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                                     >
                                         Отмена

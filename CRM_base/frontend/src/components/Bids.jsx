@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 // Import navigation hook from React Router for programmatic navigation
 import { useNavigate } from 'react-router-dom';
 // Import API functions for interacting with backend services
-import { getBids, createBid, getClients, getClientObjects } from '../services/api';
+import { getBids, createBid, getClients, getClientObjects, getBidTypes } from '../services/api';
 
 const Bids = () => {
     // Hook for navigation between routes
@@ -23,6 +23,8 @@ const Bids = () => {
     const [clients, setClients] = useState([]);
     // State for storing client objects (vehicles) available for selection
     const [clientObjects, setClientObjects] = useState([]);
+    // State for storing bid types available for selection
+    const [bidTypes, setBidTypes] = useState([]);
     // State to toggle the visibility of the create bid form
     const [showForm, setShowForm] = useState(false);
     // State for the search input to filter bids
@@ -30,11 +32,11 @@ const Bids = () => {
     // State for filters
     const [filters, setFilters] = useState({
         creator: '',
-        status: '',
+        bidType: '',
         client: '',
     });
     // Define all possible columns
-    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'status', 'description'];
+    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'bidType', 'description'];
     // Load initial states from localStorage
     const savedColumns = localStorage.getItem('bidsVisibleColumns');
     const initialVisibleColumns = savedColumns ? JSON.parse(savedColumns) : {
@@ -42,7 +44,7 @@ const Bids = () => {
         clientName: true,
         title: true,
         creatorName: true,
-        status: true,
+        bidType: true,
         description: true,
     };
     const savedOrder = localStorage.getItem('bidsColumnOrder');
@@ -57,7 +59,7 @@ const Bids = () => {
     const [formData, setFormData] = useState({
         clientId: '',        // ID of the selected client
         title: '',           // Title of the bid
-        status: 'Pending',   // Default status
+        bidTypeId: '',       // ID of the selected bid type
         description: '',     // Description of the bid
         clientObjectId: '',  // Optional ID of the client object (vehicle)
     });
@@ -66,6 +68,7 @@ const Bids = () => {
     useEffect(() => {
         fetchBids();      // Load all bids
         fetchClients();   // Load all clients for the form dropdown
+        fetchBidTypes();  // Load all bid types for the form dropdown
         setShowForm(false); // Ensure form is hidden initially
     }, []); // Empty dependency array means this runs only once on mount
 
@@ -133,6 +136,16 @@ const Bids = () => {
         }
     };
 
+    // Функция для загрузки типов заявок
+    const fetchBidTypes = async () => {
+        try {
+            const response = await getBidTypes(); // Вызов API для получения типов заявок
+            setBidTypes(response.data); // Сохранение данных в состояние
+        } catch (error) {
+            console.error('Error fetching bid types:', error); // Логирование ошибки
+        }
+    };
+
     // Обработчик изменения видимости столбцов
     const handleColumnToggle = (column) => {
         setVisibleColumns(prev => ({
@@ -165,7 +178,7 @@ const Bids = () => {
             case 'clientName': return 'Клиент';
             case 'title': return 'Тема';
             case 'creatorName': return 'Создатель';
-            case 'status': return 'Статус';
+            case 'bidType': return 'Тип заявки';
             case 'description': return 'Описание';
             default: return column;
         }
@@ -178,16 +191,9 @@ const Bids = () => {
             case 'clientName': return bid.clientName;
             case 'title': return bid.title;
             case 'creatorName': return bid.creatorName;
-            case 'status':
-                return (
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                        bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :
-                        bid.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                    }`}>
-                        {bid.status}
-                    </span>
-                );
+            case 'bidType':
+                const bidType = bidTypes.find(type => type.id === bid.bidTypeId);
+                return bidType ? bidType.name : 'Не указан';
             case 'description': return <div className="max-w-xs truncate">{bid.description}</div>;
             default: return '';
         }
@@ -214,7 +220,7 @@ const Bids = () => {
         setFormData({ // Сброс данных формы
             clientId: '',
             title: '',
-            status: 'Pending',
+            bidTypeId: '',
             description: '',
             clientObjectId: '',
         });
@@ -230,10 +236,10 @@ const Bids = () => {
             bid.creatorName.toLowerCase().includes(searchTerm.toLowerCase()); // Поиск по ФИО создателя (регистронезависимо)
 
         const matchesCreator = filters.creator === '' || bid.creatorName === filters.creator;
-        const matchesStatus = filters.status === '' || bid.status === filters.status;
+        const matchesBidType = filters.bidType === '' || bid.bidTypeId === parseInt(filters.bidType);
         const matchesClient = filters.client === '' || bid.clientName === filters.client;
 
-        return matchesSearch && matchesCreator && matchesStatus && matchesClient;
+        return matchesSearch && matchesCreator && matchesBidType && matchesClient;
     });
 
     // Определение видимых столбцов в порядке columnOrder
@@ -242,7 +248,6 @@ const Bids = () => {
     // Вычисление уникальных значений для фильтров
     const uniqueCreators = [...new Set(bids.map(bid => bid.creatorName))].sort();
     const uniqueClients = [...new Set(bids.map(bid => bid.clientName))].sort();
-    const uniqueStatuses = ['Pending', 'Accepted', 'Rejected'];
 
     return (
         <div>
@@ -305,15 +310,19 @@ const Bids = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Тип заявки</label>
                             <select
-                                value={formData.status}
-                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                value={formData.bidTypeId}
+                                onChange={(e) => setFormData({ ...formData, bidTypeId: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
                             >
-                                <option value="Pending">В ожидании</option>
-                                <option value="Accepted">Принята</option>
-                                <option value="Rejected">Отклонена</option>
+                                <option value="">Выберите тип заявки</option>
+                                {bidTypes.map((bidType) => (
+                                    <option key={bidType.id} value={bidType.id}>
+                                        {bidType.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div>
@@ -323,7 +332,6 @@ const Bids = () => {
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 rows="3"
-                                required
                             />
                         </div>
                         <div className="flex gap-2 pt-4">
@@ -361,14 +369,14 @@ const Bids = () => {
                             ))}
                         </select>
                         <select
-                            value={filters.status}
-                            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                            value={filters.bidType}
+                            onChange={(e) => setFilters({ ...filters, bidType: e.target.value })}
                             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="">Все статусы</option>
-                            {uniqueStatuses.map(status => (
-                                <option key={status} value={status}>
-                                    {status === 'Pending' ? 'В ожидании' : status === 'Accepted' ? 'Принята' : 'Отклонена'}
+                            <option value="">Все типы заявок</option>
+                            {bidTypes.map(bidType => (
+                                <option key={bidType.id} value={bidType.id}>
+                                    {bidType.name}
                                 </option>
                             ))}
                         </select>

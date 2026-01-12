@@ -25,7 +25,6 @@ model User {
     clients   Client[]
     bids      Bid[]
     comments  Comment[]
-    executedSpecifications BidSpecification[] @relation("Executor")
     auditLogs AuditLog[]
 }
 
@@ -66,6 +65,7 @@ model ClientObject {
  model Bid {
      id          Int      @id @default(autoincrement())
      clientId    Int
+     bidTypeId   Int?
      tema        String
      amount      Decimal  @db.Decimal(10, 2)
      status      String   @default("Pending")
@@ -78,6 +78,7 @@ model ClientObject {
      createdAt   DateTime @default(now())
      updatedAt   DateTime @updatedAt
      client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+     bidType     BidType? @relation(fields: [bidTypeId], references: [id])
      clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
      creator     User     @relation(fields: [createdBy], references: [id])
      equipmentItems EquipmentItem[]
@@ -156,9 +157,7 @@ model BidSpecification {
    bid            Bid          @relation(fields: [bidId], references: [id], onDelete: Cascade)
    specificationId Int
    specification  Specification @relation(fields: [specificationId], references: [id], onDelete: Cascade)
-   executorId     Int?
-   executor       User?        @relation("Executor", fields: [executorId], references: [id])
-   coExecutorIds  Int[]
+   executorIds    Int[]
    comment        String?
    createdAt      DateTime     @default(now())
    updatedAt      DateTime     @updatedAt
@@ -183,6 +182,15 @@ model Warehouse {
      createdAt   DateTime @default(now())
      updatedAt   DateTime @updatedAt
      equipmentItems EquipmentItem[]
+}
+
+model BidType {
+    id          Int      @id @default(autoincrement())
+    name        String   @unique
+    description String?
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    bids        Bid[]
 }
 
 model AuditLog {
