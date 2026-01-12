@@ -44,7 +44,7 @@ const Bids = () => {
         clientName: true,
         title: true,
         creatorName: true,
-        bidType: true,
+        bidType: false,
         description: true,
     };
     const savedOrder = localStorage.getItem('bidsColumnOrder');
@@ -448,7 +448,7 @@ const Bids = () => {
                         </div>
                     </div>
                     {/* Таблица с заявками */}
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                    <div className="overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                         <tr>

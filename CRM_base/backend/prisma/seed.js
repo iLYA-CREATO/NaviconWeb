@@ -75,6 +75,21 @@ async function main() {
         },
     });
     console.log('✅ Created role:', userRole);
+    // Create default bid type
+    const defaultBidType = await prisma.bidType.create({
+        data: {
+            name: 'Стандартная заявка',
+            description: 'Стандартный тип заявки',
+            statuses: [
+                { name: 'Открыта', position: 1, allowedActions: ["edit", "assign_executor"] },
+                { name: 'Закрыта', position: 999, allowedActions: [] }
+            ],
+            transitions: [
+                { fromPosition: 1, toPosition: 999 }
+            ]
+        },
+    });
+    console.log('✅ Created bid type:', defaultBidType);
 
     // Hash password
     const hashedPassword = await bcrypt.hash('123', 10);
@@ -244,9 +259,10 @@ async function main() {
     const bid1 = await prisma.bid.create({
         data: {
             clientId: client1.id,
+            bidTypeId: defaultBidType.id,
             tema: 'Website Redesign',
             amount: 50000,
-            status: 'Pending',
+            status: 'Открыта',
             description: 'Complete website redesign project',
             createdBy: adminUser.id,
         },
@@ -256,9 +272,10 @@ async function main() {
     const bid2 = await prisma.bid.create({
         data: {
             clientId: client2.id,
+            bidTypeId: defaultBidType.id,
             tema: 'Mobile App Development',
             amount: 120000,
-            status: 'Accepted',
+            status: 'Открыта',
             description: 'Cross-platform mobile application',
             createdBy: adminUser.id,
         },

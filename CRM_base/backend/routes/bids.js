@@ -149,6 +149,21 @@ router.post('/', authMiddleware, async (req, res) => {
         // Извлекаем данные из тела запроса
         const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract } = req.body;
 
+        // Логируем данные, отправленные в заявку
+        console.log('Создание новой заявки. Данные, отправленные в заявку:', {
+            clientId,
+            title,
+            amount,
+            status: status || 'Открыта',
+            description,
+            clientObjectId,
+            bidTypeId,
+            updNumber,
+            updDate,
+            contract,
+            createdBy: req.user.id
+        });
+
         // Проверяем существование клиента
         const client = await prisma.client.findUnique({
             where: { id: parseInt(clientId) },
@@ -182,7 +197,7 @@ router.post('/', authMiddleware, async (req, res) => {
                 bidTypeId: bidTypeId ? parseInt(bidTypeId) : null, // ID типа заявки
                 tema: title, // Заголовок заявки
                 amount: parseFloat(amount || 0), // Сумма (по умолчанию 0)
-                status: status || 'Pending', // Статус (по умолчанию 'Pending')
+                status: status || 'Открыта', // Статус (по умолчанию 'Открыта')
                 description, // Описание
                 clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // ID объекта клиента (опционально)
                 createdBy: req.user.id, // ID пользователя, создавшего заявку
@@ -269,7 +284,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 ...(clientId && { clientId: parseInt(clientId) }), // Обновляем клиента если указано
                 ...(title && { tema: title }), // Обновляем заголовок если указано
                 ...(amount !== undefined && { amount: parseFloat(amount) }), // Обновляем сумму если указано
-                ...(status && { status }), // Обновляем статус если указано
+                ...(status !== undefined && { status }), // Обновляем статус если указано
                 ...(description !== undefined && { description }), // Обновляем описание если указано
                 clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // Обновляем объект клиента
             },
@@ -283,6 +298,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 bidType: true,
             },
         });
+
 
         // Если клиент изменился, возвращаем все оборудование
         if (isClientChanging) {

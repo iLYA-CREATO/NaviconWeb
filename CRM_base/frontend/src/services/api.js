@@ -88,6 +88,17 @@ export const createBidType = (data) => api.post('/bid-types', data); // Созд
 export const updateBidType = (id, data) => api.put(`/bid-types/${id}`, data); // Обновление типа заявки
 export const deleteBidType = (id) => api.delete(`/bid-types/${id}`); // Удаление типа заявки
 
+// === СТАТУСЫ ЗАЯВОК ===
+// CRUD операции для статусов заявок
+export const getBidStatuses = (bidTypeId) => api.get(`/bid-types/${bidTypeId}/statuses`); // Получение всех статусов заявок для типа
+export const getBidStatus = (id) => api.get(`/bid-types/${id}`); // Получение статуса заявки по ID (теперь через bidType)
+export const createBidStatus = (bidTypeId, data) => api.post(`/bid-types/${bidTypeId}/statuses`, data); // Создание нового статуса заявки
+export const updateBidStatus = (bidTypeId, position, data) => api.put(`/bid-types/${bidTypeId}/statuses/${position}`, data); // Обновление статуса заявки
+export const deleteBidStatus = (bidTypeId, position) => api.delete(`/bid-types/${bidTypeId}/statuses/${position}`); // Удаление статуса заявки
+export const getBidStatusTransitions = (bidTypeId) => api.get(`/bid-types/${bidTypeId}/transitions`); // Получение переходов статусов
+export const createBidStatusTransition = (bidTypeId, data) => api.post(`/bid-types/${bidTypeId}/transitions`, data); // Создание перехода статуса
+export const deleteBidStatusTransition = (bidTypeId, fromPosition, toPosition) => api.delete(`/bid-types/${bidTypeId}/transitions/${fromPosition}/${toPosition}`); // Удаление перехода статуса
+
 // === ОБОРУДОВАНИЕ ===
 // CRUD операции для оборудования
 export const getEquipment = () => api.get('/equipment'); // Получение всего оборудования

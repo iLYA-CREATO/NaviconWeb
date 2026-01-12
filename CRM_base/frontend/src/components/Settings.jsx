@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType } from '../services/api';
+import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition } from '../services/api';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -50,6 +50,15 @@ const Settings = () => {
     const [bidTypeFormData, setBidTypeFormData] = useState({
         name: '',
         description: '',
+        statuses: [],
+        transitions: [],
+    });
+    const [showBidStatusFormInEdit, setShowBidStatusFormInEdit] = useState(false);
+    const [editingBidStatusInEdit, setEditingBidStatusInEdit] = useState(null);
+    const [bidStatusFormDataInEdit, setBidStatusFormDataInEdit] = useState({
+        name: '',
+        position: '',
+        allowedActions: [],
     });
 
     useEffect(() => {
@@ -119,6 +128,7 @@ const Settings = () => {
             console.error('Error fetching bid types:', error);
         }
     };
+
 
 
     const handleSubmit = async (e) => {
@@ -307,9 +317,12 @@ const Settings = () => {
                 await createBidType(bidTypeFormData);
                 setNotification({ type: 'success', message: 'Тип заявки создан успешно' });
             }
-            setBidTypeFormData({ name: '', description: '' });
+            setBidTypeFormData({ name: '', description: '', statuses: [], transitions: [] });
             setEditingBidType(null);
             setShowBidTypeForm(false);
+            setShowBidStatusFormInEdit(false);
+            setEditingBidStatusInEdit(null);
+            setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
             fetchBidTypes();
         } catch (error) {
             console.error('Error saving bid type:', error);
@@ -322,8 +335,13 @@ const Settings = () => {
         setBidTypeFormData({
             name: bidType.name,
             description: bidType.description || '',
+            statuses: bidType.statuses || [],
+            transitions: bidType.transitions || [],
         });
         setShowBidTypeForm(true);
+        setShowBidStatusFormInEdit(false);
+        setEditingBidStatusInEdit(null);
+        setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
     };
 
     const handleDeleteBidType = async (id) => {
@@ -337,6 +355,54 @@ const Settings = () => {
                 setNotification({ type: 'error', message: 'Ошибка при удалении типа заявки' });
             }
         }
+    };
+
+
+    const handleBidStatusSubmitInEdit = (e) => {
+        e.preventDefault();
+        const statuses = [...bidTypeFormData.statuses];
+        if (editingBidStatusInEdit) {
+            const index = statuses.findIndex(s => s.position === editingBidStatusInEdit.position);
+            if (index !== -1) {
+                statuses[index] = { ...bidStatusFormDataInEdit, position: parseInt(bidStatusFormDataInEdit.position) };
+            }
+        } else {
+            statuses.push({ ...bidStatusFormDataInEdit, position: parseInt(bidStatusFormDataInEdit.position) });
+        }
+        setBidTypeFormData({ ...bidTypeFormData, statuses });
+        setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
+        setEditingBidStatusInEdit(null);
+        setShowBidStatusFormInEdit(false);
+    };
+
+    const handleEditBidStatusInEdit = (bidStatus) => {
+        setEditingBidStatusInEdit(bidStatus);
+        setBidStatusFormDataInEdit({
+            name: bidStatus.name,
+            position: bidStatus.position.toString(),
+            allowedActions: bidStatus.allowedActions || [],
+        });
+        setShowBidStatusFormInEdit(true);
+    };
+
+    const handleDeleteBidStatusInEdit = (status) => {
+        if (window.confirm('Вы уверены, что хотите удалить этот статус заявки?')) {
+            const statuses = bidTypeFormData.statuses.filter(s => s.position !== status.position);
+            setBidTypeFormData({ ...bidTypeFormData, statuses });
+        }
+    };
+
+    const handleCreateTransitionInEdit = (fromPosition, toPosition) => {
+        const transitions = [...bidTypeFormData.transitions];
+        if (!transitions.some(t => t.fromPosition === fromPosition && t.toPosition === toPosition)) {
+            transitions.push({ fromPosition, toPosition });
+            setBidTypeFormData({ ...bidTypeFormData, transitions });
+        }
+    };
+
+    const handleDeleteTransitionInEdit = (fromPosition, toPosition) => {
+        const transitions = bidTypeFormData.transitions.filter(t => !(t.fromPosition === fromPosition && t.toPosition === toPosition));
+        setBidTypeFormData({ ...bidTypeFormData, transitions });
     };
 
     const toggleCategoryExpansion = (categoryId) => {
@@ -547,6 +613,65 @@ const Settings = () => {
                                         <p className="text-gray-900">{user?.email || 'Не указано'}</p>
                                     </div>
                                 </div>
+
+                                {showBidStatusFormInEdit && (
+                                    <div className="mt-4 bg-white rounded-lg shadow p-4">
+                                        <h5 className="text-md font-semibold mb-4">
+                                            {editingBidStatusInEdit ? 'Редактировать статус' : 'Добавить новый статус'}
+                                        </h5>
+                                        <form onSubmit={handleBidStatusSubmitInEdit} className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                                                    <input
+                                                        type="text"
+                                                        value={bidStatusFormDataInEdit.name}
+                                                        onChange={(e) => setBidStatusFormDataInEdit({ ...bidStatusFormDataInEdit, name: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Позиция</label>
+                                                    <input
+                                                        type="number"
+                                                        value={bidStatusFormDataInEdit.position}
+                                                        onChange={(e) => setBidStatusFormDataInEdit({ ...bidStatusFormDataInEdit, position: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        required
+                                                        min="1"
+                                                        max="999"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Разрешенные действия</label>
+                                                <input
+                                                    type="text"
+                                                    value={bidStatusFormDataInEdit.allowedActions.join(', ')}
+                                                    onChange={(e) => setBidStatusFormDataInEdit({ ...bidStatusFormDataInEdit, allowedActions: e.target.value.split(',').map(s => s.trim()).filter(s => s) })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Действие1, Действие2"
+                                                />
+                                            </div>
+                                            <div className="flex gap-2 pt-4">
+                                                <button
+                                                    type="submit"
+                                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                                >
+                                                    {editingBidStatusInEdit ? 'Обновить' : 'Создать'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowBidStatusFormInEdit(false)}
+                                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                                >
+                                                    Отмена
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -932,6 +1057,7 @@ const Settings = () => {
                         </div>
                     )}
 
+
                     {showBidTypeForm && (
                         <div className="bg-white rounded-lg shadow p-6">
                             <h3 className="text-lg font-semibold mb-4">
@@ -957,6 +1083,113 @@ const Settings = () => {
                                         rows="3"
                                     />
                                 </div>
+
+                                <div className="mt-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h4 className="text-lg font-semibold">Управление статусами</h4>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowBidStatusFormInEdit(!showBidStatusFormInEdit);
+                                                setEditingBidStatusInEdit(null);
+                                                setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
+                                            }}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                        >
+                                            {showBidStatusFormInEdit ? 'Отмена' : '+ Добавить статус'}
+                                        </button>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-100">
+                                            <tr>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Позиция</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Разрешенные действия</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                            {(bidTypeFormData.statuses || []).sort((a, b) => a.position - b.position).map((status) => (
+                                                <tr key={status.position} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-2 whitespace-nowrap">{status.name}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap">{status.position}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap">
+                                                        {status.allowedActions && status.allowedActions.length > 0
+                                                            ? status.allowedActions.join(', ')
+                                                            : 'Нет'
+                                                        }
+                                                    </td>
+                                                    <td className="px-4 py-2 whitespace-nowrap">
+                                                        {status.position !== 1 && status.position !== 999 && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleEditBidStatusInEdit(status)}
+                                                                    className="text-blue-600 hover:text-blue-900 mr-3 text-sm"
+                                                                >
+                                                                    Редактировать
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteBidStatusInEdit(status)}
+                                                                    className="text-red-600 hover:text-red-900 text-sm"
+                                                                >
+                                                                    Удалить
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                        <h5 className="text-md font-semibold mb-4">Переходы между статусами</h5>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {(bidTypeFormData.statuses || []).sort((a, b) => a.position - b.position).map((fromStatus) => (
+                                                <div key={fromStatus.position} className="border rounded-lg p-4">
+                                                    <h6 className="font-medium mb-2">Из: {fromStatus.name}</h6>
+                                                    <div className="space-y-2">
+                                                        {(bidTypeFormData.statuses || [])
+                                                            .filter((toStatus) => toStatus.position !== fromStatus.position)
+                                                            .sort((a, b) => a.position - b.position)
+                                                            .map((toStatus) => {
+                                                                const existingTransition = (bidTypeFormData.transitions || []).find(
+                                                                    (t) => t.fromPosition === fromStatus.position && t.toPosition === toStatus.position
+                                                                );
+                                                                return (
+                                                                    <div key={toStatus.position} className="flex items-center justify-between">
+                                                                        <span>В: {toStatus.name}</span>
+                                                                        {existingTransition ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleDeleteTransitionInEdit(fromStatus.position, toStatus.position)}
+                                                                                className="text-red-600 hover:text-red-900 text-sm"
+                                                                            >
+                                                                                Удалить переход
+                                                                            </button>
+                                                                        ) : (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleCreateTransitionInEdit(fromStatus.position, toStatus.position)}
+                                                                                className="text-green-600 hover:text-green-900 text-sm"
+                                                                            >
+                                                                                Добавить переход
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="flex gap-2 pt-4">
                                     <button
                                         type="submit"
@@ -966,7 +1199,12 @@ const Settings = () => {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setShowBidTypeForm(false)}
+                                        onClick={() => {
+                                            setShowBidTypeForm(false);
+                                            setShowBidStatusFormInEdit(false);
+                                            setEditingBidStatusInEdit(null);
+                                            setBidStatusFormDataInEdit({ name: '', position: '', allowedActions: [] });
+                                        }}
                                         className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                                     >
                                         Отмена

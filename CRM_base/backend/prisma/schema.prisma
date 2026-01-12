@@ -63,29 +63,29 @@ model ClientObject {
  }
 
  model Bid {
-     id          Int      @id @default(autoincrement())
-     clientId    Int
-     bidTypeId   Int?
-     tema        String
-     amount      Decimal  @db.Decimal(10, 2)
-     status      String   @default("Pending")
-     description String?
-     clientObjectId Int?
-     updNumber   String?
-     updDate     DateTime?
-     contract    String?
-     createdBy   Int
-     createdAt   DateTime @default(now())
-     updatedAt   DateTime @updatedAt
-     client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-     bidType     BidType? @relation(fields: [bidTypeId], references: [id])
-     clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
-     creator     User     @relation(fields: [createdBy], references: [id])
-     equipmentItems EquipmentItem[]
-     comments    Comment[]
-     bidSpecifications BidSpecification[]
-     auditLogs   AuditLog[]
-   }
+      id          Int      @id @default(autoincrement())
+      clientId    Int
+      bidTypeId   Int
+      tema        String
+      amount      Decimal  @db.Decimal(10, 2)
+      status      String
+      description String?
+      clientObjectId Int?
+      updNumber   String?
+      updDate     DateTime?
+      contract    String?
+      createdBy   Int
+      createdAt   DateTime @default(now())
+      updatedAt   DateTime @updatedAt
+      client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+      bidType     BidType  @relation(fields: [bidTypeId], references: [id])
+      clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
+      creator     User     @relation(fields: [createdBy], references: [id])
+      equipmentItems EquipmentItem[]
+      comments    Comment[]
+      bidSpecifications BidSpecification[]
+      auditLogs   AuditLog[]
+    }
 
 model Equipment {
   id            Int      @id @default(autoincrement())
@@ -185,13 +185,16 @@ model Warehouse {
 }
 
 model BidType {
-    id          Int      @id @default(autoincrement())
-    name        String   @unique
-    description String?
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-    bids        Bid[]
-}
+      id          Int      @id @default(autoincrement())
+      name        String   @unique
+      description String?
+      statuses    Json?
+      transitions Json?
+      createdAt   DateTime @default(now())
+      updatedAt   DateTime @updatedAt
+      bids        Bid[]
+  }
+
 
 model AuditLog {
     id        Int      @id @default(autoincrement())

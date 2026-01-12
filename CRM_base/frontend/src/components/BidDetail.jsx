@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory } from '../services/api';
+import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 
@@ -55,6 +55,7 @@ const BidDetail = () => {
     const [editingUpd, setEditingUpd] = useState(false);
     const [contract, setContract] = useState('');
     const [editingContract, setEditingContract] = useState(false);
+    const [bidStatuses, setBidStatuses] = useState([]);
 
     useEffect(() => {
         fetchBid();
@@ -66,6 +67,12 @@ const BidDetail = () => {
         fetchSpecCategories();
         fetchHistory();
     }, [id]);
+
+    useEffect(() => {
+        if (bid) {
+            fetchBidStatuses();
+        }
+    }, [bid]);
     useEffect(() => {
         if (bid) {
             setUpdNumber(bid.updNumber || '');
@@ -172,6 +179,17 @@ const BidDetail = () => {
             setHistory(response.data);
         } catch (error) {
             console.error('Error fetching bid history:', error);
+        }
+    };
+
+    const fetchBidStatuses = async () => {
+        if (bid && bid.bidTypeId) {
+            try {
+                const response = await getBidStatuses(bid.bidTypeId);
+                setBidStatuses(response.data);
+            } catch (error) {
+                console.error('Error fetching bid statuses:', error);
+            }
         }
     };
 
@@ -778,13 +796,11 @@ const BidDetail = () => {
             <div className="w-64 bg-white shadow pb-4 pt-0 ml-4">
                 <div className="mb-4">
                     <div className={`w-full p-2 text-lg text-left text-white cursor-pointer ${
-                        bid.status === 'Accepted' ? 'bg-green-500' :
-                            bid.status === 'Rejected' ? 'bg-red-500' :
-                                'bg-yellow-500'
+                        bid.status === 'Закрыта' ? 'bg-red-500' :
+                        bid.status === 'Открыта' ? 'bg-yellow-500' :
+                            'bg-blue-500'
                     }`} onClick={() => setShowStatusModal(true)}>
-                        {bid.status === 'Pending' ? 'В ожидании' :
-                         bid.status === 'Accepted' ? 'Принята' :
-                         bid.status === 'Rejected' ? 'Отклонена' : bid.status}
+                        {bid.status}
                     </div>
                 </div>
                 <div className='p-2'>
@@ -1008,24 +1024,18 @@ const BidDetail = () => {
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <h3 className="text-lg font-semibold mb-4">Изменить статус</h3>
                         <div className="space-y-2">
-                            <button
-                                onClick={() => handleChangeStatus('Pending')}
-                                className="w-full text-left p-2 hover:bg-gray-100"
-                            >
-                                В ожидании
-                            </button>
-                            <button
-                                onClick={() => handleChangeStatus('Accepted')}
-                                className="w-full text-left p-2 hover:bg-gray-100"
-                            >
-                                Принята
-                            </button>
-                            <button
-                                onClick={() => handleChangeStatus('Rejected')}
-                                className="w-full text-left p-2 hover:bg-gray-100"
-                            >
-                                Отклонена
-                            </button>
+                            {bidStatuses.map(status => (
+                                <button
+                                    key={status.position}
+                                    onClick={() => handleChangeStatus(status.name)}
+                                    className={`w-full text-left p-2 hover:bg-gray-100 ${
+                                        bid.status === status.name ? 'bg-blue-100' : ''
+                                    }`}
+                                    disabled={bid.status === status.name}
+                                >
+                                    {status.name}
+                                </button>
+                            ))}
                         </div>
                         <div className="flex justify-end mt-4">
                             <button
