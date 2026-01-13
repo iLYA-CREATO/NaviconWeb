@@ -105,6 +105,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
                         fullName: true,
                     },
                 },
+                bidEquipments: {
+                    include: {
+                        equipment: true,
+                    },
+                }, // Оборудование заявки
             },
         });
 

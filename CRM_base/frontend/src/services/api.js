@@ -107,6 +107,13 @@ export const createEquipment = (data) => api.post('/equipment', data); // Соз
 export const updateEquipment = (id, data) => api.put(`/equipment/${id}`, data); // Обновление оборудования
 export const deleteEquipment = (id) => api.delete(`/equipment/${id}`); // Удаление оборудования
 
+// === ОБОРУДОВАНИЕ ЗАЯВОК ===
+// CRUD операции для оборудования заявок
+export const getBidEquipment = (bidId) => api.get(`/bid-equipment/bid/${bidId}`); // Получение оборудования заявки
+export const createBidEquipment = (data) => api.post('/bid-equipment', data); // Создание оборудования заявки
+export const updateBidEquipment = (id, data) => api.put(`/bid-equipment/${id}`, data); // Обновление оборудования заявки
+export const deleteBidEquipment = (id) => api.delete(`/bid-equipment/${id}`); // Удаление оборудования заявки
+
 // === ПОСТАВЩИКИ ===
 // CRUD операции для поставщиков
 export const getSuppliers = () => api.get('/suppliers'); // Получение всех поставщиков

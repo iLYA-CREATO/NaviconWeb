@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses } from '../services/api';
+import { getBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 
@@ -47,11 +47,17 @@ const BidDetail = () => {
     const [contract, setContract] = useState('');
     const [editingContract, setEditingContract] = useState(false);
     const [bidStatuses, setBidStatuses] = useState([]);
+    const [bidEquipment, setBidEquipment] = useState([]);
+    const [equipment, setEquipment] = useState([]);
+    const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
+    const [editingEquipment, setEditingEquipment] = useState(null);
 
     useEffect(() => {
         fetchBid();
         fetchComments();
         fetchBidSpecifications();
+        fetchBidEquipment();
+        fetchEquipment();
         fetchUsers();
         fetchSpecifications();
         fetchSpecCategories();
@@ -147,6 +153,24 @@ const BidDetail = () => {
             setSpecCategories(response.data);
         } catch (error) {
             console.error('Error fetching specification categories:', error);
+        }
+    };
+
+    const fetchBidEquipment = async () => {
+        try {
+            const response = await getBidEquipment(id);
+            setBidEquipment(response.data);
+        } catch (error) {
+            console.error('Error fetching bid equipment:', error);
+        }
+    };
+
+    const fetchEquipment = async () => {
+        try {
+            const response = await getEquipment();
+            setEquipment(response.data);
+        } catch (error) {
+            console.error('Error fetching equipment:', error);
         }
     };
 
@@ -247,6 +271,18 @@ const BidDetail = () => {
         }
     };
 
+    const handleDeleteEquipment = async (equipmentId) => {
+        if (!confirm('Вы уверены, что хотите удалить это оборудование?')) return;
+        try {
+            await deleteBidEquipment(equipmentId);
+            fetchBidEquipment();
+            fetchHistory();
+        } catch (error) {
+            console.error('Error deleting equipment:', error);
+            alert('Ошибка при удалении оборудования.');
+        }
+    };
+
     const handleUpdateBid = async (updates) => {
         try {
             await updateBid(id, updates);
@@ -272,6 +308,23 @@ const BidDetail = () => {
         } catch (error) {
             console.error('Error saving specification:', error);
             alert('Ошибка при сохранении спецификации.');
+        }
+    };
+
+    const handleSaveEquipment = async (equipmentData) => {
+        try {
+            if (editingEquipment) {
+                await updateBidEquipment(editingEquipment.id, equipmentData);
+            } else {
+                await createBidEquipment({ ...equipmentData, bidId: id });
+            }
+            setShowAddEquipmentModal(false);
+            setEditingEquipment(null);
+            fetchBidEquipment();
+            fetchHistory();
+        } catch (error) {
+            console.error('Error saving equipment:', error);
+            alert('Ошибка при сохранении оборудования.');
         }
     };
 
@@ -407,6 +460,7 @@ const BidDetail = () => {
                                 { id: 'comments', label: 'Коментарии' },
                                 { id: 'files', label: 'Файлы' },
                                 { id: 'nested', label: 'Вложенные заявки' },
+                                { id: 'equipment', label: 'Оборудование' },
                                 { id: 'spec', label: 'Спецификация' },
                                 { id: 'print', label: 'Печатная форма' }
                             ].map(tab => (
@@ -523,6 +577,63 @@ const BidDetail = () => {
                         {activeTab === 'nested' && (
                             <div className="text-center py-8">
                                 <p className="text-gray-500">Вложенные заявки в разработке</p>
+                            </div>
+                        )}
+                        {activeTab === 'equipment' && (
+                            <div>
+                                <div className="mb-4 flex items-center space-x-4">
+                                    <button
+                                        onClick={() => setShowAddEquipmentModal(true)}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    >
+                                        Добавить оборудование
+                                    </button>
+                                </div>
+                                {bidEquipment.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full bg-white border border-gray-300">
+                                            <thead>
+                                                <tr className="bg-gray-50">
+                                                    <th className="px-4 py-2 border-b text-left">Оборудование</th>
+                                                    <th className="px-4 py-2 border-b text-left">IMEI</th>
+                                                    <th className="px-4 py-2 border-b text-left">Количество</th>
+                                                    <th className="px-4 py-2 border-b text-left">Действия</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {bidEquipment.map(eq => (
+                                                    <tr
+                                                        key={eq.id}
+                                                        className="hover:bg-gray-50"
+                                                    >
+                                                        <td className="px-4 py-2 border-b">{eq.equipment.name}</td>
+                                                        <td className="px-4 py-2 border-b">{eq.imei || '-'}</td>
+                                                        <td className="px-4 py-2 border-b">{eq.quantity}</td>
+                                                        <td className="px-4 py-2 border-b">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingEquipment(eq);
+                                                                    setShowAddEquipmentModal(true);
+                                                                }}
+                                                                className="text-blue-500 hover:text-blue-700 mr-2"
+                                                            >
+                                                                Редактировать
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteEquipment(eq.id)}
+                                                                className="text-red-500 hover:text-red-700"
+                                                            >
+                                                                Удалить
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-center py-4">Оборудование не добавлено</p>
+                                )}
                             </div>
                         )}
                         {activeTab === 'spec' && (
@@ -742,6 +853,20 @@ const BidDetail = () => {
                     currentUser={user}
                     expandedCategories={expandedCategories}
                     setExpandedCategories={setExpandedCategories}
+                />
+            )}
+
+            {/* Add/Edit Equipment Modal */}
+            {showAddEquipmentModal && (
+                <EquipmentModal
+                    isOpen={showAddEquipmentModal}
+                    onClose={() => {
+                        setShowAddEquipmentModal(false);
+                        setEditingEquipment(null);
+                    }}
+                    onSave={handleSaveEquipment}
+                    editingEquipment={editingEquipment}
+                    equipment={equipment}
                 />
             )}
 
@@ -1070,6 +1195,104 @@ const SpecificationModal = ({
                         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
                     >
                         {editingSpec ? 'Сохранить' : 'Добавить'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Equipment Modal Component
+const EquipmentModal = ({
+    isOpen,
+    onClose,
+    onSave,
+    editingEquipment,
+    equipment
+}) => {
+    const [selectedEquipmentId, setSelectedEquipmentId] = useState(editingEquipment?.equipmentId || '');
+    const [imei, setImei] = useState(editingEquipment?.imei || '');
+    const [quantity, setQuantity] = useState(editingEquipment?.quantity || 1);
+
+    const selectedEquipment = equipment.find(e => e.id === parseInt(selectedEquipmentId));
+
+    const handleSave = () => {
+        if (!selectedEquipmentId) {
+            alert('Выберите оборудование');
+            return;
+        }
+        onSave({
+            equipmentId: selectedEquipmentId,
+            imei: imei.trim() || null,
+            quantity: parseInt(quantity) || 1,
+        });
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <h3 className="text-lg font-semibold mb-4">
+                    {editingEquipment ? 'Редактировать оборудование' : 'Добавить оборудование'}
+                </h3>
+
+                {/* Equipment Selection */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Оборудование</label>
+                    <select
+                        value={selectedEquipmentId}
+                        onChange={(e) => setSelectedEquipmentId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    >
+                        <option value="">Выберите оборудование</option>
+                        {equipment.map(eq => (
+                            <option key={eq.id} value={eq.id}>
+                                {eq.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* IMEI */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">IMEI (необязательно)</label>
+                    <input
+                        type="text"
+                        value={imei}
+                        onChange={(e) => setImei(e.target.value)}
+                        placeholder="Введите IMEI"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+
+                {/* Quantity */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Количество</label>
+                    <input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value)}
+                        min="1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex justify-end space-x-2">
+                    <button
+                        onClick={onClose}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                    >
+                        Отмена
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                    >
+                        {editingEquipment ? 'Сохранить' : 'Добавить'}
                     </button>
                 </div>
             </div>
