@@ -86,14 +86,14 @@ model ClientObject {
    }
 
 model Equipment {
-   id            Int      @id @default(autoincrement())
-   name          String
-   description   String?
-   productCode   Int?
-   sellingPrice  Decimal? @db.Decimal(10, 2)
-   purchasePrice Decimal? @db.Decimal(10, 2)
-   createdAt     DateTime @default(now())
-   updatedAt     DateTime @updatedAt
+    id            Int      @id @default(autoincrement())
+    name          String
+    description   String?
+    productCode   Int?
+    sellingPrice  Decimal? @db.Decimal(10, 2)
+    purchasePrice Decimal? @db.Decimal(10, 2)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
 }
 
 model Comment {

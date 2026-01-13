@@ -21,7 +21,6 @@ import BidDetail from './components/BidDetail';
 import ClientObjectDetail from './components/ClientObjectDetail';
 import Objects from './components/Objects';
 import Equipment from './components/Equipment';
-import EquipmentDetail from './components/EquipmentDetail';
 import SupplierCreate from './components/SupplierCreate';
 import Settings from './components/Settings';
 import Salary from './components/Salary';
@@ -56,7 +55,6 @@ function App() {
                         <Route path="bids" element={<Bids />} /> {/* Список заявок */}
                         <Route path="bids/:id" element={<BidDetail />} /> {/* Детали заявки */}
                         <Route path="equipment" element={<Equipment />} /> {/* Список оборудования */}
-                        <Route path="equipment/:id" element={<EquipmentDetail />} /> {/* Детали оборудования */}
                         <Route path="suppliers/create" element={<SupplierCreate />} /> {/* Создание поставщика */}
                         <Route path="salary" element={<Salary />} /> {/* Зарплата */}
                         <Route path="settings" element={<Settings />} /> {/* Настройки */}

@@ -13,7 +13,7 @@ const Equipment = () => {
     const equipmentAllColumns = ['id', 'name', 'description', 'productCode', 'sellingPrice', 'purchasePrice', 'createdAt'];
     // Load initial states from localStorage for equipment
     const savedEquipmentColumns = localStorage.getItem('equipmentVisibleColumns');
-    const initialEquipmentVisibleColumns = savedEquipmentColumns ? JSON.parse(savedEquipmentColumns) : {
+    const defaultEquipmentVisibleColumns = {
         id: true,
         name: true,
         description: true,
@@ -22,6 +22,7 @@ const Equipment = () => {
         purchasePrice: true,
         createdAt: true,
     };
+    const initialEquipmentVisibleColumns = savedEquipmentColumns ? { ...defaultEquipmentVisibleColumns, ...JSON.parse(savedEquipmentColumns), sellingPrice: true, purchasePrice: true } : defaultEquipmentVisibleColumns;
     const savedEquipmentOrder = localStorage.getItem('equipmentColumnOrder');
     const initialEquipmentColumnOrder = savedEquipmentOrder ? JSON.parse(savedEquipmentOrder) : equipmentAllColumns;
     // State for equipment column order
@@ -462,10 +463,6 @@ const Equipment = () => {
                                 </div>
                             </form>
                         </div>
-                    )}
-
-                    {activeTab.startsWith('equipment-detail-') && (
-                        <EquipmentDetail id={activeTab.split('-')[2]} closeTab={() => closeCustomTab(activeTab)} />
                     )}
                 </div>
         </div>
