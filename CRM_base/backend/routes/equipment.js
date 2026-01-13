@@ -15,9 +15,7 @@ router.get('/', authMiddleware, async (req, res) => {
             return {
                 id: item.id,
                 name: item.name,
-                description: item.description,
                 productCode: item.productCode,
-                createdAt: item.createdAt,
                 sellingPrice: item.sellingPrice ? parseFloat(item.sellingPrice) : null,
                 purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null
             };
@@ -55,7 +53,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create equipment
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { name, description, productCode, sellingPrice, purchasePrice } = req.body;
+        const { name, productCode, sellingPrice, purchasePrice } = req.body;
 
         const existingName = await prisma.equipment.findFirst({
             where: { name: name }
@@ -76,7 +74,6 @@ router.post('/', authMiddleware, async (req, res) => {
         const newEquipment = await prisma.equipment.create({
             data: {
                 name,
-                description,
                 productCode: productCode ? parseInt(productCode) : null,
                 sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
                 purchasePrice: purchasePrice ? parseFloat(purchasePrice) : null,
@@ -97,7 +94,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // Update equipment
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { name, description, productCode, sellingPrice, purchasePrice } = req.body;
+        const { name, productCode, sellingPrice, purchasePrice } = req.body;
         const equipmentId = parseInt(req.params.id);
 
         const currentEquipment = await prisma.equipment.findUnique({
@@ -132,7 +129,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
             where: { id: equipmentId },
             data: {
                 ...(name !== undefined && { name }),
-                ...(description !== undefined && { description }),
                 ...(productCode !== undefined && { productCode: productCode ? parseInt(productCode) : null }),
                 ...(sellingPrice !== undefined && { sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null }),
                 ...(purchasePrice !== undefined && { purchasePrice: purchasePrice ? parseFloat(purchasePrice) : null }),

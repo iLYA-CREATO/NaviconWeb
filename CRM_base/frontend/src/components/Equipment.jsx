@@ -10,21 +10,19 @@ const Equipment = () => {
     const [activeTab, setActiveTab] = useState('nomenclature');
     const [customTabs, setCustomTabs] = useState([]);
     // Define all possible columns for equipment
-    const equipmentAllColumns = ['id', 'name', 'description', 'productCode', 'sellingPrice', 'purchasePrice', 'createdAt'];
+    const equipmentAllColumns = ['id', 'name', 'productCode', 'purchasePrice', 'sellingPrice'];
     // Load initial states from localStorage for equipment
     const savedEquipmentColumns = localStorage.getItem('equipmentVisibleColumns');
     const defaultEquipmentVisibleColumns = {
         id: true,
         name: true,
-        description: true,
         productCode: true,
         sellingPrice: true,
         purchasePrice: true,
-        createdAt: true,
     };
-    const initialEquipmentVisibleColumns = savedEquipmentColumns ? { ...defaultEquipmentVisibleColumns, ...JSON.parse(savedEquipmentColumns), sellingPrice: true, purchasePrice: true } : defaultEquipmentVisibleColumns;
+    const initialEquipmentVisibleColumns = savedEquipmentColumns ? { ...defaultEquipmentVisibleColumns, ...JSON.parse(savedEquipmentColumns), sellingPrice: true, purchasePrice: true, productCode: true } : defaultEquipmentVisibleColumns;
     const savedEquipmentOrder = localStorage.getItem('equipmentColumnOrder');
-    const initialEquipmentColumnOrder = savedEquipmentOrder ? JSON.parse(savedEquipmentOrder) : equipmentAllColumns;
+    const initialEquipmentColumnOrder = savedEquipmentOrder ? [...new Set([...JSON.parse(savedEquipmentOrder).filter(col => equipmentAllColumns.includes(col)), ...equipmentAllColumns])] : equipmentAllColumns;
     // State for equipment column order
     const [equipmentColumnOrder, setEquipmentColumnOrder] = useState(initialEquipmentColumnOrder);
     // State for visible equipment columns in the table
@@ -33,7 +31,6 @@ const Equipment = () => {
     const [showEquipmentColumnSettings, setShowEquipmentColumnSettings] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        description: '',
         productCode: '',
         sellingPrice: '',
         purchasePrice: '',
@@ -82,6 +79,8 @@ const Equipment = () => {
                 await updateEquipment(editingItem.id, formData);
                 fetchEquipment();
                 resetForm();
+                closeCustomTab('create-equipment');
+                setActiveTab('nomenclature');
             } else {
                 const response = await createEquipment(formData);
                 fetchEquipment();
@@ -103,7 +102,6 @@ const Equipment = () => {
         setEditingItem(item);
         setFormData({
             name: item.name,
-            description: item.description || '',
             productCode: item.productCode || '',
             sellingPrice: item.sellingPrice || '',
             purchasePrice: item.purchasePrice || '',
@@ -125,7 +123,6 @@ const Equipment = () => {
     const resetForm = () => {
         setFormData({
             name: '',
-            description: '',
             productCode: '',
             sellingPrice: '',
             purchasePrice: '',
@@ -138,7 +135,6 @@ const Equipment = () => {
     const filteredEquipment = equipment.filter(item =>
         item.id.toString().includes(searchTerm) ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.productCode?.toString().includes(searchTerm)
     );
 
@@ -172,11 +168,9 @@ const Equipment = () => {
         const labels = {
             id: 'ID',
             name: 'Название',
-            description: 'Описание',
             productCode: 'Код товара',
             sellingPrice: 'Цена продажи',
             purchasePrice: 'Цена закупки',
-            createdAt: 'Дата добавления',
         };
         return labels[column] || column;
     };
@@ -187,16 +181,12 @@ const Equipment = () => {
                 return item.id;
             case 'name':
                 return item.name;
-            case 'description':
-                return item.description || '-';
             case 'productCode':
                 return item.productCode || '-';
             case 'sellingPrice':
                 return item.sellingPrice ? `${item.sellingPrice} ₽` : '-';
             case 'purchasePrice':
                 return item.purchasePrice ? `${item.purchasePrice} ₽` : '-';
-            case 'createdAt':
-                return new Date(item.createdAt).toLocaleDateString('ru-RU');
             default:
                 return '';
         }
@@ -365,7 +355,7 @@ const Equipment = () => {
                                         {filteredEquipment.map((item) => (
                                             <tr key={item.id} className="hover:bg-gray-50">
                                                 {displayEquipmentColumns.map(column => (
-                                                    <td key={column} className={`px-6 py-4 ${column === 'description' ? '' : 'whitespace-nowrap'}`}>
+                                                    <td key={column} className="px-6 py-4 whitespace-nowrap">
                                                         {getEquipmentCellContent(item, column)}
                                                     </td>
                                                 ))}
@@ -406,15 +396,6 @@ const Equipment = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        rows="3"
-                                    />
-                                </div>
-                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Код товара</label>
                                     <input
                                         type="number"
@@ -448,7 +429,7 @@ const Equipment = () => {
                                         type="submit"
                                         className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
                                     >
-                                        Создать
+                                        {editingItem ? 'Обновить' : 'Создать'}
                                     </button>
                                     <button
                                         type="button"
