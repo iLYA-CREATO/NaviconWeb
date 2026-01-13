@@ -9,6 +9,8 @@ async function checkDatabases() {
     console.log('PostgreSQL version:', version);
     const owner = await prisma.$queryRaw`SELECT datname, datdba::text as owner FROM pg_database WHERE datname = 'naviconbaseroot';`;
     console.log('Database owner:', owner);
+    const tables = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';`;
+    console.log('Tables in public schema:', tables);
   } catch (error) {
     console.error('Error:', error);
   } finally {

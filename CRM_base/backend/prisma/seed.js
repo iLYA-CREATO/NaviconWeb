@@ -66,8 +66,10 @@ async function main() {
     });
     console.log('✅ Created role:', userRole);
     // Create default bid type
-    const defaultBidType = await prisma.bidType.create({
-        data: {
+    const defaultBidType = await prisma.bidType.upsert({
+        where: { name: 'Стандартная заявка' },
+        update: {},
+        create: {
             name: 'Стандартная заявка',
             description: 'Стандартный тип заявки',
             statuses: [
@@ -382,28 +384,26 @@ async function main() {
         console.log('✅ Created specification:', spec.name);
     }
 
-    // Create demo equipment
-    const equipmentList = [
-        { name: 'Smart-2430', productCode: 2430 },
-        { name: 'Smart-2435', productCode: 2435 },
-        { name: 'Smart-2421', productCode: 2421 },
-        { name: 'Smart-2411', productCode: 2411 },
-        { name: 'Smart-2413', productCode: 2413 },
-        { name: 'Smart-2423', productCode: 2423 },
-        { name: 'Smart-2412', productCode: 2412 },
-        { name: 'Smart-2425', productCode: 2425 },
-        { name: 'Smart-2433', productCode: 2433 },
-    ];
+    // Create demo warehouses
+    const warehouse1 = await prisma.warehouse.upsert({
+        where: { name: 'Основной склад' },
+        update: {},
+        create: {
+            name: 'Основной склад',
+            address: 'ул. Ленина, 10',
+        },
+    });
+    console.log('✅ Created warehouse:', warehouse1.name);
 
-    for (const equipment of equipmentList) {
-        await prisma.equipment.create({
-            data: {
-                name: equipment.name,
-                productCode: equipment.productCode,
-            },
-        });
-        console.log('✅ Created equipment:', equipment.name, 'with product code:', equipment.productCode);
-    }
+    const warehouse2 = await prisma.warehouse.upsert({
+        where: { name: 'Дополнительный склад' },
+        update: {},
+        create: {
+            name: 'Дополнительный склад',
+            address: 'ул. Пушкина, 5',
+        },
+    });
+    console.log('✅ Created warehouse:', warehouse2.name);
 
     // Create demo suppliers
     const suppliersList = [
@@ -437,8 +437,9 @@ async function main() {
         },
     ];
 
+    const createdSuppliers = [];
     for (const supplier of suppliersList) {
-        await prisma.supplier.create({
+        const sup = await prisma.supplier.create({
             data: {
                 name: supplier.name,
                 entityType: supplier.entityType,
@@ -447,8 +448,37 @@ async function main() {
                 email: supplier.email,
             },
         });
+        createdSuppliers.push(sup);
         console.log('✅ Created supplier:', supplier.name);
     }
+
+    // Create demo equipment
+    const equipmentList = [
+        { name: 'Smart-2430', productCode: 2430 },
+        { name: 'Smart-2435', productCode: 2435 },
+        { name: 'Smart-2421', productCode: 2421 },
+        { name: 'Smart-2411', productCode: 2411 },
+        { name: 'Smart-2413', productCode: 2413 },
+        { name: 'Smart-2423', productCode: 2423 },
+        { name: 'Smart-2412', productCode: 2412 },
+        { name: 'Smart-2425', productCode: 2425 },
+        { name: 'Smart-2433', productCode: 2433 },
+    ];
+
+    const createdEquipment = [];
+    for (const equipment of equipmentList) {
+        const eq = await prisma.equipment.upsert({
+            where: { name: equipment.name },
+            update: {},
+            create: {
+                name: equipment.name,
+                productCode: equipment.productCode,
+            },
+        });
+        createdEquipment.push(eq);
+        console.log('✅ Created equipment:', equipment.name, 'with product code:', equipment.productCode);
+    }
+
 
 
     // Update all users to Admin role

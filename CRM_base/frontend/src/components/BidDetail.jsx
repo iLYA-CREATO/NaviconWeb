@@ -1,5 +1,5 @@
 /**
- * Компонент BidDetail - отображает детали заявки (bid), позволяет управлять оборудованием,
+ * Компонент BidDetail - отображает детали заявки (bid), позволяет
  * изменять клиента, объект клиента и статус заявки.
  */
 
@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getEquipment, assignEquipmentToBid, returnEquipmentFromBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses } from '../services/api';
+import { getBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 
@@ -23,15 +23,6 @@ const BidDetail = () => {
     const [bid, setBid] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [availableEquipment, setAvailableEquipment] = useState([]);
-    const [selectedAssign, setSelectedAssign] = useState([]);
-    const [selectedReturn, setSelectedReturn] = useState([]);
-    const [selectedQuantities, setSelectedQuantities] = useState({});
-    const [showAssignModal, setShowAssignModal] = useState(false);
-    const [showReturnModal, setShowReturnModal] = useState(false);
-    const [searchName, setSearchName] = useState('');
-    const [searchCode, setSearchCode] = useState('');
-    const [searchWarehouse, setSearchWarehouse] = useState('');
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [activeTab, setActiveTab] = useState('comments');
     const [comments, setComments] = useState([]);
@@ -59,7 +50,6 @@ const BidDetail = () => {
 
     useEffect(() => {
         fetchBid();
-        fetchAvailableEquipment();
         fetchComments();
         fetchBidSpecifications();
         fetchUsers();
@@ -112,19 +102,6 @@ const BidDetail = () => {
         }
     };
 
-    const fetchAvailableEquipment = async () => {
-        try {
-            const response = await getEquipment();
-            // Group by equipment and filter available items
-            const equipmentWithAvailable = response.data.map(eq => ({
-                ...eq,
-                availableItems: eq.items.filter(item => !item.bidId)
-            })).filter(eq => eq.availableItems.length > 0);
-            setAvailableEquipment(equipmentWithAvailable);
-        } catch (error) {
-            console.error('Error fetching equipment:', error);
-        }
-    };
 
 
 
@@ -193,41 +170,6 @@ const BidDetail = () => {
         }
     };
 
-    const handleAssignEquipment = async () => {
-        const equipmentAssignments = Object.entries(selectedQuantities).filter(([_, qty]) => qty > 0).map(([eqId, qty]) => ({equipmentId: parseInt(eqId), quantity: qty}));
-        if (selectedAssign.length === 0 && equipmentAssignments.length === 0) return;
-        try {
-            const data = {};
-            if (selectedAssign.length > 0) data.equipmentItemIds = selectedAssign;
-            if (equipmentAssignments.length > 0) data.equipmentAssignments = equipmentAssignments;
-            await assignEquipmentToBid(id, data);
-            setSelectedAssign([]);
-            setSelectedQuantities({});
-            setShowAssignModal(false);
-            setSearchName('');
-            setSearchCode('');
-            setSearchWarehouse('');
-            fetchBid();
-            fetchAvailableEquipment();
-            fetchHistory();
-        } catch (error) {
-            console.error('Error assigning equipment:', error);
-        }
-    };
-
-    const handleReturnEquipment = async () => {
-        if (selectedReturn.length === 0) return;
-        try {
-            await returnEquipmentFromBid(id, { equipmentItemIds: selectedReturn });
-            setSelectedReturn([]);
-            setShowReturnModal(false);
-            fetchBid();
-            fetchAvailableEquipment();
-            fetchHistory();
-        } catch (error) {
-            console.error('Error returning equipment:', error);
-        }
-    };
 
 
 
@@ -456,79 +398,6 @@ const BidDetail = () => {
                     </div>
                 </div>
 
-                {/* Equipment Section */}
-                <div className="bg-white rounded-lg shadow p-4 mt-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Оборудование</h3>
-                        <div className="space-x-2">
-                            <button
-                                onClick={() => setShowAssignModal(true)}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                Вставить оборудование
-                            </button>
-                            <button
-                                onClick={() => setShowReturnModal(true)}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                Вернуть оборудование
-                            </button>
-                        </div>
-                    </div>
-                    {bid.equipmentItems && bid.equipmentItems.length > 0 ? (
-                        <div className="space-y-2">
-                            {(() => {
-                                // Group items by equipmentId
-                                const groupedItems = {};
-                                bid.equipmentItems.forEach(item => {
-                                    const eqId = item.equipmentId;
-                                    if (!groupedItems[eqId]) {
-                                        groupedItems[eqId] = {
-                                            equipment: item.equipment,
-                                            items: []
-                                        };
-                                    }
-                                    groupedItems[eqId].items.push(item);
-                                });
-
-                                // Render grouped items
-                                const renderedItems = [];
-                                Object.values(groupedItems).forEach(group => {
-                                    const hasImei = group.items.some(item => item.imei);
-                                    if (hasImei) {
-                                        // Show individual items with IMEI
-                                        group.items.forEach(item => {
-                                            renderedItems.push(
-                                                <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                                    <div>
-                                                        <p className="font-medium">{item.equipment ? item.equipment.name : 'Неизвестное оборудование'}</p>
-                                                        <p className="text-sm text-gray-600">IMEI: {item.imei || 'N/A'}</p>
-                                                    </div>
-                                                    <p className="text-sm text-gray-600">Цена: {item.purchasePrice ? `${item.purchasePrice} руб.` : 'N/A'}</p>
-                                                </div>
-                                            );
-                                        });
-                                    } else {
-                                        // Show grouped item without IMEI
-                                        const totalPrice = group.items.reduce((sum, item) => sum + (item.purchasePrice || 0), 0);
-                                        renderedItems.push(
-                                            <div key={group.equipment?.id || 'unknown'} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                                <div>
-                                                    <p className="font-medium">{group.equipment ? group.equipment.name : 'Неизвестное оборудование'}</p>
-                                                    <p className="text-sm text-gray-600">Количество: {group.items.reduce((sum, item) => sum + item.quantity, 0)}</p>
-                                                </div>
-                                                <p className="text-sm text-gray-600">Цена: {totalPrice ? `${totalPrice} руб.` : 'N/A'}</p>
-                                            </div>
-                                        );
-                                    }
-                                });
-                                return renderedItems;
-                            })()}
-                        </div>
-                    ) : (
-                        <p className="text-gray-500">Оборудование не назначено</p>
-                    )}
-                </div>
 
                 {/* Tabs Section */}
                 <div className="bg-white rounded-lg shadow p-4 mt-6">
@@ -822,199 +691,7 @@ const BidDetail = () => {
             </div>
 
 
-            {/* Assign Modal */}
-            {showAssignModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                        <h3 className="text-lg font-semibold mb-4">Вставить оборудование</h3>
-                        <div className="mb-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="Поиск по названию"
-                                    value={searchName}
-                                    onChange={(e) => setSearchName(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Поиск по коду товара"
-                                    value={searchCode}
-                                    onChange={(e) => setSearchCode(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <select
-                                    value={searchWarehouse}
-                                    onChange={(e) => setSearchWarehouse(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Все склады</option>
-                                    {Array.from(new Set(availableEquipment.flatMap(eq => eq.availableItems.map(item => item.warehouse?.name)).filter(Boolean))).map(warehouseName => (
-                                        <option key={warehouseName} value={warehouseName}>
-                                            {warehouseName}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="space-y-4 max-h-96 overflow-y-auto">
-                            {(() => {
-                                // Group by warehouse and equipment
-                                const warehouses = {};
-                                availableEquipment
-                                    .filter(eq =>
-                                        eq.name.toLowerCase().includes(searchName.toLowerCase()) &&
-                                        (eq.productCode ? eq.productCode.toString().toLowerCase().includes(searchCode.toLowerCase()) : searchCode === '') &&
-                                        (searchWarehouse === '' || eq.availableItems.some(item => item.warehouse?.name === searchWarehouse))
-                                    )
-                                    .forEach(eq => {
-                                        eq.availableItems
-                                            .filter(item => searchWarehouse === '' || item.warehouse?.name === searchWarehouse)
-                                            .forEach(item => {
-                                                const whName = item.warehouse?.name || 'Не указан';
-                                                if (!warehouses[whName]) warehouses[whName] = {};
-                                                if (!warehouses[whName][eq.id]) {
-                                                    warehouses[whName][eq.id] = {
-                                                        equipment: eq,
-                                                        items: []
-                                                    };
-                                                }
-                                                warehouses[whName][eq.id].items.push(item);
-                                            });
-                                    });
 
-                                return Object.entries(warehouses).map(([whName, eqs]) => (
-                                    <div key={whName} className="border-b pb-2">
-                                        <h3 className="font-bold text-gray-900">{whName}</h3>
-                                        <div className="space-y-2 ml-4">
-                                            {Object.values(eqs).map(({ equipment, items }) => {
-                                                const hasImei = items.some(item => item.imei);
-                                                const allSelected = items.every(item => selectedAssign.includes(item.id));
-                                                const someSelected = items.some(item => selectedAssign.includes(item.id));
-
-                                                return (
-                                                    <div key={equipment.id}>
-                                                        <h4 className="font-semibold text-gray-800">{equipment.name} ({equipment.productCode})</h4>
-                                                        <div className="space-y-1 ml-4">
-                                                            {hasImei ? (
-                                                                items.map(item => (
-                                                                    <label key={item.id} className="flex items-center space-x-2">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={selectedAssign.includes(item.id)}
-                                                                            onChange={(e) => {
-                                                                                if (e.target.checked) {
-                                                                                    setSelectedAssign([...selectedAssign, item.id]);
-                                                                                } else {
-                                                                                    setSelectedAssign(selectedAssign.filter(id => id !== item.id));
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                        <span>IMEI: {item.imei || 'N/A'}</span>
-                                                                    </label>
-                                                                ))
-                                                            ) : (
-                                                                <div className="flex items-center space-x-2">
-                                                                    <label>Количество:</label>
-                                                                    <input
-                                                                        type="number"
-                                                                        min="0"
-                                                                        max={items.reduce((sum, item) => sum + item.quantity, 0)}
-                                                                        value={selectedQuantities[equipment.id] || 0}
-                                                                        onChange={(e) => setSelectedQuantities({...selectedQuantities, [equipment.id]: parseInt(e.target.value) || 0})}
-                                                                        className="w-20 px-2 py-1 border border-gray-300 rounded"
-                                                                    />
-                                                                    <span>/ {items.reduce((sum, item) => sum + item.quantity, 0)}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ));
-                            })()}
-                        </div>
-                        {(selectedAssign.length > 0 || Object.values(selectedQuantities).some(q => q > 0)) && (
-                            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                                <h4 className="font-medium text-blue-800 mb-2">Выбрано для вставки:</h4>
-                                <div className="space-y-1 text-sm text-blue-700">
-                                    {selectedAssign.length > 0 && (
-                                        <div>IMEI оборудование: {selectedAssign.length} шт.</div>
-                                    )}
-                                    {Object.entries(selectedQuantities).filter(([_, q]) => q > 0).map(([eqId, qty]) => {
-                                        const eq = availableEquipment.find(e => e.id === parseInt(eqId));
-                                        return <div key={eqId}>{eq?.name}: {qty} шт.</div>;
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                        <div className="flex justify-end space-x-2 mt-4">
-                            <button
-                                onClick={() => {
-                                    setShowAssignModal(false);
-                                    setSelectedAssign([]);
-                                    setSelectedQuantities({});
-                                    setSearchName('');
-                                    setSearchCode('');
-                                    setSearchWarehouse('');
-                                }}
-                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
-                            >
-                                Отмена
-                            </button>
-                            <button
-                                onClick={handleAssignEquipment}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-                            >
-                                Вставить
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Return Modal */}
-            {showReturnModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">Вернуть оборудование</h3>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {bid.equipmentItems && bid.equipmentItems.map(item => (
-                                <label key={item.id} className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedReturn.includes(item.id)}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setSelectedReturn([...selectedReturn, item.id]);
-                                            } else {
-                                                setSelectedReturn(selectedReturn.filter(id => id !== item.id));
-                                            }
-                                        }}
-                                    />
-                                    <span>{item.equipment ? item.equipment.name : 'Неизвестное оборудование'} - IMEI: {item.imei || 'N/A'}</span>
-                                </label>
-                            ))}
-                        </div>
-                        <div className="flex justify-end space-x-2 mt-4">
-                            <button
-                                onClick={() => setShowReturnModal(false)}
-                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
-                            >
-                                Отмена
-                            </button>
-                            <button
-                                onClick={handleReturnEquipment}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-                            >
-                                Вернуть
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
 
 

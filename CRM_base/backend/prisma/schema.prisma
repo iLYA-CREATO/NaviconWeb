@@ -37,17 +37,17 @@ model Role {
 }
 
 model Client {
-     id           Int      @id @default(autoincrement())
-     name         String
-     email        String
-     phone        String?
-     responsibleId Int?
-     responsible  User?    @relation(fields: [responsibleId], references: [id])
-     createdAt    DateTime @default(now())
-     updatedAt    DateTime @updatedAt
-     bids         Bid[]
-     clientObjects ClientObject[]
- }
+      id           Int      @id @default(autoincrement())
+      name         String
+      email        String
+      phone        String?
+      responsibleId Int?
+      responsible  User?    @relation(fields: [responsibleId], references: [id])
+      createdAt    DateTime @default(now())
+      updatedAt    DateTime @updatedAt
+      bids         Bid[]
+      clientObjects ClientObject[]
+  }
 
 model ClientObject {
    id          Int      @id @default(autoincrement())
@@ -61,28 +61,28 @@ model ClientObject {
    bids        Bid[]
  }
 
- model Bid {
-     id          Int      @id @default(autoincrement())
-     clientId    Int
-     bidTypeId   Int
-     tema        String
-     amount      Decimal  @db.Decimal(10, 2)
-     status      String
-     description String?
-     clientObjectId Int?
-     updNumber   String?
-     updDate     DateTime?
-     contract    String?
-     createdBy   Int
-     createdAt   DateTime @default(now())
-     updatedAt   DateTime @updatedAt
-     client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-     bidType     BidType  @relation(fields: [bidTypeId], references: [id])
-     clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
-     creator     User     @relation(fields: [createdBy], references: [id])
-     comments    Comment[]
-     bidSpecifications BidSpecification[]
-     auditLogs   AuditLog[]
+model Bid {
+      id          Int      @id @default(autoincrement())
+      clientId    Int
+      bidTypeId   Int
+      tema        String
+      amount      Decimal  @db.Decimal(10, 2)
+      status      String
+      description String?
+      clientObjectId Int?
+      updNumber   String?
+      updDate     DateTime?
+      contract    String?
+      createdBy   Int
+      createdAt   DateTime @default(now())
+      updatedAt   DateTime @updatedAt
+      client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+      bidType     BidType  @relation(fields: [bidTypeId], references: [id])
+      clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
+      creator     User     @relation(fields: [createdBy], references: [id])
+      comments    Comment[]
+      bidSpecifications BidSpecification[]
+      auditLogs   AuditLog[]
 }
 
 model Comment {
@@ -133,15 +133,15 @@ model BidSpecification {
 }
 
 model Supplier {
-     id        Int      @id @default(autoincrement())
-     name      String
-     entityType String
-     inn       String
-     phone     String?
-     email     String?
-     createdAt DateTime @default(now())
-     updatedAt DateTime @updatedAt
- }
+      id        Int      @id @default(autoincrement())
+      name      String
+      entityType String
+      inn       String
+      phone     String?
+      email     String?
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt
+  }
 
 
 model BidType {
@@ -167,12 +167,20 @@ model AuditLog {
     createdAt DateTime @default(now())
 }
 
-model Equipment {
-    id           Int      @id @default(autoincrement())
-    name         String   @unique
-    productCode  Int?     @unique
-    purchasePrice Decimal? @db.Decimal(10, 2)
-    sellingPrice  Decimal? @db.Decimal(10, 2)
-    createdAt    DateTime @default(now())
-    updatedAt    DateTime @updatedAt
+model Warehouse {
+    id        Int      @id @default(autoincrement())
+    name      String   @unique
+    address   String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
+
+model Equipment {
+     id           Int      @id @default(autoincrement())
+     name         String   @unique
+     productCode  Int?     @unique
+     purchasePrice Decimal? @db.Decimal(10, 2)
+     sellingPrice  Decimal? @db.Decimal(10, 2)
+     createdAt    DateTime @default(now())
+     updatedAt    DateTime @updatedAt
+ }

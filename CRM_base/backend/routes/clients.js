@@ -48,26 +48,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         const client = await prisma.client.findUnique({
             where: { id: parseInt(req.params.id) },
             include: {
-                bids: {
-                    include: {
-                        equipmentItems: {
-                            include: {
-                                equipment: true,
-                            },
-                        },
-                    },
-                },
-                equipmentItems: {
-                    include: {
-                        equipment: true,
-                        bid: {
-                            select: {
-                                id: true,
-                                tema: true,
-                            },
-                        },
-                    },
-                },
+                bids: true,
                 responsible: {
                     select: {
                         id: true,
@@ -84,9 +65,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
         console.log('Client data being returned:', {
             id: client.id,
-            name: client.name,
-            equipmentItemsCount: client.equipmentItems?.length || 0,
-            equipmentItems: client.equipmentItems
+            name: client.name
         });
         res.json(client);
     } catch (error) {
