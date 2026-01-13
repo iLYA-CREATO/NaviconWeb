@@ -1,5 +1,0 @@
--- AlterTable
-ALTER TABLE "Bid" ADD COLUMN "createdBy" INTEGER NOT NULL DEFAULT 1;
-
--- AddForeignKey
-ALTER TABLE "Bid" ADD CONSTRAINT "Bid_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -5,16 +5,6 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🌱 Starting database seed...');
 
-    // Create roles
-    const skladRole = await prisma.role.upsert({
-        where: { name: 'Sklad' },
-        update: {},
-        create: {
-            name: 'Sklad',
-            description: 'Сотрудник склада',
-        },
-    });
-    console.log('✅ Created role:', skladRole);
 
     const adminRole = await prisma.role.upsert({
         where: { name: 'Админ' },
@@ -111,37 +101,6 @@ async function main() {
         },
     });
 
-    // Create Sklad user
-    const skladUser = await prisma.user.upsert({
-        where: { username: 'Demidov' },
-        update: {
-            fullName: 'Демидов Илья',
-            password: hashedPassword,
-            role: 'Склад',
-        },
-        create: {
-            username: 'Demidov',
-            fullName: 'Демидов Илья',
-            email: 'sklad@mail.ru',
-            password: hashedPassword,
-            role: 'Склад',
-        },
-    });
-    const skladUser2 = await prisma.user.upsert({
-        where: { username: 'Potapova' },
-        update: {
-            fullName: 'Потапова Людмила',
-            password: hashedPassword,
-            role: 'Склад',
-        },
-        create: {
-            username: 'Potapova',
-            fullName: 'Потапова Людмила',
-            email: 'sklad2@mail.ru',
-            password: hashedPassword,
-            role: 'Склад',
-        },
-    });
 
     // Менеджеры
     const managerUser1 = await prisma.user.upsert({
@@ -491,21 +450,6 @@ async function main() {
         console.log('✅ Created supplier:', supplier.name);
     }
 
-    // Create demo warehouses
-    const warehousesList = [
-        { name: 'Навикон' },
-        { name: 'Навикон+' },
-        { name: 'Парсек' },
-    ];
-
-    for (const warehouse of warehousesList) {
-        await prisma.warehouse.create({
-            data: {
-                name: warehouse.name,
-            },
-        });
-        console.log('✅ Created warehouse:', warehouse.name);
-    }
 
     // Update all users to Admin role
     await prisma.user.updateMany({

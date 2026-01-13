@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getEquipmentItem } from '../services/api';
+import { getEquipmentById } from '../services/api';
 
 const EquipmentDetail = ({ id: propId, closeTab }) => {
     const { id: paramId } = useParams();
@@ -18,7 +18,7 @@ const EquipmentDetail = ({ id: propId, closeTab }) => {
 
     const fetchEquipment = async () => {
         try {
-            const response = await getEquipmentItem(id);
+            const response = await getEquipmentById(id);
             setEquipment(response.data);
         } catch (error) {
             setError('Оборудование не найдено');
@@ -77,12 +77,12 @@ const EquipmentDetail = ({ id: propId, closeTab }) => {
                         <p className="text-gray-900 text-lg">{equipment.productCode || '-'}</p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Количество</label>
-                        <p className="text-gray-900 text-lg">{equipment.quantity}</p>
-                    </div>
-                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Цена продажи</label>
                         <p className="text-gray-900 text-lg">{equipment.sellingPrice ? `${equipment.sellingPrice} ₽` : '-'}</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Цена закупки</label>
+                        <p className="text-gray-900 text-lg">{equipment.purchasePrice ? `${equipment.purchasePrice} ₽` : '-'}</p>
                     </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
@@ -91,42 +91,6 @@ const EquipmentDetail = ({ id: propId, closeTab }) => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Дата создания</label>
                         <p className="text-gray-900 text-lg">{new Date(equipment.createdAt).toLocaleDateString('ru-RU')}</p>
-                    </div>
-                </div>
-
-                <div className="mt-8">
-                    <h3 className="text-xl font-bold mb-4">Элементы оборудования</h3>
-                    <div className="bg-gray-50 rounded-lg overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Цена закупки</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Склад</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата добавления</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {equipment.items && equipment.items.filter(item => !item.bidId).length > 0 ? (
-                                    equipment.items.filter(item => !item.bidId).map((item) => (
-                                        <tr key={item.id}>
-                                            <td className="px-6 py-4 whitespace-nowrap">{item.id}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{item.imei || '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{item.purchasePrice ? `${item.purchasePrice} ₽` : '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{item.warehouse?.name || '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{new Date(item.createdAt).toLocaleDateString('ru-RU')}</td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                                            Нет доступных элементов оборудования
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             </div>

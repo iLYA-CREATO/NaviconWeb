@@ -47,7 +47,6 @@ model Client {
     updatedAt    DateTime @updatedAt
     bids         Bid[]
     clientObjects ClientObject[]
-    equipmentItems EquipmentItem[]
 }
 
 model ClientObject {
@@ -63,57 +62,38 @@ model ClientObject {
  }
 
  model Bid {
-      id          Int      @id @default(autoincrement())
-      clientId    Int
-      bidTypeId   Int
-      tema        String
-      amount      Decimal  @db.Decimal(10, 2)
-      status      String
-      description String?
-      clientObjectId Int?
-      updNumber   String?
-      updDate     DateTime?
-      contract    String?
-      createdBy   Int
-      createdAt   DateTime @default(now())
-      updatedAt   DateTime @updatedAt
-      client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-      bidType     BidType  @relation(fields: [bidTypeId], references: [id])
-      clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
-      creator     User     @relation(fields: [createdBy], references: [id])
-      equipmentItems EquipmentItem[]
-      comments    Comment[]
-      bidSpecifications BidSpecification[]
-      auditLogs   AuditLog[]
-    }
+     id          Int      @id @default(autoincrement())
+     clientId    Int
+     bidTypeId   Int
+     tema        String
+     amount      Decimal  @db.Decimal(10, 2)
+     status      String
+     description String?
+     clientObjectId Int?
+     updNumber   String?
+     updDate     DateTime?
+     contract    String?
+     createdBy   Int
+     createdAt   DateTime @default(now())
+     updatedAt   DateTime @updatedAt
+     client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+     bidType     BidType  @relation(fields: [bidTypeId], references: [id])
+     clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
+     creator     User     @relation(fields: [createdBy], references: [id])
+     comments    Comment[]
+     bidSpecifications BidSpecification[]
+     auditLogs   AuditLog[]
+   }
 
 model Equipment {
-  id            Int      @id @default(autoincrement())
-  name          String
-  description   String?
-  productCode   Int?
-  sellingPrice  Decimal? @db.Decimal(10, 2)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  items         EquipmentItem[]
-}
-
-model EquipmentItem {
-     id            Int      @id @default(autoincrement())
-     equipmentId   Int
-     supplierId    Int?
-     clientId      Int?
-     imei          String?
-     purchasePrice Decimal? @db.Decimal(10, 2)
-     quantity      Int      @default(1)
-     bidId         Int?
-     warehouseId   Int?
-     createdAt     DateTime @default(now())
-     equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-     supplier      Supplier? @relation(fields: [supplierId], references: [id])
-     client        Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-     bid           Bid?     @relation(fields: [bidId], references: [id])
-     warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
+   id            Int      @id @default(autoincrement())
+   name          String
+   description   String?
+   productCode   Int?
+   sellingPrice  Decimal? @db.Decimal(10, 2)
+   purchasePrice Decimal? @db.Decimal(10, 2)
+   createdAt     DateTime @default(now())
+   updatedAt     DateTime @updatedAt
 }
 
 model Comment {
@@ -172,17 +152,8 @@ model Supplier {
     email     String?
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    equipmentItems EquipmentItem[]
 }
 
-model Warehouse {
-     id          Int      @id @default(autoincrement())
-     name        String
-     description String?
-     createdAt   DateTime @default(now())
-     updatedAt   DateTime @updatedAt
-     equipmentItems EquipmentItem[]
-}
 
 model BidType {
       id          Int      @id @default(autoincrement())
