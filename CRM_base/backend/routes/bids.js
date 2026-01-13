@@ -55,15 +55,6 @@ router.get('/', authMiddleware, async (req, res) => {
                         fullName: true,
                     },
                 },
-                equipmentItems: { // Назначенное оборудование
-                    include: {
-                        equipment: {
-                            select: {
-                                name: true, // Название типа оборудования
-                            },
-                        },
-                    },
-                },
             },
         });
 
@@ -80,7 +71,6 @@ router.get('/', authMiddleware, async (req, res) => {
             creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             createdAt: bid.createdAt,
             updatedAt: bid.updatedAt,
-            equipmentItems: bid.equipmentItems, // Включаем назначенное оборудование
         }));
 
         res.json(formattedBids); // Отправляем отформатированные данные
@@ -113,11 +103,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
                     select: {
                         id: true,
                         fullName: true,
-                    },
-                },
-                equipmentItems: { // Назначенное оборудование
-                    include: {
-                        equipment: true, // Полные данные типа оборудования
                     },
                 },
             },
@@ -1166,16 +1151,6 @@ router.get('/:id/history', authMiddleware, async (req, res) => {
             }
         });
 
-        // Оборудование: упрощенное, используем updatedAt для назначения
-        if (bid.equipmentItems && bid.equipmentItems.length > 0) {
-            // Предполагаем, что оборудование назначено при обновлении
-            const totalQuantity = bid.equipmentItems.reduce((sum, item) => sum + item.quantity, 0);
-            history.push({
-                date: bid.updatedAt,
-                user: bid.creator.fullName,
-                action: `Оборудование назначено (${totalQuantity} шт.)`,
-            });
-        }
 
         // Audit logs
         const auditLogs = await prisma.auditLog.findMany({
