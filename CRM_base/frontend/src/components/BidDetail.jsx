@@ -451,6 +451,63 @@ const BidDetail = () => {
                     </div>
                 </div>
 
+                {/* Equipment Section */}
+                <div className="bg-white rounded-lg shadow p-4 mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">Оборудование</h3>
+                        <button
+                            onClick={() => setShowAddEquipmentModal(true)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"
+                        >
+                            Добавить оборудование
+                        </button>
+                    </div>
+                    {bidEquipment.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full bg-white border border-gray-300">
+                                <thead>
+                                    <tr className="bg-gray-50">
+                                        <th className="px-4 py-2 border-b text-left">Оборудование</th>
+                                        <th className="px-4 py-2 border-b text-left">IMEI</th>
+                                        <th className="px-4 py-2 border-b text-left">Количество</th>
+                                        <th className="px-4 py-2 border-b text-left">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {bidEquipment.map(eq => (
+                                        <tr
+                                            key={eq.id}
+                                            className="hover:bg-gray-50"
+                                        >
+                                            <td className="px-4 py-2 border-b">{eq.equipment.name}</td>
+                                            <td className="px-4 py-2 border-b">{eq.imei || '-'}</td>
+                                            <td className="px-4 py-2 border-b">{eq.quantity}</td>
+                                            <td className="px-4 py-2 border-b">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingEquipment(eq);
+                                                        setShowAddEquipmentModal(true);
+                                                    }}
+                                                    className="text-blue-500 hover:text-blue-700 mr-2"
+                                                >
+                                                    Редактировать
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteEquipment(eq.id)}
+                                                    className="text-red-500 hover:text-red-700"
+                                                >
+                                                    Удалить
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 text-center py-4">Оборудование не добавлено</p>
+                    )}
+                </div>
 
                 {/* Tabs Section */}
                 <div className="bg-white rounded-lg shadow p-4 mt-6">
@@ -460,8 +517,8 @@ const BidDetail = () => {
                                 { id: 'comments', label: 'Коментарии' },
                                 { id: 'files', label: 'Файлы' },
                                 { id: 'nested', label: 'Вложенные заявки' },
-                                { id: 'equipment', label: 'Оборудование' },
                                 { id: 'spec', label: 'Спецификация' },
+                                { id: 'equipment', label: 'Оборудование' },
                                 { id: 'print', label: 'Печатная форма' }
                             ].map(tab => (
                                 <button
@@ -577,63 +634,6 @@ const BidDetail = () => {
                         {activeTab === 'nested' && (
                             <div className="text-center py-8">
                                 <p className="text-gray-500">Вложенные заявки в разработке</p>
-                            </div>
-                        )}
-                        {activeTab === 'equipment' && (
-                            <div>
-                                <div className="mb-4 flex items-center space-x-4">
-                                    <button
-                                        onClick={() => setShowAddEquipmentModal(true)}
-                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                                    >
-                                        Добавить оборудование
-                                    </button>
-                                </div>
-                                {bidEquipment.length > 0 ? (
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full bg-white border border-gray-300">
-                                            <thead>
-                                                <tr className="bg-gray-50">
-                                                    <th className="px-4 py-2 border-b text-left">Оборудование</th>
-                                                    <th className="px-4 py-2 border-b text-left">IMEI</th>
-                                                    <th className="px-4 py-2 border-b text-left">Количество</th>
-                                                    <th className="px-4 py-2 border-b text-left">Действия</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {bidEquipment.map(eq => (
-                                                    <tr
-                                                        key={eq.id}
-                                                        className="hover:bg-gray-50"
-                                                    >
-                                                        <td className="px-4 py-2 border-b">{eq.equipment.name}</td>
-                                                        <td className="px-4 py-2 border-b">{eq.imei || '-'}</td>
-                                                        <td className="px-4 py-2 border-b">{eq.quantity}</td>
-                                                        <td className="px-4 py-2 border-b">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingEquipment(eq);
-                                                                    setShowAddEquipmentModal(true);
-                                                                }}
-                                                                className="text-blue-500 hover:text-blue-700 mr-2"
-                                                            >
-                                                                Редактировать
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteEquipment(eq.id)}
-                                                                className="text-red-500 hover:text-red-700"
-                                                            >
-                                                                Удалить
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-center py-4">Оборудование не добавлено</p>
-                                )}
                             </div>
                         )}
                         {activeTab === 'spec' && (

@@ -27,6 +27,16 @@ router.post('/', authMiddleware, async (req, res) => {
     try {
         const { bidId, equipmentId, imei, quantity } = req.body;
 
+        // Check IMEI uniqueness if provided
+        if (imei) {
+            const existing = await prisma.bidEquipment.findFirst({
+                where: { imei }
+            });
+            if (existing) {
+                return res.status(400).json({ message: 'Оборудование с таким imei уже есть' });
+            }
+        }
+
         const newBidEquipment = await prisma.bidEquipment.create({
             data: {
                 bidId: parseInt(bidId),
@@ -51,6 +61,16 @@ router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const { imei, quantity } = req.body;
         const id = parseInt(req.params.id);
+
+        // Check IMEI uniqueness if provided and not null
+        if (imei !== undefined && imei !== null) {
+            const existing = await prisma.bidEquipment.findFirst({
+                where: { imei, id: { not: id } }
+            });
+            if (existing) {
+                return res.status(400).json({ message: 'Оборудование с таким imei уже есть' });
+            }
+        }
 
         const updatedBidEquipment = await prisma.bidEquipment.update({
             where: { id },
