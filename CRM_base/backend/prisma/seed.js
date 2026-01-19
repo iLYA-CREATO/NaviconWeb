@@ -234,10 +234,10 @@ async function main() {
         data: {
             clientId: client2.id,
             bidTypeId: defaultBidType.id,
-            tema: 'Mobile App Development',
+            tema: 'Выдача оборудования',
             amount: 120000,
             status: 'Открыта',
-            description: 'Cross-platform mobile application',
+            description: 'Выдача оборудования',
             createdBy: adminUser.id,
         },
     });
@@ -278,7 +278,8 @@ async function main() {
         'АРМ',
         'Навигация',
         'Прочее',
-        'Тахографы'
+        'Тахография',
+        'Технический отдел'
     ];
 
     for (const categoryName of categories) {
@@ -292,7 +293,7 @@ async function main() {
 
     // Get the tachograph category
     const tachographCategory = await prisma.specificationCategory.findFirst({
-        where: { name: 'Тахографы' }
+        where: { name: 'Тахография' }
     });
 
     // Create tachograph specifications
@@ -334,6 +335,28 @@ async function main() {
         });
         console.log('✅ Created specification:', spec.name);
     }
+// Create tachograph specifications
+    const armSpecs = [
+        { name: 'Автивация тахографа', cost: 60 },
+        { name: 'Замена блока НКМ', cost: 60 },
+        { name: 'Прошивка ТЦА и ФДО', cost: 100 },
+        { name: 'Разблокировка карты водителя', cost: 100 },
+        { name: 'Ремонт и пайка явно оторвавшихся частей', cost: 200 },
+        { name: 'Чистка карты водителя', cost: 50 },
+    ];
+
+    for (const spec of armSpecs) {
+        await prisma.specification.create({
+            data: {
+                categoryId: armSpecs.id,
+                name: spec.name,
+                cost: spec.cost,
+                discount: 0,
+            },
+        });
+        console.log('✅ Created specification:', spec.name);
+    }
+
 
     // Get the prochee category
     const procheeCategory = await prisma.specificationCategory.findFirst({
@@ -384,76 +407,9 @@ async function main() {
         console.log('✅ Created specification:', spec.name);
     }
 
-    // Create demo warehouses
-    const warehouse1 = await prisma.warehouse.upsert({
-        where: { name: 'Основной склад' },
-        update: {},
-        create: {
-            name: 'Основной склад',
-            address: 'ул. Ленина, 10',
-        },
-    });
-    console.log('✅ Created warehouse:', warehouse1.name);
-
-    const warehouse2 = await prisma.warehouse.upsert({
-        where: { name: 'Дополнительный склад' },
-        update: {},
-        create: {
-            name: 'Дополнительный склад',
-            address: 'ул. Пушкина, 5',
-        },
-    });
-    console.log('✅ Created warehouse:', warehouse2.name);
-
-    // Create demo suppliers
-    const suppliersList = [
-        {
-            name: 'Инкотекст',
-            entityType: 'Юр. лицо',
-            inn: '123456789012',
-            phone: '+380501234567',
-            email: 'info@inkotext.com'
-        },
-        {
-            name: 'СпецПроект2',
-            entityType: 'Юр. лицо',
-            inn: '987654321098',
-            phone: '+380507654321',
-            email: 'contact@specproject2.com'
-        },
-        {
-            name: 'Навтелеком',
-            entityType: 'Юр. лицо',
-            inn: '456789012345',
-            phone: '+380509876543',
-            email: 'support@navtelecom.com'
-        },
-        {
-            name: 'ЧипДип',
-            entityType: 'Юр. лицо',
-            inn: '789012345678',
-            phone: '+380501112233',
-            email: 'sales@chipdip.com'
-        },
-    ];
-
-    const createdSuppliers = [];
-    for (const supplier of suppliersList) {
-        const sup = await prisma.supplier.create({
-            data: {
-                name: supplier.name,
-                entityType: supplier.entityType,
-                inn: supplier.inn,
-                phone: supplier.phone,
-                email: supplier.email,
-            },
-        });
-        createdSuppliers.push(sup);
-        console.log('✅ Created supplier:', supplier.name);
-    }
-
     // Create demo equipment
     const equipmentList = [
+        // Termainal Navtelecom
         { name: 'Smart-2430', productCode: 2430 },
         { name: 'Smart-2435', productCode: 2435 },
         { name: 'Smart-2421', productCode: 2421 },
@@ -463,6 +419,18 @@ async function main() {
         { name: 'Smart-2412', productCode: 2412 },
         { name: 'Smart-2425', productCode: 2425 },
         { name: 'Smart-2433', productCode: 2433 },
+
+        // Tachograf
+        { name: 'Тахограф Меркурий ТА-001', productCode: 1 },
+        { name: 'Тахограф ШТРИХ Taxo RUS', productCode: 2 },
+        { name: 'Тахограф ШТРИХ без НКМ', productCode: 3 },
+        { name: 'Тахограф Атол Drive X', productCode: 4 },
+        { name: 'Тахограф Атол Drive 5', productCode: 5 },
+        { name: 'Тахограф Атол Drive Smart', productCode: 6 },
+        { name: 'Тахограф VDO 3283', productCode: 7 },
+        { name: 'Тахограф ТЦА-02HK', productCode: 8 },
+        { name: 'Тахограф DT-20M', productCode: 9 }, // КАСБИ
+        { name: 'Микас', productCode: 10 }, // НПП ИТЭЛМА
     ];
 
     const createdEquipment = [];
