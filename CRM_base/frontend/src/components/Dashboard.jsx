@@ -38,13 +38,13 @@ const Dashboard = () => {
 
     // Установка активной вкладки на первую доступную при входе на страницу настроек
     useEffect(() => {
-        if (isSettings) {
+        if (isSettings && activeSettingsTab === 'user') { // Только если мы еще не переключались
             const firstAvailableTab = availableSettingsTabs.find(tab => hasPermission(tab.permission));
-            if (firstAvailableTab && activeSettingsTab !== firstAvailableTab.id) {
+            if (firstAvailableTab && firstAvailableTab.id !== 'user') {
                 setActiveSettingsTab(firstAvailableTab.id);
             }
         }
-    }, [isSettings, hasPermission, activeSettingsTab]);
+    }, [isSettings, activeSettingsTab]);
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -199,7 +199,7 @@ const Dashboard = () => {
 
             {/* Основная область для отображения дочерних компонентов */}
             <main className={`${isSettings ? 'ml-48' : 'ml-64'} p-8`}>
-                <Outlet context={{ activeSettingsTab }} /> {/* Передача контекста дочерним маршрутам */}
+                <Outlet key={activeSettingsTab} context={{ activeSettingsTab }} /> {/* Передача контекста дочерним маршрутам */}
             </main>
         </div>
     );

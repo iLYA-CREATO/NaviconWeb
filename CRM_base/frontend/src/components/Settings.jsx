@@ -124,12 +124,36 @@ const Settings = () => {
     };
 
     useEffect(() => {
-        fetchUsers();
-        fetchRoles();
-        fetchSpecifications();
-        fetchSpecificationCategories();
-        fetchBidTypes();
-    }, []);
+        // Загружаем только данные для первой доступной вкладки
+        const availableTabs = [
+            { id: 'user', permission: 'settings_user_button' },
+            { id: 'roles', permission: 'settings_role_button' },
+            { id: 'specification-categories', permission: 'settings_spec_category_button' },
+            { id: 'specifications', permission: 'settings_spec_button' },
+            { id: 'bid-types', permission: 'settings_bid_type_button' },
+        ];
+
+        const firstAvailableTab = availableTabs.find(tab => hasPermission(tab.permission));
+        if (firstAvailableTab) {
+            switch (firstAvailableTab.id) {
+                case 'user':
+                    fetchUsers();
+                    break;
+                case 'roles':
+                    fetchRoles();
+                    break;
+                case 'specification-categories':
+                    fetchSpecificationCategories();
+                    break;
+                case 'specifications':
+                    fetchSpecifications();
+                    break;
+                case 'bid-types':
+                    fetchBidTypes();
+                    break;
+            }
+        }
+    }, [hasPermission]);
 
     useEffect(() => {
         console.log('Debug: Current logged-in user information:', user);
@@ -141,6 +165,39 @@ const Settings = () => {
             return () => clearTimeout(timer);
         }
     }, [notification]);
+
+    // Загрузка данных при переключении вкладки
+    useEffect(() => {
+        switch (activeSettingsTab) {
+            case 'user':
+                if (users.length === 0 && hasPermission('user_edit')) {
+                    fetchUsers();
+                }
+                break;
+            case 'roles':
+                if (roles.length === 0 && hasPermission('role_create')) {
+                    fetchRoles();
+                }
+                break;
+            case 'specification-categories':
+                if (allSpecificationCategories.length === 0 && hasPermission('spec_category_create')) {
+                    fetchSpecificationCategories();
+                }
+                break;
+            case 'specifications':
+                if (specifications.length === 0 && hasPermission('spec_create')) {
+                    fetchSpecifications();
+                }
+                break;
+            case 'bid-types':
+                if (bidTypes.length === 0 && hasPermission('bid_type_create')) {
+                    fetchBidTypes();
+                }
+                break;
+            default:
+                break;
+        }
+    }, [activeSettingsTab, hasPermission, users.length, roles.length, allSpecificationCategories.length, specifications.length, bidTypes.length]);
 
     const fetchUsers = async () => {
         try {
@@ -878,20 +935,20 @@ const Settings = () => {
                                 )}
                             </div>
 
-                            {hasPermission('settings_user_button') && (
+                            {hasPermission('user_edit') && (
                                 <div className="bg-white rounded-lg shadow overflow-hidden">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Логин</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ФИО</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Почта</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
-                                            {hasPermission('user_create') && (
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-                                            )}
-                                        </tr>
-                                        </thead>
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Логин</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ФИО</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Почта</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
+                                        {hasPermission('user_create') && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                        )}
+                                    </tr>
+                                    </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                     {users.map((u) => (
                                         <tr key={u.id} className="hover:bg-gray-50">
@@ -930,7 +987,7 @@ const Settings = () => {
                                     ))}
                                     </tbody>
                                 </table>
-                                </div>
+                            </div>
                             )}
                         </>
                     )}
