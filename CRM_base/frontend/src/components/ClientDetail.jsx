@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getClient, getClientObjects, updateClient, getUsers } from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
 
 const ClientDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { hasPermission } = usePermissions();
     const [client, setClient] = useState(null);
     const [clientObjects, setClientObjects] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -127,12 +129,14 @@ const ClientDetail = () => {
                 <div className="flex space-x-2">
                     {!isEditing ? (
                         <>
-                            <button
-                                onClick={handleEdit}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                Редактировать
-                            </button>
+                            {hasPermission('client_edit') && (
+                                <button
+                                    onClick={handleEdit}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Редактировать
+                                </button>
+                            )}
                             <button
                                 onClick={() => navigate('/dashboard/clients')}
                                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"

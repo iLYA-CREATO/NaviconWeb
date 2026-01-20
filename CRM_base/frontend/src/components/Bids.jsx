@@ -12,10 +12,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Импорт функций API для взаимодействия с серверными сервисами
 import { getBids, createBid, getClients, getClientObjects, getBidTypes } from '../services/api';
+// Импорт хука для проверки разрешений
+import { usePermissions } from '../hooks/usePermissions';
+// Импорт компонента карты
+import MapModal from './MapModal';
 
 const Bids = () => {
     // Хук для навигации между маршрутами
     const navigate = useNavigate();
+    // Хук для проверки разрешений
+    const { hasPermission } = usePermissions();
 
     // Состояние для хранения списка заявок, полученных из API
     const [bids, setBids] = useState([]);
@@ -36,24 +42,33 @@ const Bids = () => {
         client: '',
     });
     // Определение всех возможных колонок
-    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'description'];
+    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'status', 'description'];
     // Загрузка начальных состояний из localStorage
     const savedColumns = localStorage.getItem('bidsVisibleColumns');
-    const initialVisibleColumns = savedColumns ? JSON.parse(savedColumns) : {
+    const defaultVisibleColumns = {
         id: true,
         clientName: true,
         title: true,
         creatorName: true,
+        status: true,
         description: true,
     };
+    const initialVisibleColumns = savedColumns ? { ...defaultVisibleColumns, ...JSON.parse(savedColumns) } : defaultVisibleColumns;
     const savedOrder = localStorage.getItem('bidsColumnOrder');
-    const initialColumnOrder = savedOrder ? JSON.parse(savedOrder).filter(col => allColumns.includes(col)) : allColumns;
+    let initialColumnOrder = savedOrder ? JSON.parse(savedOrder).filter(col => allColumns.includes(col)) : allColumns;
+
+    // Убедимся что статус включен в порядок колонок
+    if (!initialColumnOrder.includes('status')) {
+        initialColumnOrder.splice(4, 0, 'status'); // Вставляем статус после creatorName
+    }
     // Состояние для порядка колонок
     const [columnOrder, setColumnOrder] = useState(initialColumnOrder);
     // Состояние для видимых колонок в таблице
     const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
     // Состояние для показа выпадающего списка настроек колонок
     const [showColumnSettings, setShowColumnSettings] = useState(false);
+    // Состояние для показа модального окна карты
+    const [showMapModal, setShowMapModal] = useState(false);
     // Состояние для данных формы при создании новой заявки
     const [formData, setFormData] = useState({
         clientId: '',        // ID of the selected client
@@ -61,6 +76,7 @@ const Bids = () => {
         bidTypeId: '',       // ID of the selected bid type
         description: '',     // Description of the bid
         clientObjectId: '',  // Optional ID of the client object (vehicle)
+        workAddress: '',     // Address of work execution
     });
 
     // useEffect для загрузки начальных данных при монтировании компонента
@@ -177,8 +193,18 @@ const Bids = () => {
             case 'clientName': return 'Клиент';
             case 'title': return 'Тема';
             case 'creatorName': return 'Создатель';
+            case 'status': return 'Статус';
             case 'description': return 'Описание';
             default: return column;
+        }
+    };
+
+    // Функция для получения цвета фона статуса
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Закрыта': return 'bg-red-100 text-red-800';
+            case 'Открыта': return 'bg-yellow-100 text-yellow-800';
+            default: return 'bg-blue-100 text-blue-800';
         }
     };
 
@@ -189,9 +215,19 @@ const Bids = () => {
             case 'clientName': return bid.clientName;
             case 'title': return bid.title;
             case 'creatorName': return bid.creatorName;
+            case 'status': return (
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(bid.status)}`}>
+                    {bid.status}
+                </span>
+            );
             case 'description': return <div className="max-w-xs truncate">{bid.description}</div>;
             default: return '';
         }
+    };
+
+    // Обработчик выбора адреса с карты
+    const handleAddressSelect = (address) => {
+        setFormData({ ...formData, workAddress: address });
     };
 
     // Обработчик отправки формы для создания новой заявки
@@ -218,6 +254,7 @@ const Bids = () => {
             bidTypeId: '',
             description: '',
             clientObjectId: '',
+            workAddress: '',
         });
         setClientObjects([]); // Очистка списка объектов
         setShowForm(false); // Скрытие формы
@@ -228,7 +265,8 @@ const Bids = () => {
         const matchesSearch = searchTerm === '' ||
             bid.id.toString().includes(searchTerm) || // Поиск по ID заявки
             bid.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || // Поиск по имени клиента (регистронезависимо)
-            bid.creatorName.toLowerCase().includes(searchTerm.toLowerCase()); // Поиск по ФИО создателя (регистронезависимо)
+            bid.creatorName.toLowerCase().includes(searchTerm.toLowerCase()) || // Поиск по ФИО создателя (регистронезависимо)
+            (bid.status && bid.status.toLowerCase().includes(searchTerm.toLowerCase())); // Поиск по статусу (регистронезависимо)
 
         const matchesCreator = filters.creator === '' || bid.creatorName === filters.creator;
         const matchesBidType = filters.bidType === '' || bid.bidTypeId === parseInt(filters.bidType);
@@ -248,12 +286,14 @@ const Bids = () => {
         <div>
             {/* Кнопка для переключения формы */}
             <div className="flex justify-end items-center mb-6">
-                <button
-                    onClick={() => setShowForm(!showForm)} // Переключение видимости формы
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                >
-                    {showForm ? 'Отмена' : '+ Добавить заявку'} {/* Текст кнопки зависит от состояния формы */}
-                </button>
+                {hasPermission('bid_create') && (
+                    <button
+                        onClick={() => setShowForm(!showForm)} // Переключение видимости формы
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        {showForm ? 'Отмена' : '+ Добавить заявку'} {/* Текст кнопки зависит от состояния формы */}
+                    </button>
+                )}
             </div>
 
             {/* Форма создания новой заявки, показывается только если showForm = true */}
@@ -329,6 +369,26 @@ const Bids = () => {
                                 rows="3"
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Адрес проведения работ</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={formData.workAddress}
+                                    onChange={(e) => setFormData({ ...formData, workAddress: e.target.value })}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Введите адрес проведения работ"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMapModal(true)}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition whitespace-nowrap"
+                                    title="Выбрать на карте"
+                                >
+                                    🗺️ Карта
+                                </button>
+                            </div>
+                        </div>
                         <div className="flex gap-2 pt-4">
                             <button
                                 type="submit"
@@ -390,7 +450,7 @@ const Bids = () => {
                     <div className="mb-4 flex gap-4">
                         <input
                             type="text"
-                            placeholder="Поиск по номеру заявки или клиенту..."
+                            placeholder="Поиск по номеру заявки, клиенту, создателю или статусу..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)} // Обновление поискового запроса
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -471,6 +531,13 @@ const Bids = () => {
                 </div>
             )}
 
+            {/* Map Modal */}
+            <MapModal
+                isOpen={showMapModal}
+                onClose={() => setShowMapModal(false)}
+                onAddressSelect={handleAddressSelect}
+                initialAddress={formData.workAddress}
+            />
         </div>
     );
 };

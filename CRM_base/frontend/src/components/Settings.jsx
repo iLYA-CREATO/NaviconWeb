@@ -52,6 +52,11 @@ const Settings = () => {
             client_edit: false,
             client_delete: false,
 
+            // Права объектов обслуживания
+            client_object_create: false,
+            client_object_edit: false,
+            client_object_delete: false,
+
             // Права заявок
             bid_create: false,
             bid_edit: false,
@@ -59,6 +64,16 @@ const Settings = () => {
 
             // Права оборудования в заявках
             bid_equipment_add: false,
+
+            // Права оборудования
+            equipment_create: false,
+            equipment_edit: false,
+            equipment_delete: false,
+
+            // Права вкладок
+            equipment_create: false,
+            equipment_edit: false,
+            equipment_delete: false,
 
             // Права вкладок
             tab_warehouse: false,
@@ -138,6 +153,9 @@ const Settings = () => {
             switch (firstAvailableTab.id) {
                 case 'user':
                     fetchUsers();
+                    if (hasPermission('user_create')) {
+                        fetchRoles();
+                    }
                     break;
                 case 'roles':
                     fetchRoles();
@@ -172,6 +190,9 @@ const Settings = () => {
             case 'user':
                 if (users.length === 0 && hasPermission('user_edit')) {
                     fetchUsers();
+                }
+                if (roles.length === 0 && hasPermission('user_create')) {
+                    fetchRoles();
                 }
                 break;
             case 'roles':
@@ -315,6 +336,11 @@ const Settings = () => {
                     client_edit: false,
                     client_delete: false,
 
+                    // Права объектов обслуживания
+                    client_object_create: false,
+                    client_object_edit: false,
+                    client_object_delete: false,
+
                     // Права заявок
                     bid_create: false,
                     bid_edit: false,
@@ -322,6 +348,11 @@ const Settings = () => {
 
                     // Права оборудования в заявках
                     bid_equipment_add: false,
+
+                    // Права оборудования
+                    equipment_create: false,
+                    equipment_edit: false,
+                    equipment_delete: false,
 
                     // Права вкладок
                     tab_warehouse: false,
@@ -380,6 +411,11 @@ const Settings = () => {
                 client_edit: false,
                 client_delete: false,
 
+                // Права объектов обслуживания
+                client_object_create: false,
+                client_object_edit: false,
+                client_object_delete: false,
+
                 // Права заявок
                 bid_create: false,
                 bid_edit: false,
@@ -387,6 +423,11 @@ const Settings = () => {
 
                 // Права оборудования в заявках
                 bid_equipment_add: false,
+
+                // Права оборудования
+                equipment_create: false,
+                equipment_edit: false,
+                equipment_delete: false,
 
                 // Права вкладок
                 tab_warehouse: false,
@@ -847,7 +888,7 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление пользователями</h2>
-                        {hasPermission('settings_user_button') && (
+                        {hasPermission('settings_user_button') && hasPermission('user_create') && (
                             <button
                                 onClick={() => {
                                     setShowForm(!showForm);
@@ -1047,7 +1088,9 @@ const Settings = () => {
                                         value={formData.role}
                                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required={!editingUser}
                                     >
+                                        <option value="">Выберите роль</option>
                                         {roles.filter(role => role.name !== 'Пользователь').map((role) => (
                                             <option key={role.id} value={role.name}>
                                                 {role.name}
@@ -1080,7 +1123,7 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление ролями</h2>
-                        {hasPermission('settings_role_button') && (
+                        {hasPermission('settings_role_button') && hasPermission('role_create') && (
                             <button
                                 onClick={() => {
                                     setShowRoleForm(!showRoleForm);
@@ -1119,6 +1162,11 @@ const Settings = () => {
                                             client_edit: false,
                                             client_delete: false,
 
+                                            // Права объектов обслуживания
+                                            client_object_create: false,
+                                            client_object_edit: false,
+                                            client_object_delete: false,
+
                                             // Права заявок
                                             bid_create: false,
                                             bid_edit: false,
@@ -1126,6 +1174,11 @@ const Settings = () => {
 
                                             // Права оборудования в заявках
                                             bid_equipment_add: false,
+
+                                            // Права оборудования
+                                            equipment_create: false,
+                                            equipment_edit: false,
+                                            equipment_delete: false,
 
                                             // Права вкладок
                                             tab_warehouse: false,
@@ -1320,6 +1373,40 @@ const Settings = () => {
                                             </div>
                                         </div>
 
+                                        {/* Права объектов обслуживания */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Объекты обслуживания</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.client_object_create}
+                                                        onChange={(e) => handlePermissionChange('client_object_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание объектов обслуживания
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.client_object_edit}
+                                                        onChange={(e) => handlePermissionChange('client_object_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование объектов обслуживания
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.client_object_delete}
+                                                        onChange={(e) => handlePermissionChange('client_object_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление объектов обслуживания
+                                                </label>
+                                            </div>
+                                        </div>
+
                                         {/* Права категорий спецификаций */}
                                         <div className="bg-gray-50 p-4 rounded-lg">
                                             <h5 className="font-medium mb-3 text-gray-800">Категории спецификаций</h5>
@@ -1465,6 +1552,40 @@ const Settings = () => {
                                             </div>
                                         </div>
 
+                                        {/* Права оборудования */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Оборудование</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.equipment_create}
+                                                        onChange={(e) => handlePermissionChange('equipment_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание оборудования
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.equipment_edit}
+                                                        onChange={(e) => handlePermissionChange('equipment_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование оборудования
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.equipment_delete}
+                                                        onChange={(e) => handlePermissionChange('equipment_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление оборудования
+                                                </label>
+                                            </div>
+                                        </div>
+
                                         {/* Права вкладок */}
                                         <div className="bg-gray-50 p-4 rounded-lg">
                                             <h5 className="font-medium mb-3 text-gray-800">Вкладки интерфейса</h5>
@@ -1590,6 +1711,11 @@ const Settings = () => {
                                                     client_edit: false,
                                                     client_delete: false,
 
+                                                    // Права объектов обслуживания
+                                                    client_object_create: false,
+                                                    client_object_edit: false,
+                                                    client_object_delete: false,
+
                                                     // Права заявок
                                                     bid_create: false,
                                                     bid_edit: false,
@@ -1597,6 +1723,11 @@ const Settings = () => {
 
                                                     // Права оборудования в заявках
                                                     bid_equipment_add: false,
+
+                                                    // Права оборудования
+                                                    equipment_create: false,
+                                                    equipment_edit: false,
+                                                    equipment_delete: false,
 
                                                     // Права вкладок
                                                     tab_warehouse: false,
@@ -1720,7 +1851,7 @@ const Settings = () => {
                                 onClick={() => {
                                     setShowBidTypeForm(!showBidTypeForm);
                                     setEditingBidType(null);
-                                    setBidTypeFormData({ name: '', description: '' });
+                                    setBidTypeFormData({ name: '', description: '', statuses: [], transitions: [] });
                                 }}
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                             >
@@ -1949,6 +2080,8 @@ const Settings = () => {
                                         </div>
                                     </div>
                                 </div>
+
+
                                 <div className="flex gap-2 pt-4">
                                     <button
                                         type="submit"

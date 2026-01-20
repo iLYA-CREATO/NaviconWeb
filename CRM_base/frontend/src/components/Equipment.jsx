@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEquipment, createEquipment, updateEquipment, deleteEquipment } from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
 
 const Equipment = () => {
     const navigate = useNavigate();
+    const { hasPermission } = usePermissions();
     const [equipment, setEquipment] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState(null);
@@ -277,12 +279,14 @@ const Equipment = () => {
                     {activeTab === 'nomenclature' && (
                         <>
                             <div className="mb-4 flex justify-between items-center">
-                                <button
-                                    onClick={() => openCustomTab('create-equipment', 'Создание оборудования')}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                                >
-                                    Новое оборудование
-                                </button>
+                                {hasPermission('equipment_create') && (
+                                    <button
+                                        onClick={() => openCustomTab('create-equipment', 'Создание оборудования')}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    >
+                                        Новое оборудование
+                                    </button>
+                                )}
                             </div>
                             <div className="mb-4 flex gap-4">
                                 <input
@@ -360,18 +364,22 @@ const Equipment = () => {
                                                     </td>
                                                 ))}
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <button
-                                                        onClick={() => handleEdit(item)}
-                                                        className="text-blue-600 hover:text-blue-900 mr-2"
-                                                    >
-                                                        Редактировать
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(item)}
-                                                        className="text-red-600 hover:text-red-900"
-                                                    >
-                                                        Удалить
-                                                    </button>
+                                                    {hasPermission('equipment_edit') && (
+                                                        <button
+                                                            onClick={() => handleEdit(item)}
+                                                            className="text-blue-600 hover:text-blue-900 mr-2"
+                                                        >
+                                                            Редактировать
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('equipment_delete') && (
+                                                        <button
+                                                            onClick={() => handleDelete(item)}
+                                                            className="text-red-600 hover:text-red-900"
+                                                        >
+                                                            Удалить
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}

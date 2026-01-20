@@ -23,7 +23,12 @@ router.post('/', auth, async (req, res) => {
     try {
         const { name, description, statuses, transitions } = req.body;
         const bidType = await prisma.bidType.create({
-            data: { name, description, statuses: statuses || [], transitions: transitions || [] }
+            data: {
+                name,
+                description,
+                statuses: statuses || [],
+                transitions: transitions || []
+            }
         });
 
         res.status(201).json(bidType);
@@ -44,7 +49,12 @@ router.put('/:id', auth, async (req, res) => {
         const { name, description, statuses, transitions } = req.body;
         const bidType = await prisma.bidType.update({
             where: { id: parseInt(id) },
-            data: { name, description, statuses: statuses || [], transitions: transitions || [] }
+            data: {
+                name,
+                description,
+                statuses: statuses || [],
+                transitions: transitions || []
+            }
         });
         res.json(bidType);
     } catch (error) {

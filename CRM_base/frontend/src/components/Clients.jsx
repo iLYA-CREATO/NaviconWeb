@@ -12,10 +12,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Импорт функций API для работы с клиентами и пользователями
 import { getClients, createClient, getUsers } from '../services/api';
+// Импорт хука для проверки разрешений
+import { usePermissions } from '../hooks/usePermissions';
 
 const Clients = () => {
     // Хук для навигации
     const navigate = useNavigate();
+    // Хук для проверки разрешений
+    const { hasPermission } = usePermissions();
 
     // Состояние для списка клиентов
     const [clients, setClients] = useState([]);
@@ -108,12 +112,14 @@ const Clients = () => {
             {/* Заголовок страницы с кнопкой добавления клиента */}
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Клиенты</h2>
-                <button
-                    onClick={() => setShowModal(true)} // Открытие модального окна создания клиента
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                >
-                    + Добавить клиента
-                </button>
+                {hasPermission('client_create') && (
+                    <button
+                        onClick={() => setShowModal(true)} // Открытие модального окна создания клиента
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        + Добавить клиента
+                    </button>
+                )}
             </div>
 
             {/* Панель поиска и фильтров */}

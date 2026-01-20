@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getClientObject, updateClientObject, deleteClientObject, getClients } from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
 
 const ClientObjectDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { hasPermission } = usePermissions();
     const [clientObject, setClientObject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -178,18 +180,22 @@ const ClientObjectDetail = () => {
                 <div className="flex gap-2">
                     {!isEditing ? (
                         <>
-                            <button
-                                onClick={handleEdit}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                Редактировать
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                Удалить
-                            </button>
+                            {hasPermission('client_object_edit') && (
+                                <button
+                                    onClick={handleEdit}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Редактировать
+                                </button>
+                            )}
+                            {hasPermission('client_object_delete') && (
+                                <button
+                                    onClick={handleDelete}
+                                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Удалить
+                                </button>
+                            )}
                         </>
                     ) : (
                         <>

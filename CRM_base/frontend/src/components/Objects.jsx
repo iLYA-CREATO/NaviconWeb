@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getClientObjects, createClientObject, getClients } from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
 
 const Objects = () => {
     const navigate = useNavigate();
+    const { hasPermission } = usePermissions();
     const [objects, setObjects] = useState([]);
     const [clients, setClients] = useState([]);
     const [showForm, setShowForm] = useState(false);
@@ -73,12 +75,14 @@ const Objects = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Объекты</h2>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                >
-                    {showForm ? 'Отмена' : '+ Добавить объект'}
-                </button>
+                {hasPermission('client_object_create') && (
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        {showForm ? 'Отмена' : '+ Добавить объект'}
+                    </button>
+                )}
             </div>
 
             {showForm && (

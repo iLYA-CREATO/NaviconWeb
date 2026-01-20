@@ -71,6 +71,7 @@ router.get('/', authMiddleware, async (req, res) => {
             creatorName: bid.creator.fullName, // Добавляем ФИО создателя
             createdAt: bid.createdAt,
             updatedAt: bid.updatedAt,
+            workAddress: bid.workAddress, // Добавляем адрес проведения работ
         }));
 
         res.json(formattedBids); // Отправляем отформатированные данные
@@ -249,6 +250,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
             updNumber: responseData.updNumber,
             updDate: responseData.updDate,
             contract: responseData.contract,
+            workAddress: responseData.workAddress,
             bidType: responseData.bidType,
             bidTypeName: responseData.bidType ? responseData.bidType.name : 'Не указан',
             bidTypeStatuses: responseData.bidType ? responseData.bidType.statuses : [],
@@ -260,10 +262,12 @@ router.get('/:id', authMiddleware, async (req, res) => {
             statusMetadata: responseData.statusMetadata,
         };
         console.log('Отправка данных заявки ID:', req.params.id);
-        console.log('Данные заявки:', bidResponseData);
+        console.log('Данные заявки:', {
+            ...bidResponseData,
+        });
         logBidData('Отправка данных заявки ID: ' + req.params.id, bidResponseData);
 
-        res.json(responseData);
+        res.json({ ...responseData, ...bidResponseData });
     } catch (error) {
         console.error('Get bid error:', error);
         res.status(500).json({ message: 'Server error' });
@@ -279,7 +283,7 @@ router.post('/', authMiddleware, async (req, res) => {
         }
 
         // Извлекаем данные из тела запроса
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress } = req.body;
 
         // Логируем данные, отправленные в заявку
         const bidInputData = {
@@ -293,6 +297,7 @@ router.post('/', authMiddleware, async (req, res) => {
             updNumber,
             updDate,
             contract,
+            workAddress,
             createdBy: req.user.id
         };
         console.log('Создание новой заявки. Данные, отправленные в заявку:', bidInputData);
@@ -338,6 +343,7 @@ router.post('/', authMiddleware, async (req, res) => {
                 updNumber,
                 updDate: updDate ? new Date(updDate) : null,
                 contract,
+                workAddress,
             },
             include: { // Включаем связанные данные в ответ
                 client: {
@@ -355,6 +361,7 @@ router.post('/', authMiddleware, async (req, res) => {
             ...newBid,
             clientName: newBid.client.name, // Добавляем имя клиента
             amount: parseFloat(newBid.amount), // Преобразуем сумму в число
+            workAddress: newBid.workAddress, // Добавляем адрес проведения работ
         });
     } catch (error) {
         console.error('Create bid error:', error);
@@ -365,10 +372,10 @@ router.post('/', authMiddleware, async (req, res) => {
 // Обновить заявку
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress } = req.body;
 
         // Логируем данные обновления заявки
-        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract };
+        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress };
         console.log('Обновление заявки ID:', req.params.id, 'Данные:', updateData);
         logBidData('Обновление заявки ID: ' + req.params.id, updateData);
 
@@ -430,6 +437,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 ...(updNumber !== undefined && { updNumber }), // Обновляем номер УПД если указано
                 ...(updDate !== undefined && { updDate: updDate ? new Date(updDate) : null }), // Обновляем дату УПД если указано
                 ...(contract !== undefined && { contract }), // Обновляем контракт если указано
+                ...(workAddress !== undefined && { workAddress }), // Обновляем адрес проведения работ если указано
             },
             include: {
                 client: {
@@ -461,6 +469,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
 
 
+
         // Отправляем обновленную заявку
         res.json({
             ...updatedBid,
@@ -468,6 +477,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
             clientName: updatedBid.client.name,
             creatorName: updatedBid.creator.fullName,
             amount: parseFloat(updatedBid.amount),
+            workAddress: updatedBid.workAddress, // Добавляем адрес проведения работ
         });
     } catch (error) {
         if (error.code === 'P2025') { // Ошибка Prisma: запись не найдена

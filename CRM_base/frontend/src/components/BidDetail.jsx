@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment } from '../services/api';
+import { getBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 // Импорт хука для проверки разрешений
@@ -29,7 +29,7 @@ const BidDetail = () => {
     const [bid, setBid] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [showStatusDropdown, setShowStatusDropdown] = useState(false);
     const [activeTab, setActiveTab] = useState('comments');
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -55,6 +55,7 @@ const BidDetail = () => {
     const [workAddress, setWorkAddress] = useState('');
     const [editingWorkAddress, setEditingWorkAddress] = useState(false);
     const [bidStatuses, setBidStatuses] = useState([]);
+    const [bidStatusTransitions, setBidStatusTransitions] = useState([]);
     const [bidEquipment, setBidEquipment] = useState([]);
     const [equipment, setEquipment] = useState([]);
     const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
@@ -76,6 +77,7 @@ const BidDetail = () => {
     useEffect(() => {
         if (bid) {
             fetchBidStatuses();
+            fetchBidStatusTransitions();
         }
     }, [bid]);
     useEffect(() => {
@@ -86,6 +88,20 @@ const BidDetail = () => {
             setWorkAddress(bid.workAddress || '');
         }
     }, [bid]);
+
+    // Закрытие выпадающего списка при клике вне него
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showStatusDropdown && !event.target.closest('.status-dropdown-container')) {
+                setShowStatusDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showStatusDropdown]);
 
 
     const fetchBid = async () => {
@@ -204,6 +220,37 @@ const BidDetail = () => {
         }
     };
 
+    const fetchBidStatusTransitions = async () => {
+        if (bid && bid.bidTypeId) {
+            try {
+                const response = await getBidStatusTransitions(bid.bidTypeId);
+                setBidStatusTransitions(response.data);
+            } catch (error) {
+                console.error('Error fetching bid status transitions:', error);
+            }
+        }
+    };
+
+
+    // Получение доступных статусов для перехода из текущего статуса
+    const getAvailableStatuses = () => {
+        if (!bid || !bidStatuses.length || !bidStatusTransitions.length) return [];
+
+        // Найти текущий статус по имени
+        const currentStatus = bidStatuses.find(status => status.name === bid.status);
+        if (!currentStatus) return [];
+
+        // Найти все доступные переходы из текущего статуса
+        const availableTransitions = bidStatusTransitions.filter(
+            transition => transition.fromPosition === currentStatus.position
+        );
+
+        // Получить статусы для этих переходов
+        return availableTransitions.map(transition => {
+            return bidStatuses.find(status => status.position === transition.toPosition);
+        }).filter(Boolean); // Убрать null/undefined
+    };
+
 
 
 
@@ -211,13 +258,13 @@ const BidDetail = () => {
     const handleChangeStatus = async (newStatus) => {
         try {
             await updateBid(id, { status: newStatus });
-            setShowStatusModal(false);
             fetchBid();
             fetchHistory();
         } catch (error) {
             console.error('Error changing status:', error);
         }
     };
+
 
     const handleSubmitComment = async (e) => {
         e.preventDefault();
@@ -841,16 +888,46 @@ const BidDetail = () => {
                 </div>
             </div>
 
-            <div className="w-64 bg-white shadow pb-4 pt-0 ml-4">
-                <div className="mb-4">
+            <div className="w-64 bg-white shadow pb-4 pt-0 ml-4 relative">
+                <div className="mb-4 relative status-dropdown-container">
                     <div className={`w-full p-2 text-lg text-left text-white cursor-pointer ${
                         bid.status === 'Закрыта' ? 'bg-red-500' :
                         bid.status === 'Открыта' ? 'bg-yellow-500' :
                             'bg-blue-500'
-                    }`} onClick={() => setShowStatusModal(true)}>
+                    }`} onClick={() => setShowStatusDropdown(!showStatusDropdown)}>
                         {bid.status}
                     </div>
+
+                    {/* Status Dropdown */}
+                    {showStatusDropdown && (
+                        <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 shadow-lg z-10 mt-1">
+                            <div className="py-1">
+                                {getAvailableStatuses().map(status => (
+                                    <button
+                                        key={status.position}
+                                        onClick={() => {
+                                            handleChangeStatus(status.name);
+                                            setShowStatusDropdown(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 transition-colors ${
+                                            status.name === 'Закрыта' ? 'bg-red-500 text-white hover:bg-red-600' :
+                                            status.name === 'Открыта' ? 'bg-yellow-500 text-white hover:bg-yellow-600' :
+                                                'bg-blue-500 text-white hover:bg-blue-600'
+                                        }`}
+                                    >
+                                        {status.name}
+                                    </button>
+                                ))}
+                                {getAvailableStatuses().length === 0 && (
+                                    <div className="px-4 py-2 text-gray-500 text-sm">
+                                        Нет доступных статусов для перехода
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
+
                 <div className='p-2'>
                     <label className="block text-xs text-gray-500 mb-1">Дата и время создания</label>
                     <p className="text-gray-900">{formattedCreatedAt}</p>
@@ -878,36 +955,6 @@ const BidDetail = () => {
 
 
 
-            {/* Status Modal */}
-            {showStatusModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">Изменить статус</h3>
-                        <div className="space-y-2">
-                            {bidStatuses.map(status => (
-                                <button
-                                    key={status.position}
-                                    onClick={() => handleChangeStatus(status.name)}
-                                    className={`w-full text-left p-2 hover:bg-gray-100 ${
-                                        bid.status === status.name ? 'bg-blue-100' : ''
-                                    }`}
-                                    disabled={bid.status === status.name}
-                                >
-                                    {status.name}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="flex justify-end mt-4">
-                            <button
-                                onClick={() => setShowStatusModal(false)}
-                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
-                            >
-                                Отмена
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Add/Edit Specification Modal */}
             {showAddSpecModal && (
