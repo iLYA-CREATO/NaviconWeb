@@ -11,6 +11,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
+// Импорт хука для проверки разрешений
+import { usePermissions } from '../hooks/usePermissions';
+// Импорт компонента карты
+import MapModal from './MapModal';
 
 // Основной компонент BidDetail
 const BidDetail = () => {
@@ -20,6 +24,8 @@ const BidDetail = () => {
     const navigate = useNavigate();
     // Хук аутентификации
     const { user } = useAuth();
+    // Хук для проверки разрешений
+    const { hasPermission } = usePermissions();
     const [bid, setBid] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -46,11 +52,14 @@ const BidDetail = () => {
     const [editingUpd, setEditingUpd] = useState(false);
     const [contract, setContract] = useState('');
     const [editingContract, setEditingContract] = useState(false);
+    const [workAddress, setWorkAddress] = useState('');
+    const [editingWorkAddress, setEditingWorkAddress] = useState(false);
     const [bidStatuses, setBidStatuses] = useState([]);
     const [bidEquipment, setBidEquipment] = useState([]);
     const [equipment, setEquipment] = useState([]);
     const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
     const [editingEquipment, setEditingEquipment] = useState(null);
+    const [showMapModal, setShowMapModal] = useState(false);
 
     useEffect(() => {
         fetchBid();
@@ -74,6 +83,7 @@ const BidDetail = () => {
             setUpdNumber(bid.updNumber || '');
             setUpdDate(bid.updDate ? new Date(bid.updDate).toISOString().split('T')[0] : '');
             setContract(bid.contract || '');
+            setWorkAddress(bid.workAddress || '');
         }
     }, [bid]);
 
@@ -328,6 +338,13 @@ const BidDetail = () => {
         }
     };
 
+    // Обработчик выбора адреса с карты
+    const handleAddressSelect = (address) => {
+        setWorkAddress(address);
+        handleUpdateBid({ workAddress: address });
+        setEditingWorkAddress(false);
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -405,38 +422,92 @@ const BidDetail = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Договор</label>
                             {editingContract ? (
-                                <div className="flex space-x-2">
+                                <div className="flex flex-wrap gap-2">
                                     <input
                                         type="text"
                                         value={contract}
                                         onChange={(e) => setContract(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="flex-1 min-w-[150px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="Номер договора"
                                     />
-                                    <button
-                                        onClick={() => {
-                                            handleUpdateBid({ contract });
-                                            setEditingContract(false);
-                                        }}
-                                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg"
-                                    >
-                                        Сохранить
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setContract(bid.contract || '');
-                                            setEditingContract(false);
-                                        }}
-                                        className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg"
-                                    >
-                                        Отмена
-                                    </button>
+                                    <div className="flex gap-2 flex-shrink-0">
+                                        <button
+                                            onClick={() => {
+                                                handleUpdateBid({ contract });
+                                                setEditingContract(false);
+                                            }}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                        >
+                                            Сохранить
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setContract(bid.contract || '');
+                                                setEditingContract(false);
+                                            }}
+                                            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                        >
+                                            Отмена
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="flex items-center space-x-2">
                                     <p className="text-gray-900">{contract || 'Не указан'}</p>
                                     <button
                                         onClick={() => setEditingContract(true)}
+                                        className="text-blue-500 hover:text-blue-700"
+                                    >
+                                        ✏️
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Адрес проведения работ</label>
+                            {editingWorkAddress ? (
+                                <div className="flex flex-wrap gap-2">
+                                    <input
+                                        type="text"
+                                        value={workAddress}
+                                        onChange={(e) => setWorkAddress(e.target.value)}
+                                        className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Введите адрес проведения работ"
+                                    />
+                                    <div className="flex gap-2 flex-shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowMapModal(true)}
+                                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                            title="Выбрать на карте"
+                                        >
+                                            🗺️
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleUpdateBid({ workAddress });
+                                                setEditingWorkAddress(false);
+                                            }}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                        >
+                                            Сохранить
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setWorkAddress(bid.workAddress || '');
+                                                setEditingWorkAddress(false);
+                                            }}
+                                            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                        >
+                                            Отмена
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center space-x-2">
+                                    <p className="text-gray-900">{workAddress || 'Не указан'}</p>
+                                    <button
+                                        onClick={() => setEditingWorkAddress(true)}
                                         className="text-blue-500 hover:text-blue-700"
                                     >
                                         ✏️
@@ -455,12 +526,14 @@ const BidDetail = () => {
                 <div className="bg-white rounded-lg shadow p-4 mt-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-800">Оборудование</h3>
-                        <button
-                            onClick={() => setShowAddEquipmentModal(true)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"
-                        >
-                            Добавить оборудование
-                        </button>
+                        {hasPermission('bid_equipment_add') && (
+                            <button
+                                onClick={() => setShowAddEquipmentModal(true)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"
+                            >
+                                Добавить оборудование
+                            </button>
+                        )}
                     </div>
                     {bidEquipment.length > 0 ? (
                         <div className="overflow-x-auto">
@@ -518,7 +591,6 @@ const BidDetail = () => {
                                 { id: 'files', label: 'Файлы' },
                                 { id: 'nested', label: 'Вложенные заявки' },
                                 { id: 'spec', label: 'Спецификация' },
-                                { id: 'equipment', label: 'Оборудование' },
                                 { id: 'print', label: 'Печатная форма' }
                             ].map(tab => (
                                 <button
@@ -1296,6 +1368,14 @@ const EquipmentModal = ({
                     </button>
                 </div>
             </div>
+
+            {/* Map Modal */}
+            <MapModal
+                isOpen={showMapModal}
+                onClose={() => setShowMapModal(false)}
+                onAddressSelect={handleAddressSelect}
+                initialAddress={workAddress}
+            />
         </div>
     );
 };
