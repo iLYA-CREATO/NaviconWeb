@@ -8,40 +8,184 @@ async function main() {
 
     const adminRole = await prisma.role.upsert({
         where: { name: 'Админ' },
-        update: {},
+        update: {
+            permissions: {
+                // Все права для администратора
+                user_create: true,
+                user_edit: true,
+                user_delete: true,
+                role_create: true,
+                role_edit: true,
+                role_delete: true,
+                spec_category_create: true,
+                spec_category_edit: true,
+                spec_category_delete: true,
+                spec_create: true,
+                spec_edit: true,
+                spec_delete: true,
+                bid_type_create: true,
+                bid_type_edit: true,
+                bid_type_delete: true,
+                client_create: true,
+                client_edit: true,
+                client_delete: true,
+                bid_create: true,
+                bid_edit: true,
+                bid_delete: true,
+                bid_equipment_add: true,
+                tab_warehouse: true,
+                tab_salary: true,
+                settings_user_button: true,
+                settings_role_button: true,
+                settings_spec_category_button: true,
+                settings_spec_button: true,
+                settings_bid_type_button: true,
+            },
+        },
         create: {
             name: 'Админ',
             description: 'Администратор',
+            permissions: {
+                // Все права для администратора
+                user_create: true,
+                user_edit: true,
+                user_delete: true,
+                role_create: true,
+                role_edit: true,
+                role_delete: true,
+                spec_category_create: true,
+                spec_category_edit: true,
+                spec_category_delete: true,
+                spec_create: true,
+                spec_edit: true,
+                spec_delete: true,
+                bid_type_create: true,
+                bid_type_edit: true,
+                bid_type_delete: true,
+                client_create: true,
+                client_edit: true,
+                client_delete: true,
+                bid_create: true,
+                bid_edit: true,
+                bid_delete: true,
+                bid_equipment_add: true,
+                tab_warehouse: true,
+                tab_salary: true,
+                settings_user_button: true,
+                settings_role_button: true,
+                settings_spec_category_button: true,
+                settings_spec_button: true,
+                settings_bid_type_button: true,
+            },
         },
     });
     console.log('✅ Created role:', adminRole);
 
     const managerRole = await prisma.role.upsert({
         where: { name: 'Менеджер' },
-        update: {},
+        update: {
+            permissions: {
+                user_create: true,
+                user_edit: true,
+                user_delete: false,
+                spec_category_create: true,
+                spec_category_edit: true,
+                spec_category_delete: false,
+                spec_create: true,
+                spec_edit: true,
+                spec_delete: false,
+                settings_user_button: true,
+                settings_spec_category_button: true,
+                settings_spec_button: true,
+            },
+        },
         create: {
             name: 'Менеджер',
             description: 'Менеджер',
+            permissions: {
+                user_create: true,
+                user_edit: true,
+                user_delete: false,
+                spec_category_create: true,
+                spec_category_edit: true,
+                spec_category_delete: false,
+                spec_create: true,
+                spec_edit: true,
+                spec_delete: false,
+                settings_user_button: true,
+                settings_spec_category_button: true,
+                settings_spec_button: true,
+            },
         },
     });
     console.log('✅ Created role:', managerRole);
 
     const techSpecialistRole = await prisma.role.upsert({
         where: { name: 'Технический специалист' },
-        update: {},
+        update: {
+            permissions: {
+                spec_category_create: true,
+                spec_category_edit: true,
+                spec_category_delete: false,
+                spec_create: true,
+                spec_edit: true,
+                spec_delete: false,
+                bid_type_create: true,
+                bid_type_edit: true,
+                bid_type_delete: false,
+                settings_spec_category_button: true,
+                settings_spec_button: true,
+                settings_bid_type_button: true,
+            },
+        },
         create: {
             name: 'Технический специалист',
             description: 'Технический специалист',
+            permissions: {
+                spec_category_create: true,
+                spec_category_edit: true,
+                spec_category_delete: false,
+                spec_create: true,
+                spec_edit: true,
+                spec_delete: false,
+                bid_type_create: true,
+                bid_type_edit: true,
+                bid_type_delete: false,
+                settings_spec_category_button: true,
+                settings_spec_button: true,
+                settings_bid_type_button: true,
+            },
         },
     });
     console.log('✅ Created role:', techSpecialistRole);
 
     const accountantRole = await prisma.role.upsert({
         where: { name: 'Бухгалтер' },
-        update: {},
+        update: {
+            permissions: {
+                user_create: false,
+                user_edit: true,
+                user_delete: false,
+                role_create: true,
+                role_edit: true,
+                role_delete: false,
+                settings_user_button: true,
+                settings_role_button: true,
+            },
+        },
         create: {
             name: 'Бухгалтер',
             description: 'Бухгалтер',
+            permissions: {
+                user_create: false,
+                user_edit: true,
+                user_delete: false,
+                role_create: true,
+                role_edit: true,
+                role_delete: false,
+                settings_user_button: true,
+                settings_role_button: true,
+            },
         },
     });
     console.log('✅ Created role:', accountantRole);
@@ -65,7 +209,7 @@ async function main() {
         },
     });
     console.log('✅ Created role:', userRole);
-    // Create default bid type
+    // Создание типа заявки по умолчанию
     const defaultBidType = await prisma.bidType.upsert({
         where: { name: 'Стандартная заявка' },
         update: {},
@@ -83,10 +227,10 @@ async function main() {
     });
     console.log('✅ Created bid type:', defaultBidType);
 
-    // Hash password
+    // Хэширование пароля
     const hashedPassword = await bcrypt.hash('123', 10);
 
-    // Create admin user
+    // Создание администратора
     const adminUser = await prisma.user.upsert({
         where: { username: 'Sergei' },
         update: {
@@ -197,7 +341,7 @@ async function main() {
         },
     });
 
-    // Create demo clients
+    // Создание демо-клиентов
     const client1 = await prisma.client.create({
         data: {
             name: 'Уваровская Нива',
@@ -216,7 +360,7 @@ async function main() {
     });
     console.log('✅ Created client:', client2);
 
-    // Create demo bids
+    // Создание демо-заявок
     const bid1 = await prisma.bid.create({
         data: {
             clientId: client1.id,
@@ -243,7 +387,7 @@ async function main() {
     });
     console.log('✅ Created bid:', bid2);
 
-    // Create demo client objects
+    // Создание демо-объектов клиентов
     const object1 = await prisma.clientObject.create({
         data: {
             clientId: client1.id,
@@ -264,7 +408,7 @@ async function main() {
     });
     console.log('✅ Created client object:', object2);
 
-    // Associate objects with bids
+    // Связывание объектов с заявками
     await prisma.bid.update({
         where: { id: bid1.id },
         data: {
@@ -272,7 +416,7 @@ async function main() {
         },
     });
 
-    // Create specification categories
+    // Создание категорий спецификаций
     const categories = [
         'Автопилот',
         'АРМ',
@@ -291,7 +435,7 @@ async function main() {
         console.log('✅ Created specification category:', categoryName);
     }
 
-    // Get the tachograph category
+    // Получение категории тахографов
     const tachographCategory = await prisma.specificationCategory.findFirst({
         where: { name: 'Тахография' }
     });
@@ -345,10 +489,15 @@ async function main() {
         { name: 'Чистка карты водителя', cost: 50 },
     ];
 
+    // Получение категории АРМ
+    const armCategory = await prisma.specificationCategory.findFirst({
+        where: { name: 'АРМ' }
+    });
+
     for (const spec of armSpecs) {
         await prisma.specification.create({
             data: {
-                categoryId: armSpecs.id,
+                categoryId: armCategory.id,
                 name: spec.name,
                 cost: spec.cost,
                 discount: 0,
@@ -357,6 +506,16 @@ async function main() {
         console.log('✅ Created specification:', spec.name);
     }
 
+    // Добавление новой спецификации в категорию АРМ
+    await prisma.specification.create({
+        data: {
+            categoryId: armCategory.id,
+            name: 'Замена комплектующих',
+            cost: 0, // Стоимость нужно будет установить позже
+            discount: 0,
+        },
+    });
+    console.log('✅ Created specification: Замена комплектующих');
 
     // Get the prochee category
     const procheeCategory = await prisma.specificationCategory.findFirst({
@@ -406,6 +565,17 @@ async function main() {
         });
         console.log('✅ Created specification:', spec.name);
     }
+
+    // Добавление новой спецификации "Нагрузка на ось" в категорию Прочее
+    await prisma.specification.create({
+        data: {
+            categoryId: procheeCategory.id,
+            name: 'Нагрузка на ось',
+            cost: 0, // Стоимость нужно будет установить позже
+            discount: 0,
+        },
+    });
+    console.log('✅ Created specification: Нагрузка на ось');
 
     // Create demo equipment
     const equipmentList = [

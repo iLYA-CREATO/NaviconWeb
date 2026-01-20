@@ -44,6 +44,11 @@ router.post('/login', async (req, res) => {
             { expiresIn: '24h' } // Время жизни токена
         );
 
+        // Получаем роль пользователя с permissions
+        const userRole = await prisma.role.findFirst({
+            where: { name: user.role },
+        });
+
         // Отправка успешного ответа с токеном и данными пользователя
         res.json({
             token,
@@ -53,6 +58,7 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 fullName: user.fullName,
                 role: user.role,
+                permissions: userRole?.permissions || {},
             },
         });
     } catch (error) {
@@ -141,6 +147,11 @@ router.get('/me', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Получаем роль пользователя с permissions
+        const userRole = await prisma.role.findFirst({
+            where: { name: user.role },
+        });
+
         // Отправка данных пользователя (без пароля)
         res.json({
             user: {
@@ -149,6 +160,7 @@ router.get('/me', async (req, res) => {
                 email: user.email,
                 fullName: user.fullName,
                 role: user.role,
+                permissions: userRole?.permissions || {},
             },
         });
     } catch (error) {

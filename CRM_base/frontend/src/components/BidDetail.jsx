@@ -981,7 +981,7 @@ const BidDetail = () => {
     );
 };
 
-// Specification Modal Component
+// Компонент модального окна спецификаций
 const SpecificationModal = ({
     isOpen,
     onClose,
@@ -1202,7 +1202,7 @@ const SpecificationModal = ({
     );
 };
 
-// Equipment Modal Component
+// Компонент модального окна оборудования
 const EquipmentModal = ({
     isOpen,
     onClose,

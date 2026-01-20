@@ -26,9 +26,9 @@ const Salary = () => {
     // Состояние для загрузки
     const [loading, setLoading] = useState(false);
 
-    // Define all possible columns
+    // Определение всех возможных колонок
     const allColumns = ['date', 'specification', 'cost', 'executor', 'bid', 'creator', 'client'];
-    // Load initial states from localStorage
+    // Загрузка начальных состояний из localStorage
     const savedColumns = localStorage.getItem('salaryVisibleColumns');
     const initialVisibleColumns = savedColumns ? JSON.parse(savedColumns) : {
         date: true,
@@ -40,11 +40,11 @@ const Salary = () => {
     };
     const savedOrder = localStorage.getItem('salaryColumnOrder');
     const initialColumnOrder = savedOrder ? JSON.parse(savedOrder) : allColumns;
-    // State for column order
+    // Состояние для порядка колонок
     const [columnOrder, setColumnOrder] = useState(initialColumnOrder);
-    // State for visible columns in the table
+    // Состояние для видимых колонок в таблице
     const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
-    // State for showing column settings dropdown
+    // Состояние для показа выпадающего списка настроек колонок
     const [showColumnSettings, setShowColumnSettings] = useState(false);
 
     // Загрузка пользователей при монтировании
@@ -60,17 +60,17 @@ const Salary = () => {
         fetchUsers();
     }, []);
 
-    // useEffect to save column preferences to localStorage
+    // useEffect для сохранения настроек колонок в localStorage
     useEffect(() => {
         localStorage.setItem('salaryVisibleColumns', JSON.stringify(visibleColumns));
     }, [visibleColumns]);
 
-    // useEffect to save column order to localStorage
+    // useEffect для сохранения порядка колонок в localStorage
     useEffect(() => {
         localStorage.setItem('salaryColumnOrder', JSON.stringify(columnOrder));
     }, [columnOrder]);
 
-    // useEffect to close dropdown on outside click
+    // useEffect для закрытия выпадающего списка при клике вне его
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (showColumnSettings && !event.target.closest('.column-settings')) {

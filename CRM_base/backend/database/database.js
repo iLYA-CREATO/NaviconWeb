@@ -1,4 +1,4 @@
-// In-memory database (replace with PostgreSQL in production)
+// База данных в памяти (заменить на PostgreSQL в продакшене)
 let users = [
     {
         id: 1,

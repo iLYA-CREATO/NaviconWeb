@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Get all bid types
+// Получение всех типов заявок
 router.get('/', auth, async (req, res) => {
     try {
         const bidTypes = await prisma.bidType.findMany({
@@ -18,7 +18,7 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// Create a new bid type
+// Создание нового типа заявки
 router.post('/', auth, async (req, res) => {
     try {
         const { name, description, statuses, transitions } = req.body;
@@ -37,7 +37,7 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
-// Update a bid type
+// Обновление типа заявки
 router.put('/:id', auth, async (req, res) => {
     try {
         const { id } = req.params;
@@ -59,7 +59,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 });
 
-// Delete a bid type
+// Удаление типа заявки
 router.delete('/:id', auth, async (req, res) => {
     try {
         const { id } = req.params;
@@ -77,7 +77,7 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-// Get all bid statuses for a bid type
+// Получение всех статусов заявок для типа заявки
 router.get('/:bidTypeId/statuses', auth, async (req, res) => {
     try {
         const { bidTypeId } = req.params;
@@ -88,7 +88,7 @@ router.get('/:bidTypeId/statuses', auth, async (req, res) => {
             return res.status(404).json({ error: 'Bid type not found' });
         }
         const statuses = bidType.statuses || [];
-        // Sort by position
+        // Сортировка по позиции
         statuses.sort((a, b) => a.position - b.position);
         res.json(statuses);
     } catch (error) {
@@ -97,13 +97,13 @@ router.get('/:bidTypeId/statuses', auth, async (req, res) => {
     }
 });
 
-// Create a new bid status
+// Создание нового статуса заявки
 router.post('/:bidTypeId/statuses', auth, async (req, res) => {
     try {
         const { bidTypeId } = req.params;
         const { name, position, allowedActions } = req.body;
 
-        // Check if bidType exists
+        // Проверка существования типа заявки
         const bidType = await prisma.bidType.findUnique({
             where: { id: parseInt(bidTypeId) }
         });
@@ -111,19 +111,19 @@ router.post('/:bidTypeId/statuses', auth, async (req, res) => {
             return res.status(404).json({ error: 'Bid type not found' });
         }
 
-        // Check if position is valid
+        // Проверка валидности позиции
         if (position < 1 || position > 999) {
             return res.status(400).json({ error: 'Position must be between 1 and 999' });
         }
 
         const statuses = bidType.statuses || [];
 
-        // Check if position already exists
+        // Проверка, что позиция уже существует
         if (statuses.some(s => s.position === position)) {
             return res.status(400).json({ error: `Status with position ${position} already exists` });
         }
 
-        // Check if name already exists
+        // Проверка, что имя уже существует
         if (statuses.some(s => s.name === name)) {
             return res.status(400).json({ error: 'Status with this name already exists' });
         }
@@ -143,7 +143,7 @@ router.post('/:bidTypeId/statuses', auth, async (req, res) => {
     }
 });
 
-// Update a bid status
+// Обновление статуса заявки
 router.put('/:bidTypeId/statuses/:position', auth, async (req, res) => {
     try {
         const { bidTypeId, position } = req.params;
@@ -163,7 +163,7 @@ router.put('/:bidTypeId/statuses/:position', auth, async (req, res) => {
             return res.status(404).json({ error: 'Bid status not found' });
         }
 
-        // For default statuses (position 1 or 999), only allow updating name and allowedActions
+        // Для статусов по умолчанию (позиция 1 или 999) разрешено обновлять только имя и allowedActions
         if (parseInt(position) === 1 || parseInt(position) === 999) {
             statuses[statusIndex].name = name;
             statuses[statusIndex].allowedActions = allowedActions || statuses[statusIndex].allowedActions;
@@ -184,7 +184,7 @@ router.put('/:bidTypeId/statuses/:position', auth, async (req, res) => {
     }
 });
 
-// Delete a bid status
+// Удаление статуса заявки
 router.delete('/:bidTypeId/statuses/:position', auth, async (req, res) => {
     try {
         const { bidTypeId, position } = req.params;
@@ -203,7 +203,7 @@ router.delete('/:bidTypeId/statuses/:position', auth, async (req, res) => {
             return res.status(404).json({ error: 'Bid status not found' });
         }
 
-        // Prevent deleting open or closed statuses
+        // Предотвращение удаления открытых или закрытых статусов
         if (parseInt(position) === 1 || parseInt(position) === 999) {
             return res.status(400).json({ error: 'Cannot delete default open or closed status' });
         }
@@ -222,7 +222,7 @@ router.delete('/:bidTypeId/statuses/:position', auth, async (req, res) => {
     }
 });
 
-// Get transitions for a bid type
+// Получение переходов для типа заявки
 router.get('/:bidTypeId/transitions', auth, async (req, res) => {
     try {
         const { bidTypeId } = req.params;
@@ -240,7 +240,7 @@ router.get('/:bidTypeId/transitions', auth, async (req, res) => {
     }
 });
 
-// Create a transition
+// Создание перехода
 router.post('/:bidTypeId/transitions', auth, async (req, res) => {
     try {
         const { bidTypeId } = req.params;
@@ -280,7 +280,7 @@ router.post('/:bidTypeId/transitions', auth, async (req, res) => {
     }
 });
 
-// Delete a transition
+// Удаление перехода
 router.delete('/:bidTypeId/transitions/:fromPosition/:toPosition', auth, async (req, res) => {
     try {
         const { bidTypeId, fromPosition, toPosition } = req.params;

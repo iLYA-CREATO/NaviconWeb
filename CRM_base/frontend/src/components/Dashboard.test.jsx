@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import { AuthProvider } from '../context/AuthContext';
 import Dashboard from './Dashboard';
 
-// Mock the useAuth hook
+// Мокаем хук useAuth
 vi.mock('../context/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 1, username: 'testuser', fullName: 'Test User' },
@@ -52,7 +52,7 @@ describe('Dashboard Component', () => {
 
   test('renders main content area', () => {
     renderDashboard();
-    // The main element should be present
+    // Основной элемент должен присутствовать
     const mainElement = document.querySelector('main');
     expect(mainElement).toBeInTheDocument();
   });

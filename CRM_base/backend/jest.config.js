@@ -11,7 +11,7 @@ module.exports = {
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   testTimeout: 10000,
-  // Load test environment variables
+  // Загрузка переменных окружения для тестов
   setupFiles: ['dotenv/config'],
   env: {
     NODE_ENV: 'test',

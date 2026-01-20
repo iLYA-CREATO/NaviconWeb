@@ -19,9 +19,9 @@ const SupplierCreate = ({ closeTab }) => {
         e.preventDefault();
         try {
             const response = await createSupplier(formData);
-            // Close the tab and pass the new supplier data
+            // Закрываем вкладку и передаем данные нового поставщика
             closeTab();
-            // Optionally, you can pass data back if needed
+            // При необходимости можно передать данные обратно
         } catch (error) {
             console.error('Error creating supplier:', error);
         }

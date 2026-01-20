@@ -6,38 +6,38 @@
  * Bids are associated with clients and optionally with client objects (vehicles/equipment).
  */
 
-// Import React hooks for state management and side effects
+// Импорт React хуков для управления состоянием и побочными эффектами
 import { useState, useEffect } from 'react';
-// Import navigation hook from React Router for programmatic navigation
+// Импорт хука навигации из React Router для программной навигации
 import { useNavigate } from 'react-router-dom';
-// Import API functions for interacting with backend services
+// Импорт функций API для взаимодействия с серверными сервисами
 import { getBids, createBid, getClients, getClientObjects, getBidTypes } from '../services/api';
 
 const Bids = () => {
-    // Hook for navigation between routes
+    // Хук для навигации между маршрутами
     const navigate = useNavigate();
 
-    // State for storing the list of bids fetched from the API
+    // Состояние для хранения списка заявок, полученных из API
     const [bids, setBids] = useState([]);
-    // State for storing the list of clients for the dropdown in the form
+    // Состояние для хранения списка клиентов для выпадающего списка в форме
     const [clients, setClients] = useState([]);
-    // State for storing client objects (vehicles) available for selection
+    // Состояние для хранения объектов клиентов (ТС), доступных для выбора
     const [clientObjects, setClientObjects] = useState([]);
-    // State for storing bid types available for selection
+    // Состояние для хранения типов заявок, доступных для выбора
     const [bidTypes, setBidTypes] = useState([]);
-    // State to toggle the visibility of the create bid form
+    // Состояние для переключения видимости формы создания заявки
     const [showForm, setShowForm] = useState(false);
-    // State for the search input to filter bids
+    // Состояние для поля поиска для фильтрации заявок
     const [searchTerm, setSearchTerm] = useState('');
-    // State for filters
+    // Состояние для фильтров
     const [filters, setFilters] = useState({
         creator: '',
         bidType: '',
         client: '',
     });
-    // Define all possible columns
+    // Определение всех возможных колонок
     const allColumns = ['id', 'clientName', 'title', 'creatorName', 'description'];
-    // Load initial states from localStorage
+    // Загрузка начальных состояний из localStorage
     const savedColumns = localStorage.getItem('bidsVisibleColumns');
     const initialVisibleColumns = savedColumns ? JSON.parse(savedColumns) : {
         id: true,
@@ -48,13 +48,13 @@ const Bids = () => {
     };
     const savedOrder = localStorage.getItem('bidsColumnOrder');
     const initialColumnOrder = savedOrder ? JSON.parse(savedOrder).filter(col => allColumns.includes(col)) : allColumns;
-    // State for column order
+    // Состояние для порядка колонок
     const [columnOrder, setColumnOrder] = useState(initialColumnOrder);
-    // State for visible columns in the table
+    // Состояние для видимых колонок в таблице
     const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
-    // State for showing column settings dropdown
+    // Состояние для показа выпадающего списка настроек колонок
     const [showColumnSettings, setShowColumnSettings] = useState(false);
-    // State for the form data when creating a new bid
+    // Состояние для данных формы при создании новой заявки
     const [formData, setFormData] = useState({
         clientId: '',        // ID of the selected client
         title: '',           // Title of the bid
@@ -63,7 +63,7 @@ const Bids = () => {
         clientObjectId: '',  // Optional ID of the client object (vehicle)
     });
 
-    // useEffect to load initial data when component mounts
+    // useEffect для загрузки начальных данных при монтировании компонента
     useEffect(() => {
         fetchBids();      // Load all bids
         fetchClients();   // Load all clients for the form dropdown
@@ -71,7 +71,7 @@ const Bids = () => {
         setShowForm(false); // Ensure form is hidden initially
     }, []); // Empty dependency array means this runs only once on mount
 
-    // useEffect to save column preferences to localStorage
+    // useEffect для сохранения настроек колонок в localStorage
     useEffect(() => {
         localStorage.setItem('bidsVisibleColumns', JSON.stringify(visibleColumns));
     }, [visibleColumns]);

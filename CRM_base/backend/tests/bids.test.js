@@ -3,7 +3,7 @@ const express = require('express');
 const bidsRoutes = require('../routes/bids');
 const prisma = require('../prisma/client');
 
-// Create Express app for testing
+// Создание Express приложения для тестирования
 const app = express();
 app.use(express.json());
 app.use('/bids', bidsRoutes);
@@ -15,7 +15,7 @@ describe('Bids Routes', () => {
   let testClientObject;
 
   beforeEach(async () => {
-    // Create test user
+    // Создание тестового пользователя
     const bcrypt = require('bcryptjs');
     const jwt = require('jsonwebtoken');
 
@@ -28,7 +28,7 @@ describe('Bids Routes', () => {
       }
     });
 
-    // Create test client
+    // Создание тестового клиента
     testClient = await prisma.client.create({
       data: {
         name: 'Test Client',
@@ -38,7 +38,7 @@ describe('Bids Routes', () => {
       }
     });
 
-    // Create test client object
+    // Создание тестового клиента object
     testClientObject = await prisma.clientObject.create({
       data: {
         clientId: testClient.id,
@@ -48,7 +48,7 @@ describe('Bids Routes', () => {
       }
     });
 
-    // Generate auth token
+    // Генерация токена аутентификации
     authToken = jwt.sign(
       { id: testUser.id, username: testUser.username },
       process.env.JWT_SECRET || 'test-secret',
@@ -68,7 +68,7 @@ describe('Bids Routes', () => {
     });
 
     it('should return bids with proper formatting', async () => {
-      // Create a test bid
+      // Создание тестовой заявки
       const bid = await prisma.bid.create({
         data: {
           clientId: testClient.id,
@@ -259,7 +259,7 @@ describe('Bids Routes', () => {
       expect(response.body.message).toBe('Bid deleted');
       expect(response.body.bid).toHaveProperty('id', bid.id);
 
-      // Verify bid is deleted
+      // Проверка, что заявка удалена
       const deletedBid = await prisma.bid.findUnique({
         where: { id: bid.id }
       });

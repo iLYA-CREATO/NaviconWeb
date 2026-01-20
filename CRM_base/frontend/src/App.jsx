@@ -11,6 +11,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext.jsx';
 // Импорт компонента защищенного маршрута
 import ProtectedRoute from './components/ProtectedRoute';
+// Импорт компонента защиты прав доступа
+import PermissionRoute from './components/PermissionRoute';
+// Импорт хука прав доступа
+import { usePermissions } from './hooks/usePermissions.js';
 // Импорт всех компонентов страниц
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
@@ -54,9 +58,23 @@ function App() {
                         <Route path="objects" element={<Objects />} /> {/* Список объектов клиентов */}
                         <Route path="bids" element={<Bids />} /> {/* Список заявок */}
                         <Route path="bids/:id" element={<BidDetail />} /> {/* Детали заявки */}
-                        <Route path="equipment" element={<Equipment />} /> {/* Список оборудования */}
+                        <Route
+                            path="equipment"
+                            element={
+                                <PermissionRoute permissions="tab_warehouse">
+                                    <Equipment />
+                                </PermissionRoute>
+                            }
+                        /> {/* Список оборудования */}
                         <Route path="suppliers/create" element={<SupplierCreate />} /> {/* Создание поставщика */}
-                        <Route path="salary" element={<Salary />} /> {/* Зарплата */}
+                        <Route
+                            path="salary"
+                            element={
+                                <PermissionRoute permissions="tab_salary">
+                                    <Salary />
+                                </PermissionRoute>
+                            }
+                        /> {/* Зарплата */}
                         <Route path="settings" element={<Settings />} /> {/* Настройки */}
                     </Route>
 

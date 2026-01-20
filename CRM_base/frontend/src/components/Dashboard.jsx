@@ -9,19 +9,42 @@
 // Импорт компонентов и хуков из React Router
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 // Импорт хука состояния
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext.jsx';
+// Импорт хука прав доступа
+import { usePermissions } from '../hooks/usePermissions.js';
 
 const Dashboard = () => {
     // Получение данных пользователя и функции выхода из контекста аутентификации
     const { user, logout } = useAuth();
+    // Хук для проверки прав доступа
+    const { canAccessTab, hasPermission } = usePermissions();
     // Хук для получения текущего пути
     const location = useLocation();
     // Проверка, находится ли пользователь на странице настроек
     const isSettings = location.pathname === '/dashboard/settings';
     // Состояние для активной вкладки в настройках
     const [activeSettingsTab, setActiveSettingsTab] = useState('user');
+
+    // Определение доступных вкладок настроек
+    const availableSettingsTabs = [
+        { id: 'user', permission: 'settings_user_button', label: 'Пользователь' },
+        { id: 'roles', permission: 'settings_role_button', label: 'Роли' },
+        { id: 'specification-categories', permission: 'settings_spec_category_button', label: 'Категории спецификаций' },
+        { id: 'specifications', permission: 'settings_spec_button', label: 'Спецификации' },
+        { id: 'bid-types', permission: 'settings_bid_type_button', label: 'Тип Заявки' },
+    ];
+
+    // Установка активной вкладки на первую доступную при входе на страницу настроек
+    useEffect(() => {
+        if (isSettings) {
+            const firstAvailableTab = availableSettingsTabs.find(tab => hasPermission(tab.permission));
+            if (firstAvailableTab && activeSettingsTab !== firstAvailableTab.id) {
+                setActiveSettingsTab(firstAvailableTab.id);
+            }
+        }
+    }, [isSettings, hasPermission, activeSettingsTab]);
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -39,56 +62,21 @@ const Dashboard = () => {
                         </button>
                         {/* Навигация по вкладкам настроек */}
                         <nav className="space-y-2">
-                            <button
-                                onClick={() => setActiveSettingsTab('user')} // Установка активной вкладки "Пользователь"
-                                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
-                                    activeSettingsTab === 'user'
-                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
-                                }`}
-                            >
-                                Пользователь
-                            </button>
-                            <button
-                                onClick={() => setActiveSettingsTab('roles')} // Установка активной вкладки "Роли"
-                                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
-                                    activeSettingsTab === 'roles'
-                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
-                                }`}
-                            >
-                                Роли
-                            </button>
-                            <button
-                                onClick={() => setActiveSettingsTab('specification-categories')} // Установка активной вкладки "Категории спецификаций"
-                                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
-                                    activeSettingsTab === 'specification-categories'
-                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
-                                }`}
-                            >
-                                Категории спецификаций
-                            </button>
-                            <button
-                                onClick={() => setActiveSettingsTab('specifications')} // Установка активной вкладки "Спецификации"
-                                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
-                                    activeSettingsTab === 'specifications'
-                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
-                                }`}
-                            >
-                                Спецификации
-                            </button>
-                            <button
-                                onClick={() => setActiveSettingsTab('bid-types')} // Установка активной вкладки "Типы заявок"
-                                className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
-                                    activeSettingsTab === 'bid-types'
-                                        ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
-                                }`}
-                            >
-                                Тип Заявки
-                            </button>
+                            {availableSettingsTabs
+                                .filter(tab => hasPermission(tab.permission))
+                                .map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveSettingsTab(tab.id)}
+                                        className={`w-full text-left px-4 py-2 rounded-lg font-medium transition ${
+                                            activeSettingsTab === tab.id
+                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная вкладка
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
                         </nav>
                     </div>
                 ) : (
@@ -154,31 +142,35 @@ const Dashboard = () => {
                                     Объекты
                                 </NavLink>
                                 {/* Ссылка на страницу оборудования */}
-                                <NavLink
-                                    to="/dashboard/equipment"
-                                    className={({ isActive }) =>
-                                        `${
-                                            isActive
-                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
-                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } block px-4 py-2 rounded-lg font-medium transition`
-                                    }
-                                >
-                                    Склад
-                                </NavLink>
+                                {canAccessTab('warehouse') && (
+                                    <NavLink
+                                        to="/dashboard/equipment"
+                                        className={({ isActive }) =>
+                                            `${
+                                                isActive
+                                                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                            } block px-4 py-2 rounded-lg font-medium transition`
+                                        }
+                                    >
+                                        Склад
+                                    </NavLink>
+                                )}
                                 {/* Ссылка на страницу зарплаты */}
-                                <NavLink
-                                    to="/dashboard/salary"
-                                    className={({ isActive }) =>
-                                        `${
-                                            isActive
-                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
-                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } block px-4 py-2 rounded-lg font-medium transition`
-                                    }
-                                >
-                                    З/П
-                                </NavLink>
+                                {canAccessTab('salary') && (
+                                    <NavLink
+                                        to="/dashboard/salary"
+                                        className={({ isActive }) =>
+                                            `${
+                                                isActive
+                                                    ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                            } block px-4 py-2 rounded-lg font-medium transition`
+                                        }
+                                    >
+                                        З/П
+                                    </NavLink>
+                                )}
                             </div>
                         </nav>
 

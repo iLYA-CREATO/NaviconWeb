@@ -3,7 +3,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const prisma = require('../prisma/client');
 
-// Get all client objects
+// Получение всех объектов клиентов
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const { clientId } = req.query;
@@ -37,7 +37,7 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 });
 
-// Get single client object
+// Получение одного объекта клиента
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
         const clientObject = await prisma.clientObject.findUnique({
@@ -71,7 +71,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Create client object
+// Создание объекта клиента
 router.post('/', authMiddleware, async (req, res) => {
     try {
         const { clientId, brandModel, stateNumber, equipment } = req.body;
@@ -92,7 +92,7 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 });
 
-// Update client object
+// Обновление объекта клиента
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const { brandModel, stateNumber, equipment } = req.body;
@@ -116,7 +116,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Delete client object
+// Удаление объекта клиента
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const deletedClientObject = await prisma.clientObject.delete({

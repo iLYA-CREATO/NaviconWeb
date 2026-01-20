@@ -9,9 +9,9 @@ const Equipment = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [activeTab, setActiveTab] = useState('nomenclature');
     const [customTabs, setCustomTabs] = useState([]);
-    // Define all possible columns for equipment
+    // Определение всех возможных колонок для оборудования
     const equipmentAllColumns = ['id', 'name', 'productCode', 'purchasePrice', 'sellingPrice'];
-    // Load initial states from localStorage for equipment
+    // Загрузка начальных состояний из localStorage для оборудования
     const savedEquipmentColumns = localStorage.getItem('equipmentVisibleColumns');
     const defaultEquipmentVisibleColumns = {
         id: true,
@@ -23,11 +23,11 @@ const Equipment = () => {
     const initialEquipmentVisibleColumns = savedEquipmentColumns ? { ...defaultEquipmentVisibleColumns, ...JSON.parse(savedEquipmentColumns), sellingPrice: true, purchasePrice: true, productCode: true } : defaultEquipmentVisibleColumns;
     const savedEquipmentOrder = localStorage.getItem('equipmentColumnOrder');
     const initialEquipmentColumnOrder = savedEquipmentOrder ? [...new Set([...JSON.parse(savedEquipmentOrder).filter(col => equipmentAllColumns.includes(col)), ...equipmentAllColumns])] : equipmentAllColumns;
-    // State for equipment column order
+    // Состояние для порядка колонок оборудования
     const [equipmentColumnOrder, setEquipmentColumnOrder] = useState(initialEquipmentColumnOrder);
-    // State for visible equipment columns in the table
+    // Состояние для видимых колонок оборудования в таблице
     const [equipmentVisibleColumns, setEquipmentVisibleColumns] = useState(initialEquipmentVisibleColumns);
-    // State for showing equipment column settings dropdown
+    // Состояние для показа выпадающего списка настроек колонок оборудования
     const [showEquipmentColumnSettings, setShowEquipmentColumnSettings] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -41,17 +41,17 @@ const Equipment = () => {
         fetchEquipment();
     }, []);
 
-    // useEffect to save equipment column preferences to localStorage
+    // useEffect для сохранения настроек колонок оборудования в localStorage
     useEffect(() => {
         localStorage.setItem('equipmentVisibleColumns', JSON.stringify(equipmentVisibleColumns));
     }, [equipmentVisibleColumns]);
 
-    // useEffect to save equipment column order to localStorage
+    // useEffect для сохранения порядка колонок оборудования в localStorage
     useEffect(() => {
         localStorage.setItem('equipmentColumnOrder', JSON.stringify(equipmentColumnOrder));
     }, [equipmentColumnOrder]);
 
-    // useEffect to close equipment dropdown on outside click
+    // useEffect для закрытия выпадающего списка оборудования при клике вне его
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (showEquipmentColumnSettings && !event.target.closest('.equipment-column-settings')) {

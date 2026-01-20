@@ -3,7 +3,7 @@ const express = require('express');
 const authRoutes = require('../routes/auth');
 const prisma = require('../prisma/client');
 
-// Create Express app for testing
+// Создание Express приложения для тестирования
 const app = express();
 app.use(express.json());
 app.use('/auth', authRoutes);
@@ -29,7 +29,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return error for duplicate username', async () => {
-      // First create a user
+      // Сначала создаем пользователя
       await prisma.user.create({
         data: {
           username: 'existinguser',
@@ -51,7 +51,7 @@ describe('Auth Routes', () => {
     });
 
     it('should return error for duplicate email', async () => {
-      // First create a user
+      // Сначала создаем пользователя
       await prisma.user.create({
         data: {
           username: 'user1',
@@ -75,7 +75,7 @@ describe('Auth Routes', () => {
 
   describe('POST /auth/login', () => {
     beforeEach(async () => {
-      // Create a test user
+      // Создание тестового пользователя
       const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash('testpass123', 10);
 
@@ -131,7 +131,7 @@ describe('Auth Routes', () => {
     let user;
 
     beforeEach(async () => {
-      // Create a test user and get token
+      // Создание тестового пользователя and get token
       const bcrypt = require('bcryptjs');
       const jwt = require('jsonwebtoken');
 

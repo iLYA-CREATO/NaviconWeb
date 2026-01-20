@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { usePermissions } from '../hooks/usePermissions.js';
 import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition } from '../services/api';
 
 const Settings = () => {
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
     const { activeSettingsTab } = useOutletContext();
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
@@ -19,6 +21,56 @@ const Settings = () => {
     const [roleFormData, setRoleFormData] = useState({
         name: '',
         description: '',
+        permissions: {
+            // Права пользователей
+            user_create: false,
+            user_edit: false,
+            user_delete: false,
+
+            // Права ролей
+            role_create: false,
+            role_edit: false,
+            role_delete: false,
+
+            // Права категорий спецификаций
+            spec_category_create: false,
+            spec_category_edit: false,
+            spec_category_delete: false,
+
+            // Права спецификаций
+            spec_create: false,
+            spec_edit: false,
+            spec_delete: false,
+
+            // Права типов заявок
+            bid_type_create: false,
+            bid_type_edit: false,
+            bid_type_delete: false,
+
+            // Права клиентов
+            client_create: false,
+            client_edit: false,
+            client_delete: false,
+
+            // Права заявок
+            bid_create: false,
+            bid_edit: false,
+            bid_delete: false,
+
+            // Права оборудования в заявках
+            bid_equipment_add: false,
+
+            // Права вкладок
+            tab_warehouse: false,
+            tab_salary: false,
+
+            // Права видимости кнопок в настройках
+            settings_user_button: false,
+            settings_role_button: false,
+            settings_spec_category_button: false,
+            settings_spec_button: false,
+            settings_bid_type_button: false,
+        },
     });
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
@@ -105,6 +157,7 @@ const Settings = () => {
             setRoles(response.data);
         } catch (error) {
             console.error('Error fetching roles:', error);
+            setRoles([]);
         }
     };
 
@@ -171,7 +224,60 @@ const Settings = () => {
                 await createRole(roleFormData);
                 setNotification({ type: 'success', message: 'Роль создана успешно' });
             }
-            setRoleFormData({ name: '', description: '' });
+            setRoleFormData({
+                name: '',
+                description: '',
+                permissions: {
+                    // Права пользователей
+                    user_create: false,
+                    user_edit: false,
+                    user_delete: false,
+
+                    // Права ролей
+                    role_create: false,
+                    role_edit: false,
+                    role_delete: false,
+
+                    // Права категорий спецификаций
+                    spec_category_create: false,
+                    spec_category_edit: false,
+                    spec_category_delete: false,
+
+                    // Права спецификаций
+                    spec_create: false,
+                    spec_edit: false,
+                    spec_delete: false,
+
+                    // Права типов заявок
+                    bid_type_create: false,
+                    bid_type_edit: false,
+                    bid_type_delete: false,
+
+                    // Права клиентов
+                    client_create: false,
+                    client_edit: false,
+                    client_delete: false,
+
+                    // Права заявок
+                    bid_create: false,
+                    bid_edit: false,
+                    bid_delete: false,
+
+                    // Права оборудования в заявках
+                    bid_equipment_add: false,
+
+                    // Права вкладок
+                    tab_warehouse: false,
+                    tab_salary: false,
+
+                    // Права видимости кнопок в настройках
+                    settings_user_button: false,
+                    settings_role_button: false,
+                    settings_spec_category_button: false,
+                    settings_spec_button: false,
+                    settings_bid_type_button: false,
+                }
+            });
             setEditingRole(null);
             setShowRoleForm(false);
             fetchRoles();
@@ -183,7 +289,63 @@ const Settings = () => {
 
     const handleEditRole = (role) => {
         setEditingRole(role);
-        setRoleFormData({ name: role.name, description: role.description });
+        setRoleFormData({
+            name: role.name,
+            description: role.description,
+            permissions: {
+                // Права пользователей
+                user_create: false,
+                user_edit: false,
+                user_delete: false,
+
+                // Права ролей
+                role_create: false,
+                role_edit: false,
+                role_delete: false,
+
+                // Права категорий спецификаций
+                spec_category_create: false,
+                spec_category_edit: false,
+                spec_category_delete: false,
+
+                // Права спецификаций
+                spec_create: false,
+                spec_edit: false,
+                spec_delete: false,
+
+                // Права типов заявок
+                bid_type_create: false,
+                bid_type_edit: false,
+                bid_type_delete: false,
+
+                // Права клиентов
+                client_create: false,
+                client_edit: false,
+                client_delete: false,
+
+                // Права заявок
+                bid_create: false,
+                bid_edit: false,
+                bid_delete: false,
+
+                // Права оборудования в заявках
+                bid_equipment_add: false,
+
+                // Права вкладок
+                tab_warehouse: false,
+                tab_salary: false,
+
+                // Права видимости кнопок в настройках
+                settings_user_button: false,
+                settings_role_button: false,
+                settings_spec_category_button: false,
+                settings_spec_button: false,
+                settings_bid_type_button: false,
+
+                // Объединяем с существующими правами роли
+                ...(role.permissions || {}),
+            }
+        });
         setShowRoleForm(true);
     };
 
@@ -198,6 +360,16 @@ const Settings = () => {
                 setNotification({ type: 'error', message: 'Ошибка при удалении роли' });
             }
         }
+    };
+
+    const handlePermissionChange = (permissionKey, value) => {
+        setRoleFormData(prev => ({
+            ...prev,
+            permissions: {
+                ...prev.permissions,
+                [permissionKey]: value
+            }
+        }));
     };
 
     const handleEditUser = (user) => {
@@ -593,17 +765,32 @@ const Settings = () => {
     };
 
     return (
-        <div className="p-8">
+        <div className="p-8 relative">
+            {/* Toast Notification */}
             {notification && (
-                <div className={`mb-4 p-4 rounded-lg ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {notification.message}
+                <div className="fixed top-4 right-4 z-50 transition-all duration-300 ease-in-out opacity-100">
+                    <div className={`max-w-sm p-4 rounded-lg shadow-lg ${
+                        notification.type === 'success'
+                            ? 'bg-green-100 text-green-800 border border-green-200'
+                            : 'bg-red-100 text-red-800 border border-red-200'
+                    }`}>
+                        <div className="flex items-center justify-between">
+                            <span>{notification.message}</span>
+                            <button
+                                onClick={() => setNotification(null)}
+                                className="ml-4 text-gray-500 hover:text-gray-700 focus:outline-none text-xl font-bold"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
             {activeSettingsTab === 'user' && (
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление пользователями</h2>
-                        {user?.role === 'Админ' && (
+                        {hasPermission('settings_user_button') && (
                             <button
                                 onClick={() => {
                                     setShowForm(!showForm);
@@ -691,19 +878,20 @@ const Settings = () => {
                                 )}
                             </div>
 
-                            <div className="bg-white rounded-lg shadow overflow-hidden">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Логин</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ФИО</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Почта</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
-                                        {user?.role === 'Админ' && (
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-                                        )}
-                                    </tr>
-                                    </thead>
+                            {hasPermission('settings_user_button') && (
+                                <div className="bg-white rounded-lg shadow overflow-hidden">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Логин</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ФИО</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Почта</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
+                                            {hasPermission('user_create') && (
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                            )}
+                                        </tr>
+                                        </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                     {users.map((u) => (
                                         <tr key={u.id} className="hover:bg-gray-50">
@@ -720,7 +908,7 @@ const Settings = () => {
                                                  u.role === 'Пользователь' ? 'Пользователь' :
                                                  u.role}
                                             </td>
-                                            {user?.role === 'Админ' && (
+                                            {hasPermission('user_create') && (
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <button
                                                         onClick={() => handleEditUser(u)}
@@ -742,7 +930,8 @@ const Settings = () => {
                                     ))}
                                     </tbody>
                                 </table>
-                            </div>
+                                </div>
+                            )}
                         </>
                     )}
 
@@ -834,9 +1023,66 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление ролями</h2>
-                        {user?.role === 'Админ' && (
+                        {hasPermission('settings_role_button') && (
                             <button
-                                onClick={() => setShowRoleForm(!showRoleForm)}
+                                onClick={() => {
+                                    setShowRoleForm(!showRoleForm);
+                                    setEditingRole(null);
+                                    setRoleFormData({
+                                        name: '',
+                                        description: '',
+                                        permissions: {
+                                            // Права пользователей
+                                            user_create: false,
+                                            user_edit: false,
+                                            user_delete: false,
+
+                                            // Права ролей
+                                            role_create: false,
+                                            role_edit: false,
+                                            role_delete: false,
+
+                                            // Права категорий спецификаций
+                                            spec_category_create: false,
+                                            spec_category_edit: false,
+                                            spec_category_delete: false,
+
+                                            // Права спецификаций
+                                            spec_create: false,
+                                            spec_edit: false,
+                                            spec_delete: false,
+
+                                            // Права типов заявок
+                                            bid_type_create: false,
+                                            bid_type_edit: false,
+                                            bid_type_delete: false,
+
+                                            // Права клиентов
+                                            client_create: false,
+                                            client_edit: false,
+                                            client_delete: false,
+
+                                            // Права заявок
+                                            bid_create: false,
+                                            bid_edit: false,
+                                            bid_delete: false,
+
+                                            // Права оборудования в заявках
+                                            bid_equipment_add: false,
+
+                                            // Права вкладок
+                                            tab_warehouse: false,
+                                            tab_salary: false,
+
+                                            // Права видимости кнопок в настройках
+                                            settings_user_button: false,
+                                            settings_role_button: false,
+                                            settings_spec_category_button: false,
+                                            settings_spec_button: false,
+                                            settings_bid_type_button: false,
+                                        }
+                                    });
+                                }}
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                             >
                                 {showRoleForm ? 'Отмена' : '+ Добавить роль'}
@@ -851,7 +1097,7 @@ const Settings = () => {
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
-                                    {user?.role === 'Админ' && (
+                                    {hasPermission('user_create') && (
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                     )}
                                 </tr>
@@ -861,7 +1107,7 @@ const Settings = () => {
                                     <tr key={role.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">{role.name}</td>
                                         <td className="px-6 py-4">{role.description}</td>
-                                        {user?.role === 'Админ' && (
+                                        {hasPermission('user_create') && (
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <button
                                                     onClick={() => handleEditRole(role)}
@@ -910,6 +1156,337 @@ const Settings = () => {
                                         required
                                     />
                                 </div>
+
+                                <div className="mt-6">
+                                    <h4 className="text-lg font-semibold mb-4">Права доступа</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                        {/* Права пользователей */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Пользователи</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.user_create}
+                                                        onChange={(e) => handlePermissionChange('user_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание пользователей
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.user_edit}
+                                                        onChange={(e) => handlePermissionChange('user_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование пользователей
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.user_delete}
+                                                        onChange={(e) => handlePermissionChange('user_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление пользователей
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права ролей */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Роли</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.role_create}
+                                                        onChange={(e) => handlePermissionChange('role_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание ролей
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.role_edit}
+                                                        onChange={(e) => handlePermissionChange('role_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование ролей
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.role_delete}
+                                                        onChange={(e) => handlePermissionChange('role_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление ролей
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права клиентов */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Клиенты</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.client_create}
+                                                        onChange={(e) => handlePermissionChange('client_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание клиентов
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.client_edit}
+                                                        onChange={(e) => handlePermissionChange('client_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование клиентов
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.client_delete}
+                                                        onChange={(e) => handlePermissionChange('client_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление клиентов
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права категорий спецификаций */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Категории спецификаций</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.spec_category_create}
+                                                        onChange={(e) => handlePermissionChange('spec_category_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание категорий
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.spec_category_edit}
+                                                        onChange={(e) => handlePermissionChange('spec_category_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование категорий
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.spec_category_delete}
+                                                        onChange={(e) => handlePermissionChange('spec_category_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление категорий
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права спецификаций */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Спецификации</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.spec_create}
+                                                        onChange={(e) => handlePermissionChange('spec_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание спецификаций
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.spec_edit}
+                                                        onChange={(e) => handlePermissionChange('spec_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование спецификаций
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.spec_delete}
+                                                        onChange={(e) => handlePermissionChange('spec_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление спецификаций
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права типов заявок */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Типы заявок</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.bid_type_create}
+                                                        onChange={(e) => handlePermissionChange('bid_type_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание типов заявок
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.bid_type_edit}
+                                                        onChange={(e) => handlePermissionChange('bid_type_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование типов заявок
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.bid_type_delete}
+                                                        onChange={(e) => handlePermissionChange('bid_type_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление типов заявок
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права заявок */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Заявки</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.bid_create}
+                                                        onChange={(e) => handlePermissionChange('bid_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание заявок
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.bid_edit}
+                                                        onChange={(e) => handlePermissionChange('bid_edit', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Редактирование заявок
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.bid_delete}
+                                                        onChange={(e) => handlePermissionChange('bid_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление заявок
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.bid_equipment_add}
+                                                        onChange={(e) => handlePermissionChange('bid_equipment_add', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Добавление оборудования в заявку
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права вкладок */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-gray-800">Вкладки интерфейса</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.tab_warehouse}
+                                                        onChange={(e) => handlePermissionChange('tab_warehouse', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Доступ к вкладке "Склад"
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.tab_salary}
+                                                        onChange={(e) => handlePermissionChange('tab_salary', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Доступ к вкладке "З/П"
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права видимости кнопок в настройках */}
+                                        <div className="bg-blue-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-blue-800">Настройки</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.settings_user_button}
+                                                        onChange={(e) => handlePermissionChange('settings_user_button', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Видеть кнопку "Пользователь"
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.settings_role_button}
+                                                        onChange={(e) => handlePermissionChange('settings_role_button', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Видеть кнопку "Роли"
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.settings_spec_category_button}
+                                                        onChange={(e) => handlePermissionChange('settings_spec_category_button', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Видеть кнопку "Категория спецификаций"
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.settings_spec_button}
+                                                        onChange={(e) => handlePermissionChange('settings_spec_button', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Видеть кнопку "Спецификации"
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.settings_bid_type_button}
+                                                        onChange={(e) => handlePermissionChange('settings_bid_type_button', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Видеть кнопку "Тип Заявки"
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
                                 <div className="flex gap-2 pt-4">
                                     <button
                                         type="submit"
@@ -922,7 +1499,60 @@ const Settings = () => {
                                         onClick={() => {
                                             setShowRoleForm(false);
                                             setEditingRole(null);
-                                            setRoleFormData({ name: '', description: '' });
+                                            setRoleFormData({
+                                                name: '',
+                                                description: '',
+                                                permissions: {
+                                                    // Права пользователей
+                                                    user_create: false,
+                                                    user_edit: false,
+                                                    user_delete: false,
+
+                                                    // Права ролей
+                                                    role_create: false,
+                                                    role_edit: false,
+                                                    role_delete: false,
+
+                                                    // Права категорий спецификаций
+                                                    spec_category_create: false,
+                                                    spec_category_edit: false,
+                                                    spec_category_delete: false,
+
+                                                    // Права спецификаций
+                                                    spec_create: false,
+                                                    spec_edit: false,
+                                                    spec_delete: false,
+
+                                                    // Права типов заявок
+                                                    bid_type_create: false,
+                                                    bid_type_edit: false,
+                                                    bid_type_delete: false,
+
+                                                    // Права клиентов
+                                                    client_create: false,
+                                                    client_edit: false,
+                                                    client_delete: false,
+
+                                                    // Права заявок
+                                                    bid_create: false,
+                                                    bid_edit: false,
+                                                    bid_delete: false,
+
+                                                    // Права оборудования в заявках
+                                                    bid_equipment_add: false,
+
+                                                    // Права вкладок
+                                                    tab_warehouse: false,
+                                                    tab_salary: false,
+
+                                                    // Права видимости кнопок в настройках
+                                                    settings_user_button: false,
+                                                    settings_role_button: false,
+                                                    settings_spec_category_button: false,
+                                                    settings_spec_button: false,
+                                                    settings_bid_type_button: false,
+                                                }
+                                            });
                                         }}
                                         className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                                     >
@@ -939,16 +1569,18 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление категориями спецификаций</h2>
-                        <button
-                            onClick={() => {
-                                setShowSpecificationCategoryForm(!showSpecificationCategoryForm);
-                                setEditingSpecificationCategory(null);
-                                setSpecificationCategoryFormData({ name: '', description: '', parentId: '' });
-                            }}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            {showSpecificationCategoryForm ? 'Отмена' : '+ Добавить категорию'}
-                        </button>
+                        {hasPermission('settings_spec_category_button') && (
+                            <button
+                                onClick={() => {
+                                    setShowSpecificationCategoryForm(!showSpecificationCategoryForm);
+                                    setEditingSpecificationCategory(null);
+                                    setSpecificationCategoryFormData({ name: '', description: '', parentId: '' });
+                                }}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                {showSpecificationCategoryForm ? 'Отмена' : '+ Добавить категорию'}
+                            </button>
+                        )}
                     </div>
 
                     {!showSpecificationCategoryForm && (
@@ -1026,16 +1658,18 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление типами заявок</h2>
-                        <button
-                            onClick={() => {
-                                setShowBidTypeForm(!showBidTypeForm);
-                                setEditingBidType(null);
-                                setBidTypeFormData({ name: '', description: '' });
-                            }}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            {showBidTypeForm ? 'Отмена' : '+ Добавить тип заявки'}
-                        </button>
+                        {hasPermission('settings_bid_type_button') && (
+                            <button
+                                onClick={() => {
+                                    setShowBidTypeForm(!showBidTypeForm);
+                                    setEditingBidType(null);
+                                    setBidTypeFormData({ name: '', description: '' });
+                                }}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                {showBidTypeForm ? 'Отмена' : '+ Добавить тип заявки'}
+                            </button>
+                        )}
                     </div>
 
                     {!showBidTypeForm && (
@@ -1289,16 +1923,18 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление спецификациями</h2>
-                        <button
-                            onClick={() => {
-                                setShowSpecificationForm(!showSpecificationForm);
-                                setEditingSpecification(null);
-                                setSpecificationFormData({ categoryId: '', name: '', discount: '', cost: '' });
-                            }}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            {showSpecificationForm ? 'Отмена' : '+ Добавить спецификацию'}
-                        </button>
+                        {hasPermission('settings_spec_button') && (
+                            <button
+                                onClick={() => {
+                                    setShowSpecificationForm(!showSpecificationForm);
+                                    setEditingSpecification(null);
+                                    setSpecificationFormData({ categoryId: '', name: '', discount: '', cost: '' });
+                                }}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                {showSpecificationForm ? 'Отмена' : '+ Добавить спецификацию'}
+                            </button>
+                        )}
                     </div>
 
                     {!showSpecificationForm && (

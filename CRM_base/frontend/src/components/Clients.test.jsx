@@ -4,14 +4,14 @@ import { vi } from 'vitest';
 import Clients from './Clients';
 import { getClients, createClient, getUsers } from '../services/api';
 
-// Mock the API functions
+// Мокаем функции API
 vi.mock('../services/api', () => ({
   getClients: vi.fn(),
   createClient: vi.fn(),
   getUsers: vi.fn(),
 }));
 
-// Mock localStorage
+// Мокаем localStorage
 const localStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
@@ -22,7 +22,7 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock
 });
 
-// Mock useNavigate
+// Мокаем useNavigate
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -62,7 +62,7 @@ describe('Clients Component', () => {
     localStorageMock.getItem.mockReturnValue('');
     localStorageMock.setItem.mockImplementation(() => {});
 
-    // Setup default mocks
+    // Настройка стандартных моков
     getClients.mockResolvedValue({ data: mockClients });
     getUsers.mockResolvedValue({ data: mockUsers });
   });
@@ -166,7 +166,7 @@ describe('Clients Component', () => {
     const searchInput = screen.getByPlaceholderText('Поиск по имени...');
     fireEvent.change(searchInput, { target: { value: 'Test' } });
 
-    // Wait for debounce
+    // Ждем debounce
     await waitFor(() => {
       expect(getClients).toHaveBeenCalledWith('Test', '');
     }, { timeout: 500 });
@@ -184,7 +184,7 @@ describe('Clients Component', () => {
   });
 
   test('shows responsible filter when enabled', async () => {
-    // Mock localStorage to return visible filters
+    // Мокаем localStorage для возврата видимых фильтров
     localStorageMock.getItem.mockImplementation((key) => {
       if (key === 'clientsVisibleFilters') {
         return JSON.stringify({ responsible: true });
@@ -204,7 +204,7 @@ describe('Clients Component', () => {
 
     renderClients();
 
-    // Open modal
+    // Открываем модальное окно
     const addButton = screen.getByText('+ Добавить клиента');
     fireEvent.click(addButton);
 
@@ -212,12 +212,12 @@ describe('Clients Component', () => {
       expect(screen.getByText('Добавить нового клиента')).toBeInTheDocument();
     });
 
-    // Fill form
+    // Заполняем форму
     fireEvent.change(screen.getByLabelText('Имя'), { target: { value: 'New Client' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@example.com' } });
     fireEvent.change(screen.getByLabelText('Телефон'), { target: { value: '+1111111111' } });
 
-    // Submit form
+    // Отправляем форму
     const submitButton = screen.getByText('Создать');
     fireEvent.click(submitButton);
 

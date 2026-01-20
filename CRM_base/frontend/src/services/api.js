@@ -6,7 +6,7 @@
  * Экспортирует функции для всех API endpoints.
  */
 
-// Импорт Axios для HTTP запросов
+// Импорт Axios для HTTP-запросов
 import axios from 'axios';
 
 // Базовый URL для API (проксируется через Vite)
@@ -54,7 +54,7 @@ export const register = (userData) => api.post('/auth/register', userData); // �
 export const getMe = () => api.get('/auth/me'); // Получение данных текущего пользователя
 
 // === КЛИЕНТЫ ===
-// CRUD операции для клиентов
+// CRUD-операции для клиентов
 export const getClients = (search = '', responsibleId = '') => {
     const params = {};
     if (search) params.name = search; // Поиск по имени
@@ -67,7 +67,7 @@ export const updateClient = (id, data) => api.put(`/clients/${id}`, data); // О
 export const deleteClient = (id) => api.delete(`/clients/${id}`); // Удаление клиента
 
 // === ЗАЯВКИ ===
-// CRUD операции для заявок
+// CRUD-операции для заявок
 export const getBids = () => api.get('/bids'); // Получение всех заявок
 export const getBid = (id) => api.get(`/bids/${id}`); // Получение заявки по ID
 export const createBid = (data) => api.post('/bids', data); // Создание новой заявки
@@ -81,7 +81,7 @@ export const updateComment = (bidId, commentId, data) => api.put(`/bids/${bidId}
 export const deleteComment = (bidId, commentId) => api.delete(`/bids/${bidId}/comments/${commentId}`); // Удаление комментария к заявке
 
 // === ТИПЫ ЗАЯВОК ===
-// CRUD операции для типов заявок
+// CRUD-операции для типов заявок
 export const getBidTypes = () => api.get('/bid-types'); // Получение всех типов заявок
 export const getBidType = (id) => api.get(`/bid-types/${id}`); // Получение типа заявки по ID
 export const createBidType = (data) => api.post('/bid-types', data); // Создание нового типа заявки
@@ -89,7 +89,7 @@ export const updateBidType = (id, data) => api.put(`/bid-types/${id}`, data); //
 export const deleteBidType = (id) => api.delete(`/bid-types/${id}`); // Удаление типа заявки
 
 // === СТАТУСЫ ЗАЯВОК ===
-// CRUD операции для статусов заявок
+// CRUD-операции для статусов заявок
 export const getBidStatuses = (bidTypeId) => api.get(`/bid-types/${bidTypeId}/statuses`); // Получение всех статусов заявок для типа
 export const getBidStatus = (id) => api.get(`/bid-types/${id}`); // Получение статуса заявки по ID (теперь через bidType)
 export const createBidStatus = (bidTypeId, data) => api.post(`/bid-types/${bidTypeId}/statuses`, data); // Создание нового статуса заявки
@@ -100,7 +100,7 @@ export const createBidStatusTransition = (bidTypeId, data) => api.post(`/bid-typ
 export const deleteBidStatusTransition = (bidTypeId, fromPosition, toPosition) => api.delete(`/bid-types/${bidTypeId}/transitions/${fromPosition}/${toPosition}`); // Удаление перехода статуса
 
 // === ОБОРУДОВАНИЕ ===
-// CRUD операции для оборудования
+// CRUD-операции для оборудования
 export const getEquipment = () => api.get('/equipment'); // Получение всего оборудования
 export const getEquipmentById = (id) => api.get(`/equipment/${id}`); // Получение оборудования по ID
 export const createEquipment = (data) => api.post('/equipment', data); // Создание нового оборудования
@@ -108,14 +108,14 @@ export const updateEquipment = (id, data) => api.put(`/equipment/${id}`, data); 
 export const deleteEquipment = (id) => api.delete(`/equipment/${id}`); // Удаление оборудования
 
 // === ОБОРУДОВАНИЕ ЗАЯВОК ===
-// CRUD операции для оборудования заявок
+// CRUD-операции для оборудования заявок
 export const getBidEquipment = (bidId) => api.get(`/bid-equipment/bid/${bidId}`); // Получение оборудования заявки
 export const createBidEquipment = (data) => api.post('/bid-equipment', data); // Создание оборудования заявки
 export const updateBidEquipment = (id, data) => api.put(`/bid-equipment/${id}`, data); // Обновление оборудования заявки
 export const deleteBidEquipment = (id) => api.delete(`/bid-equipment/${id}`); // Удаление оборудования заявки
 
 // === ПОСТАВЩИКИ ===
-// CRUD операции для поставщиков
+// CRUD-операции для поставщиков
 export const getSuppliers = () => api.get('/suppliers'); // Получение всех поставщиков
 export const getSupplier = (id) => api.get(`/suppliers/${id}`); // Получение поставщика по ID
 export const createSupplier = (data) => api.post('/suppliers', data); // Создание нового поставщика
@@ -123,7 +123,7 @@ export const updateSupplier = (id, data) => api.put(`/suppliers/${id}`, data); /
 export const deleteSupplier = (id) => api.delete(`/suppliers/${id}`); // Удаление поставщика
 
 // === СКЛАДЫ ===
-// CRUD операции для складов
+// CRUD-операции для складов
 export const getWarehouses = () => api.get('/warehouses'); // Получение всех складов
 export const getWarehouse = (id) => api.get(`/warehouses/${id}`); // Получение склада по ID
 export const createWarehouse = (data) => api.post('/warehouses', data); // Создание нового склада
@@ -131,7 +131,7 @@ export const updateWarehouse = (id, data) => api.put(`/warehouses/${id}`, data);
 export const deleteWarehouse = (id) => api.delete(`/warehouses/${id}`); // Удаление склада
 
 // === ПОЛЬЗОВАТЕЛИ ===
-// CRUD операции для пользователей
+// CRUD-операции для пользователей
 export const getUsers = () => api.get('/users'); // Получение всех пользователей
 export const getUser = (id) => api.get(`/users/${id}`); // Получение пользователя по ID
 export const createUser = (data) => api.post('/users', data); // Создание нового пользователя
@@ -139,7 +139,7 @@ export const updateUser = (id, data) => api.put(`/users/${id}`, data); // Обн
 export const deleteUser = (id) => api.delete(`/users/${id}`); // Удаление пользователя
 
 // === РОЛИ ===
-// CRUD операции для ролей
+// CRUD-операции для ролей
 export const getRoles = () => api.get('/roles'); // Получение всех ролей
 export const getRole = (id) => api.get(`/roles/${id}`); // Получение роли по ID
 export const createRole = (data) => api.post('/roles', data); // Создание новой роли
@@ -147,7 +147,7 @@ export const updateRole = (id, data) => api.put(`/roles/${id}`, data); // Обн
 export const deleteRole = (id) => api.delete(`/roles/${id}`); // Удаление роли
 
 // === ОБЪЕКТЫ КЛИЕНТОВ ===
-// CRUD операции для объектов клиентов (автомобилей)
+// CRUD-операции для объектов клиентов (автомобилей)
 export const getClientObjects = (clientId = '') => {
     const params = {};
     if (clientId) params.clientId = clientId; // Фильтр по клиенту
@@ -159,7 +159,7 @@ export const updateClientObject = (id, data) => api.put(`/client-objects/${id}`,
 export const deleteClientObject = (id) => api.delete(`/client-objects/${id}`); // Удаление объекта
 
 // === СПЕЦИФИКАЦИИ ===
-// CRUD операции для спецификаций
+// CRUD-операции для спецификаций
 export const getSpecifications = () => api.get('/specifications'); // Получение всех спецификаций
 export const getSpecification = (id) => api.get(`/specifications/${id}`); // Получение спецификации по ID
 export const createSpecification = (data) => api.post('/specifications', data); // Создание новой спецификации
@@ -174,7 +174,7 @@ export const deleteBidSpecification = (bidId, specId) => api.delete(`/bids/${bid
 export const getBidHistory = (bidId) => api.get(`/bids/${bidId}/history`); // Получение истории заявки
 
 // === КАТЕГОРИИ СПЕЦИФИКАЦИЙ ===
-// CRUD операции для категорий спецификаций
+// CRUD-операции для категорий спецификаций
 export const getSpecificationCategories = () => api.get('/specification-categories'); // Получение всех категорий
 export const getSpecificationCategoriesTree = () => api.get('/specification-categories/tree'); // Получение дерева категорий
 export const getSpecificationCategory = (id) => api.get(`/specification-categories/${id}`); // Получение категории по ID

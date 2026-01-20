@@ -55,9 +55,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Создать роль
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name, description, permissions } = req.body;
         const role = await prisma.role.create({
-            data: { name, description },
+            data: { name, description, permissions },
         });
         res.status(201).json(role);
     } catch (error) {
@@ -73,10 +73,10 @@ router.post('/', authenticateToken, async (req, res) => {
 // Обновить роль
 router.put('/:id', authenticateToken, async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name, description, permissions } = req.body;
         const role = await prisma.role.update({
             where: { id: parseInt(req.params.id) },
-            data: { name, description },
+            data: { name, description, permissions },
         });
         res.json(role);
     } catch (error) {

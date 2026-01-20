@@ -3,7 +3,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const prisma = require('../prisma/client');
 
-// Get all suppliers
+// Получение всех поставщиков
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const suppliers = await prisma.supplier.findMany({
@@ -17,7 +17,7 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 });
 
-// Get single supplier
+// Получение одного поставщика
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
         const supplier = await prisma.supplier.findUnique({
@@ -35,7 +35,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Create supplier
+// Создание поставщика
 router.post('/', authMiddleware, async (req, res) => {
     try {
         const { name, entityType, inn, phone, email } = req.body;
@@ -57,7 +57,7 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 });
 
-// Update supplier
+// Обновление поставщика
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const { name, entityType, inn, phone, email } = req.body;
@@ -83,7 +83,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Delete supplier
+// Удаление поставщика
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const deletedSupplier = await prisma.supplier.delete({

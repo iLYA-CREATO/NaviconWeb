@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
-    // Add jest compatibility
+    // Добавление совместимости с Jest
     testTimeout: 10000,
   },
   define: {
