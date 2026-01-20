@@ -427,16 +427,16 @@ const BidDetail = () => {
                                         type="text"
                                         value={contract}
                                         onChange={(e) => setContract(e.target.value)}
-                                        className="flex-1 min-w-[150px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="flex-1 min-w-[150px] max-w-[300px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="Номер договора"
                                     />
-                                    <div className="flex gap-2 flex-shrink-0">
+                                    <div className="flex flex-wrap gap-1 sm:gap-2 flex-shrink-0">
                                         <button
                                             onClick={() => {
                                                 handleUpdateBid({ contract });
                                                 setEditingContract(false);
                                             }}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
                                         >
                                             Сохранить
                                         </button>
@@ -445,7 +445,7 @@ const BidDetail = () => {
                                                 setContract(bid.contract || '');
                                                 setEditingContract(false);
                                             }}
-                                            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                            className="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
                                         >
                                             Отмена
                                         </button>
@@ -471,14 +471,14 @@ const BidDetail = () => {
                                         type="text"
                                         value={workAddress}
                                         onChange={(e) => setWorkAddress(e.target.value)}
-                                        className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="flex-1 min-w-[200px] max-w-[400px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="Введите адрес проведения работ"
                                     />
-                                    <div className="flex gap-2 flex-shrink-0">
+                                    <div className="flex flex-wrap gap-1 sm:gap-2 flex-shrink-0">
                                         <button
                                             type="button"
                                             onClick={() => setShowMapModal(true)}
-                                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                            className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
                                             title="Выбрать на карте"
                                         >
                                             🗺️
@@ -488,7 +488,7 @@ const BidDetail = () => {
                                                 handleUpdateBid({ workAddress });
                                                 setEditingWorkAddress(false);
                                             }}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
                                         >
                                             Сохранить
                                         </button>
@@ -497,7 +497,7 @@ const BidDetail = () => {
                                                 setWorkAddress(bid.workAddress || '');
                                                 setEditingWorkAddress(false);
                                             }}
-                                            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg whitespace-nowrap"
+                                            className="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
                                         >
                                             Отмена
                                         </button>
