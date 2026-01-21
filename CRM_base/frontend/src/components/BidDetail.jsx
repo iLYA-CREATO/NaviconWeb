@@ -801,7 +801,7 @@ const BidDetail = () => {
                                                         <td className="px-4 py-2 border-b">{spec.specification.category.name}</td>
                                                         <td className="px-4 py-2 border-b">{spec.specification.name}</td>
                                                         <td className="px-4 py-2 border-b">{spec.specification.cost} руб.</td>
-                                                        <td className="px-4 py-2 border-b">{(spec.specification.cost * discount / 100).toFixed(2)} руб.</td>
+                                                        <td className="px-4 py-2 border-b">{spec.discount || 0}%</td>
                                                         <td className="px-4 py-2 border-b">{spec.executors && spec.executors.length > 0 ? spec.executors.map(e => e.fullName).join(', ') : 'Не назначены'}</td>
                                                         <td className="px-4 py-2 border-b">{spec.comment || '-'}</td>
                                                         <td className="px-4 py-2 border-b">
@@ -842,7 +842,8 @@ const BidDetail = () => {
                                             {(() => {
                                                 const earnings = {};
                                                 bidSpecifications.forEach(spec => {
-                                                    const cost = spec.specification.cost * (1 + discount / 100);
+                                                    const discountRate = spec.discount || 0;
+                                                    const cost = spec.specification.cost * (1 - discountRate / 100);
                                                     const users = spec.executors || [];
                                                     const share = cost / users.length;
                                                     users.forEach(user => {

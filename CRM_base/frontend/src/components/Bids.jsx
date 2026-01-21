@@ -9,9 +9,9 @@
 // Импорт React хуков для управления состоянием и побочными эффектами
 import { useState, useEffect } from 'react';
 // Импорт хука навигации из React Router для программной навигации
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 // Импорт функций API для взаимодействия с серверными сервисами
-import { getBids, createBid, getClients, getClientObjects, getBidTypes } from '../services/api';
+import { getBids, getBid, createBid, getClients, getClientObjects, getBidTypes } from '../services/api';
 // Импорт хука для проверки разрешений
 import { usePermissions } from '../hooks/usePermissions';
 // Импорт компонента карты
@@ -20,6 +20,8 @@ import MapModal from './MapModal';
 const Bids = () => {
     // Хук для навигации между маршрутами
     const navigate = useNavigate();
+    // Хук для получения состояния маршрута
+    const location = useLocation();
     // Хук для проверки разрешений
     const { hasPermission } = usePermissions();
 
@@ -42,7 +44,7 @@ const Bids = () => {
         client: '',
     });
     // Определение всех возможных колонок
-    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'status', 'description'];
+    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationHours', 'spentTimeHours', 'remainingTime'];
     // Загрузка начальных состояний из localStorage
     const savedColumns = localStorage.getItem('bidsVisibleColumns');
     const defaultVisibleColumns = {
@@ -52,6 +54,12 @@ const Bids = () => {
         creatorName: true,
         status: true,
         description: true,
+        plannedResolutionDate: false,
+        plannedReactionTimeMinutes: false,
+        assignedAt: false,
+        plannedDurationHours: false,
+        spentTimeHours: false,
+        remainingTime: false,
     };
     const initialVisibleColumns = savedColumns ? { ...defaultVisibleColumns, ...JSON.parse(savedColumns) } : defaultVisibleColumns;
     const savedOrder = localStorage.getItem('bidsColumnOrder');
@@ -69,6 +77,13 @@ const Bids = () => {
     const [showColumnSettings, setShowColumnSettings] = useState(false);
     // Состояние для показа модального окна карты
     const [showMapModal, setShowMapModal] = useState(false);
+    // Default planned resolution date to 5 days from now
+    const getDefaultPlannedResolutionDate = () => {
+        const fiveDaysFromNow = new Date();
+        fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+        return fiveDaysFromNow.toISOString().slice(0, 16); // Format for datetime-local input
+    };
+
     // Состояние для данных формы при создании новой заявки
     const [formData, setFormData] = useState({
         clientId: '',        // ID of the selected client
@@ -77,6 +92,13 @@ const Bids = () => {
         description: '',     // Description of the bid
         clientObjectId: '',  // Optional ID of the client object (vehicle)
         workAddress: '',     // Address of work execution
+        contactFullName: '', // Contact person's full name
+        contactPhone: '',    // Contact person's phone number
+        parentId: '',        // ID of the parent bid
+        plannedResolutionDate: getDefaultPlannedResolutionDate(), // Planned resolution date (+5 days)
+        plannedReactionTimeMinutes: '', // Planned reaction time in minutes
+        assignedAt: '',      // Assigned date/time
+        plannedDurationHours: '', // Planned duration in hours
     });
 
     // useEffect для загрузки начальных данных при монтировании компонента
@@ -84,8 +106,18 @@ const Bids = () => {
         fetchBids();      // Load all bids
         fetchClients();   // Load all clients for the form dropdown
         fetchBidTypes();  // Load all bid types for the form dropdown
-        setShowForm(false); // Ensure form is hidden initially
-    }, []); // Empty dependency array means this runs only once on mount
+        // Check if we need to show the form from navigation state
+        if (location.state && location.state.showForm) {
+            setShowForm(true);
+            if (location.state.parentId) {
+                setFormData(prev => ({ ...prev, parentId: location.state.parentId }));
+                // Fetch parent bid data to pre-fill the form
+                fetchParentBid(location.state.parentId);
+            }
+        } else {
+            setShowForm(false); // Ensure form is hidden initially
+        }
+    }, [location.state]); // Depend on location.state to react to navigation
 
     // useEffect для сохранения настроек колонок в localStorage
     useEffect(() => {
@@ -132,6 +164,26 @@ const Bids = () => {
             setClients(response.data); // Сохранение данных в состояние
         } catch (error) {
             console.error('Error fetching clients:', error); // Логирование ошибки
+        }
+    };
+
+    // Функция для загрузки данных родительской заявки для предзаполнения формы
+    const fetchParentBid = async (parentId) => {
+        try {
+            const response = await getBid(parentId); // Вызов API для получения родительской заявки
+            const parentBid = response.data;
+            // Предзаполнение формы данными из родительской заявки
+            setFormData(prev => ({
+                ...prev,
+                clientId: parentBid.clientId.toString(),
+                clientObjectId: parentBid.clientObjectId ? parentBid.clientObjectId.toString() : '',
+                bidTypeId: parentBid.bidTypeId ? parentBid.bidTypeId.toString() : '',
+                workAddress: parentBid.workAddress || '',
+                contactFullName: parentBid.contactFullName || '',
+                contactPhone: parentBid.contactPhone || '',
+            }));
+        } catch (error) {
+            console.error('Error fetching parent bid:', error); // Логирование ошибки
         }
     };
 
@@ -195,6 +247,12 @@ const Bids = () => {
             case 'creatorName': return 'Создатель';
             case 'status': return 'Статус';
             case 'description': return 'Описание';
+            case 'plannedResolutionDate': return 'Плановая дата решения';
+            case 'plannedReactionTimeMinutes': return 'Плановое время реакции (мин)';
+            case 'assignedAt': return 'Назначена на';
+            case 'plannedDurationHours': return 'Плановая продолжительность (ч)';
+            case 'spentTimeHours': return 'Затраченное время (ч)';
+            case 'remainingTime': return 'Остаток времени';
             default: return column;
         }
     };
@@ -221,6 +279,22 @@ const Bids = () => {
                 </span>
             );
             case 'description': return <div className="max-w-xs truncate">{bid.description}</div>;
+            case 'plannedResolutionDate': return bid.plannedResolutionDate ? new Date(bid.plannedResolutionDate).toLocaleString() : '';
+            case 'plannedReactionTimeMinutes': return bid.plannedReactionTimeMinutes || '';
+            case 'assignedAt': return bid.assignedAt ? new Date(bid.assignedAt).toLocaleString() : '';
+            case 'plannedDurationHours': return bid.plannedDurationHours || '';
+            case 'spentTimeHours': return bid.spentTimeHours || '';
+            case 'remainingTime': {
+                if (bid.plannedResolutionDate) {
+                    const now = new Date();
+                    const planned = new Date(bid.plannedResolutionDate);
+                    const diffMs = planned - now;
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                    return diffMs > 0 ? `${diffHours}ч ${diffMinutes}м` : 'Просрочено';
+                }
+                return '';
+            }
             default: return '';
         }
     };
@@ -255,6 +329,9 @@ const Bids = () => {
             description: '',
             clientObjectId: '',
             workAddress: '',
+            contactFullName: '',
+            contactPhone: '',
+            parentId: '',
         });
         setClientObjects([]); // Очистка списка объектов
         setShowForm(false); // Скрытие формы
@@ -388,6 +465,64 @@ const Bids = () => {
                                     🗺️ Карта
                                 </button>
                             </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">ФИО и номер телефона</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={formData.contactFullName}
+                                    onChange={(e) => setFormData({ ...formData, contactFullName: e.target.value })}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="ФИО контактного лица"
+                                />
+                                <input
+                                    type="text"
+                                    value={formData.contactPhone}
+                                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Номер телефона"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Плановая дата решения</label>
+                            <input
+                                type="datetime-local"
+                                value={formData.plannedResolutionDate}
+                                onChange={(e) => setFormData({ ...formData, plannedResolutionDate: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Плановое время реакции (мин)</label>
+                            <input
+                                type="number"
+                                value={formData.plannedReactionTimeMinutes}
+                                onChange={(e) => setFormData({ ...formData, plannedReactionTimeMinutes: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                min="0"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Назначена на</label>
+                            <input
+                                type="datetime-local"
+                                value={formData.assignedAt}
+                                onChange={(e) => setFormData({ ...formData, assignedAt: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Плановая продолжительность (ч)</label>
+                            <input
+                                type="number"
+                                step="0.5"
+                                value={formData.plannedDurationHours}
+                                onChange={(e) => setFormData({ ...formData, plannedDurationHours: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                min="0"
+                            />
                         </div>
                         <div className="flex gap-2 pt-4">
                             <button

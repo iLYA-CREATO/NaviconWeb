@@ -72,6 +72,11 @@ router.get('/', authMiddleware, async (req, res) => {
             createdAt: bid.createdAt,
             updatedAt: bid.updatedAt,
             workAddress: bid.workAddress, // Добавляем адрес проведения работ
+            plannedResolutionDate: bid.plannedResolutionDate,
+            plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes,
+            assignedAt: bid.assignedAt,
+            plannedDurationHours: bid.plannedDurationHours,
+            spentTimeHours: bid.spentTimeHours ? parseFloat(bid.spentTimeHours) : null,
         }));
 
         res.json(formattedBids); // Отправляем отформатированные данные
@@ -104,6 +109,20 @@ router.get('/:id', authMiddleware, async (req, res) => {
                     select: {
                         id: true,
                         fullName: true,
+                    },
+                },
+                parent: { // Родительская заявка
+                    select: {
+                        id: true,
+                        tema: true,
+                    },
+                },
+                children: { // Дочерние заявки
+                    select: {
+                        id: true,
+                        tema: true,
+                        status: true,
+                        createdAt: true,
                     },
                 },
                 bidEquipments: {
@@ -283,7 +302,7 @@ router.post('/', authMiddleware, async (req, res) => {
         }
 
         // Извлекаем данные из тела запроса
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, parentId, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours } = req.body;
 
         // Логируем данные, отправленные в заявку
         const bidInputData = {
@@ -298,7 +317,15 @@ router.post('/', authMiddleware, async (req, res) => {
             updDate,
             contract,
             workAddress,
-            createdBy: req.user.id
+            contactFullName,
+            contactPhone,
+            parentId,
+            createdBy: req.user.id,
+            plannedResolutionDate,
+            plannedReactionTimeMinutes,
+            assignedAt,
+            plannedDurationHours,
+            spentTimeHours
         };
         console.log('Создание новой заявки. Данные, отправленные в заявку:', bidInputData);
         logBidData('Создание новой заявки', bidInputData);
@@ -333,17 +360,25 @@ router.post('/', authMiddleware, async (req, res) => {
         const newBid = await prisma.bid.create({
             data: {
                 clientId: parseInt(clientId), // ID клиента
-                bidTypeId: bidTypeId ? parseInt(bidTypeId) : null, // ID типа заявки
+                bidTypeId: bidTypeId && bidTypeId.trim() ? parseInt(bidTypeId) : null, // ID типа заявки
                 tema: title, // Заголовок заявки
-                amount: parseFloat(amount || 0), // Сумма (по умолчанию 0)
+                amount: amount && amount.trim() ? parseFloat(amount) : 0, // Сумма (по умолчанию 0)
                 status: status || 'Открыта', // Статус (по умолчанию 'Открыта')
                 description, // Описание
-                clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // ID объекта клиента (опционально)
+                clientObjectId: clientObjectId && clientObjectId.trim() ? parseInt(clientObjectId) : null, // ID объекта клиента (опционально)
+                parentId: parentId && parentId.trim() ? parseInt(parentId) : null, // ID родительской заявки
                 createdBy: req.user.id, // ID пользователя, создавшего заявку
                 updNumber,
                 updDate: updDate ? new Date(updDate) : null,
                 contract,
                 workAddress,
+                contactFullName,
+                contactPhone,
+                plannedResolutionDate: plannedResolutionDate && plannedResolutionDate.trim() ? new Date(plannedResolutionDate) : null,
+                plannedReactionTimeMinutes: plannedReactionTimeMinutes && plannedReactionTimeMinutes.trim() ? parseInt(plannedReactionTimeMinutes) : null,
+                assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt) : null,
+                plannedDurationHours: plannedDurationHours && plannedDurationHours.trim() ? parseInt(plannedDurationHours) : null,
+                spentTimeHours: spentTimeHours && spentTimeHours.trim() ? parseFloat(spentTimeHours) : null,
             },
             include: { // Включаем связанные данные в ответ
                 client: {
@@ -372,10 +407,10 @@ router.post('/', authMiddleware, async (req, res) => {
 // Обновить заявку
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours } = req.body;
 
         // Логируем данные обновления заявки
-        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress };
+        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours };
         console.log('Обновление заявки ID:', req.params.id, 'Данные:', updateData);
         logBidData('Обновление заявки ID: ' + req.params.id, updateData);
 
@@ -427,17 +462,24 @@ router.put('/:id', authMiddleware, async (req, res) => {
         const updatedBid = await prisma.bid.update({
             where: { id: parseInt(req.params.id) },
             data: {
-                ...(clientId && { clientId: parseInt(clientId) }), // Обновляем клиента если указано
+                ...(clientId && clientId.trim() && { clientId: parseInt(clientId) }), // Обновляем клиента если указано
                 ...(title && { tema: title }), // Обновляем заголовок если указано
-                ...(amount !== undefined && { amount: parseFloat(amount) }), // Обновляем сумму если указано
+                ...(amount !== undefined && amount !== null && { amount: amount && amount.trim() ? parseFloat(amount) : 0 }), // Обновляем сумму если указано
                 ...(status !== undefined && { status }), // Обновляем статус если указано
                 ...(description !== undefined && { description }), // Обновляем описание если указано
-                ...(bidTypeId !== undefined && { bidTypeId: parseInt(bidTypeId) }), // Обновляем тип заявки если указано
-                clientObjectId: clientObjectId ? parseInt(clientObjectId) : null, // Обновляем объект клиента
+                ...(bidTypeId !== undefined && bidTypeId !== null && bidTypeId.trim() && { bidTypeId: parseInt(bidTypeId) }), // Обновляем тип заявки если указано
+                clientObjectId: clientObjectId && clientObjectId.trim() ? parseInt(clientObjectId) : null, // Обновляем объект клиента
                 ...(updNumber !== undefined && { updNumber }), // Обновляем номер УПД если указано
                 ...(updDate !== undefined && { updDate: updDate ? new Date(updDate) : null }), // Обновляем дату УПД если указано
                 ...(contract !== undefined && { contract }), // Обновляем контракт если указано
                 ...(workAddress !== undefined && { workAddress }), // Обновляем адрес проведения работ если указано
+                ...(contactFullName !== undefined && { contactFullName }), // Обновляем ФИО контакта если указано
+                ...(contactPhone !== undefined && { contactPhone }), // Обновляем телефон контакта если указано
+                ...(plannedResolutionDate !== undefined && { plannedResolutionDate: plannedResolutionDate && plannedResolutionDate.trim() ? new Date(plannedResolutionDate) : null }),
+                ...(plannedReactionTimeMinutes !== undefined && { plannedReactionTimeMinutes: plannedReactionTimeMinutes && plannedReactionTimeMinutes.trim() ? parseInt(plannedReactionTimeMinutes) : null }),
+                ...(assignedAt !== undefined && { assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt) : null }),
+                ...(plannedDurationHours !== undefined && { plannedDurationHours: plannedDurationHours && plannedDurationHours.trim() ? parseInt(plannedDurationHours) : null }),
+                ...(spentTimeHours !== undefined && { spentTimeHours: spentTimeHours && spentTimeHours.trim() ? parseFloat(spentTimeHours) : null }),
             },
             include: {
                 client: {
@@ -777,7 +819,7 @@ router.get('/:id/specifications', authMiddleware, async (req, res) => {
 router.post('/:id/specifications', authMiddleware, async (req, res) => {
     try {
         const bidId = parseInt(req.params.id);
-        const { specificationId, executorIds, comment } = req.body;
+        const { specificationId, executorIds, comment, discount } = req.body;
 
         // Проверяем аутентификацию
         if (!req.user || !req.user.id) {
@@ -813,13 +855,16 @@ router.post('/:id/specifications', authMiddleware, async (req, res) => {
         }
 
         // Создаем спецификацию заявки
-        const bidSpecification = await prisma.bidSpecification.create({
-            data: {
-                bidId,
-                specificationId: parseInt(specificationId),
-                executorIds: executorIds ? executorIds.map(id => parseInt(id)) : [],
-                comment: comment || null,
-            },
+        const discountValue = discount !== undefined ? parseFloat(discount) : 0;
+        const bidSpecification = await prisma.$queryRaw`
+            INSERT INTO "BidSpecification" ("bidId", "specificationId", "executorIds", "comment", "discount", "createdAt", "updatedAt")
+            VALUES (${bidId}, ${parseInt(specificationId)}, ${executorIds ? executorIds.map(id => parseInt(id)) : []}, ${comment || null}, ${discountValue}, NOW(), NOW())
+            RETURNING *
+        `;
+
+        // Получаем спецификацию с связанными данными
+        const specWithDetails = await prisma.bidSpecification.findUnique({
+            where: { id: bidSpecification[0].id },
             include: {
                 specification: {
                     include: {
@@ -831,15 +876,16 @@ router.post('/:id/specifications', authMiddleware, async (req, res) => {
 
         // Получаем исполнителей
         let executors = [];
-        if (bidSpecification.executorIds.length > 0) {
+        if (specWithDetails.executorIds.length > 0) {
             executors = await prisma.user.findMany({
-                where: { id: { in: bidSpecification.executorIds } },
+                where: { id: { in: specWithDetails.executorIds } },
                 select: { id: true, fullName: true },
             });
         }
 
         res.status(201).json({
-            ...bidSpecification,
+            ...specWithDetails,
+            discount: bidSpecification[0].discount,
             executors,
         });
     } catch (error) {
@@ -853,7 +899,7 @@ router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
     try {
         const bidId = parseInt(req.params.id);
         const specId = parseInt(req.params.specId);
-        const { executorIds, comment } = req.body;
+        const { executorIds, comment, discount } = req.body;
 
         // Проверяем существование спецификации заявки
         const existingSpec = await prisma.bidSpecification.findUnique({
@@ -875,12 +921,19 @@ router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
         }
 
         // Обновляем спецификацию
-        const updatedSpec = await prisma.bidSpecification.update({
+        const discountValue = discount !== undefined ? parseFloat(discount) : existingSpec.discount;
+        await prisma.$executeRaw`
+            UPDATE "BidSpecification"
+            SET "executorIds" = ${executorIds ? executorIds.map(id => parseInt(id)) : []},
+                "comment" = ${comment || null},
+                "discount" = ${discountValue},
+                "updatedAt" = NOW()
+            WHERE "id" = ${specId}
+        `;
+
+        // Получаем обновленную спецификацию
+        const updatedSpec = await prisma.bidSpecification.findUnique({
             where: { id: specId },
-            data: {
-                executorIds: executorIds ? executorIds.map(id => parseInt(id)) : [],
-                comment: comment || null,
-            },
             include: {
                 specification: {
                     include: {
@@ -901,6 +954,7 @@ router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
 
         res.json({
             ...updatedSpec,
+            discount: discountValue,
             executors,
         });
     } catch (error) {
