@@ -13,6 +13,7 @@ describe('Bids Routes', () => {
   let testUser;
   let testClient;
   let testClientObject;
+  let testBidType;
 
   beforeEach(async () => {
     // Создание тестового пользователя
@@ -25,6 +26,16 @@ describe('Bids Routes', () => {
         username: 'testuser',
         password: hashedPassword,
         email: 'test@example.com'
+      }
+    });
+
+    // Создание тестового типа заявки
+    testBidType = await prisma.bidType.create({
+      data: {
+        name: 'Test Bid Type',
+        description: 'Test description',
+        statuses: [{ name: 'Pending', position: 1, allowedActions: [] }, { name: 'Completed', position: 999, allowedActions: [] }],
+        transitions: []
       }
     });
 
@@ -72,6 +83,7 @@ describe('Bids Routes', () => {
       const bid = await prisma.bid.create({
         data: {
           clientId: testClient.id,
+          bidTypeId: testBidType.id,
           tema: 'Test Bid',
           amount: 1000.50,
           status: 'Pending',
@@ -107,9 +119,10 @@ describe('Bids Routes', () => {
       const bid = await prisma.bid.create({
         data: {
           clientId: testClient.id,
+          bidTypeId: testBidType.id,
           tema: 'Test Bid Details',
           amount: 2000.00,
-          status: 'In Progress',
+          status: 'Pending',
           description: 'Detailed test description',
           clientObjectId: testClientObject.id,
           createdBy: testUser.id
@@ -204,6 +217,7 @@ describe('Bids Routes', () => {
       existingBid = await prisma.bid.create({
         data: {
           clientId: testClient.id,
+          bidTypeId: testBidType.id,
           tema: 'Existing Bid',
           amount: 1000.00,
           status: 'Pending',
@@ -245,8 +259,10 @@ describe('Bids Routes', () => {
       const bid = await prisma.bid.create({
         data: {
           clientId: testClient.id,
+          bidTypeId: testBidType.id,
           tema: 'Bid to Delete',
           amount: 500.00,
+          status: 'Pending',
           createdBy: testUser.id
         }
       });

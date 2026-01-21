@@ -63,29 +63,38 @@ model ClientObject {
  }
 
 model Bid {
-       id          Int      @id @default(autoincrement())
-       clientId    Int
-       bidTypeId   Int
-       tema        String
-       amount      Decimal  @db.Decimal(10, 2)
-       status      String
-       description String?
-       clientObjectId Int?
-       updNumber   String?
-       updDate     DateTime?
-       contract    String?
-       workAddress String?
-       createdBy   Int
-       createdAt   DateTime @default(now())
-       updatedAt   DateTime @updatedAt
-       client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-       bidType     BidType  @relation(fields: [bidTypeId], references: [id])
-       clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
-       creator     User     @relation(fields: [createdBy], references: [id])
-       comments    Comment[]
-       bidSpecifications BidSpecification[]
-       auditLogs   AuditLog[]
-       bidEquipments BidEquipment[]
+        id          Int      @id @default(autoincrement())
+        clientId    Int
+        bidTypeId   Int
+        tema        String
+        amount      Decimal  @db.Decimal(10, 2)
+        status      String
+        description String?
+        clientObjectId Int?
+        updNumber   String?
+        updDate     DateTime?
+        contract    String?
+        workAddress String?
+        parentId    Int?
+        plannedResolutionDate DateTime?
+        plannedReactionTimeMinutes Int?
+        assignedAt  DateTime?
+        plannedDurationHours Decimal? @db.Decimal(5, 2)
+        spentTimeHours Decimal? @db.Decimal(5, 2)
+        secondaryStatus String?
+        createdBy   Int
+        createdAt   DateTime @default(now())
+        updatedAt   DateTime @updatedAt
+        client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+        bidType     BidType  @relation(fields: [bidTypeId], references: [id])
+        clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
+        creator     User     @relation(fields: [createdBy], references: [id])
+        parent      Bid?     @relation("BidHierarchy", fields: [parentId], references: [id])
+        children    Bid[]    @relation("BidHierarchy")
+        comments    Comment[]
+        bidSpecifications BidSpecification[]
+        auditLogs   AuditLog[]
+        bidEquipments BidEquipment[]
 }
 
 model Comment {
@@ -124,15 +133,16 @@ model Specification {
 }
 
 model BidSpecification {
-   id             Int          @id @default(autoincrement())
-   bidId          Int
-   bid            Bid          @relation(fields: [bidId], references: [id], onDelete: Cascade)
-   specificationId Int
-   specification  Specification @relation(fields: [specificationId], references: [id], onDelete: Cascade)
-   executorIds    Int[]
-   comment        String?
-   createdAt      DateTime     @default(now())
-   updatedAt      DateTime     @updatedAt
+    id             Int          @id @default(autoincrement())
+    bidId          Int
+    bid            Bid          @relation(fields: [bidId], references: [id], onDelete: Cascade)
+    specificationId Int
+    specification  Specification @relation(fields: [specificationId], references: [id], onDelete: Cascade)
+    executorIds    Int[]
+    comment        String?
+    discount       Decimal      @db.Decimal(5, 2) @default(0)
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
 }
 
 model Supplier {
@@ -148,15 +158,16 @@ model Supplier {
 
 
 model BidType {
-      id          Int      @id @default(autoincrement())
-      name        String   @unique
-      description String?
-      statuses    Json?
-      transitions Json?
-      createdAt   DateTime @default(now())
-      updatedAt   DateTime @updatedAt
-      bids        Bid[]
-  }
+       id          Int      @id @default(autoincrement())
+       name        String   @unique
+       description String?
+       statuses    Json?
+       transitions Json?
+       secondaryStatuses Json?
+       createdAt   DateTime @default(now())
+       updatedAt   DateTime @updatedAt
+       bids        Bid[]
+   }
 
 
 model AuditLog {

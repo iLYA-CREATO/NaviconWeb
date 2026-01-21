@@ -1,17 +1,25 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
+const prisma = require('../prisma/client');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Получение всех типов заявок
 router.get('/', auth, async (req, res) => {
     try {
+        console.log('Getting all bid types');
         const bidTypes = await prisma.bidType.findMany({
             orderBy: { createdAt: 'desc' }
         });
-        res.json(bidTypes);
+        console.log('Bid types found:', bidTypes.length);
+        // Validate and sanitize the data
+        const sanitizedBidTypes = bidTypes.map(bt => ({
+            ...bt,
+            statuses: Array.isArray(bt.statuses) ? bt.statuses : [],
+            transitions: Array.isArray(bt.transitions) ? bt.transitions : [],
+            secondaryStatuses: Array.isArray(bt.secondaryStatuses) ? bt.secondaryStatuses : []
+        }));
+        res.json(sanitizedBidTypes);
     } catch (error) {
         console.error('Error fetching bid types:', error);
         res.status(500).json({ error: 'Internal server error' });

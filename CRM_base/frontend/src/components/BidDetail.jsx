@@ -44,7 +44,6 @@ const BidDetail = () => {
     const [specifications, setSpecifications] = useState([]);
     const [specCategories, setSpecCategories] = useState([]);
     const [expandedCategories, setExpandedCategories] = useState(new Set());
-    const [discount, setDiscount] = useState(0);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [history, setHistory] = useState([]);
     const [updNumber, setUpdNumber] = useState('');
@@ -764,15 +763,6 @@ const BidDetail = () => {
                                     >
                                         Добавить спецификацию
                                     </button>
-                                    <div className="flex items-center space-x-2">
-                                        <label className="text-sm font-medium text-gray-700">Скидка (%):</label>
-                                        <input
-                                            type="number"
-                                            value={discount}
-                                            onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                                            className="w-20 px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
                                 </div>
                                 {bidSpecifications.length > 0 ? (
                                     <div className="overflow-x-auto">
@@ -1013,6 +1003,11 @@ const BidDetail = () => {
                             </div>
 
                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Скидка</label>
+                                <p className="text-gray-900">{viewingSpec.discount || 0}%</p>
+                            </div>
+
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Исполнители</label>
                                 <p className="text-gray-900">
                                     {viewingSpec.executors && viewingSpec.executors.length > 0
@@ -1118,6 +1113,7 @@ const SpecificationModal = ({
     const [executorIds, setExecutorIds] = useState(editingSpec?.executorIds || []);
     const [selectedExecutor, setSelectedExecutor] = useState('');
     const [comment, setComment] = useState(editingSpec?.comment || '');
+    const [discount, setDiscount] = useState(editingSpec?.discount || 0);
 
     const selectedSpec = specifications.find(s => s.id === parseInt(selectedSpecId));
 
@@ -1142,6 +1138,7 @@ const SpecificationModal = ({
             specificationId: selectedSpecId,
             executorIds: executorIds,
             comment: comment.trim() || null,
+            discount: parseFloat(discount) || 0,
         });
     };
 
@@ -1237,14 +1234,35 @@ const SpecificationModal = ({
                 {selectedSpec && (
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Стоимость</label>
-                        <input
-                            type="text"
-                            value={`${selectedSpec.cost} руб.`}
-                            readOnly
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                        />
+                        <div className="space-y-1">
+                            <input
+                                type="text"
+                                value={`${selectedSpec.cost} руб.`}
+                                readOnly
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                            />
+                            {discount > 0 && (
+                                <div className="text-sm text-gray-600">
+                                    С учетом скидки: {(selectedSpec.cost * (1 - discount / 100)).toFixed(2)} руб.
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
+
+                {/* Discount */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Скидка (%)</label>
+                    <input
+                        type="number"
+                        value={discount}
+                        onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                        min="0"
+                        max="100"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0"
+                    />
+                </div>
 
                 {/* Executors */}
                 <div className="mb-4">

@@ -31,6 +31,7 @@ const logBidData = (action, data) => {
 // Получить все заявки
 router.get('/', authMiddleware, async (req, res) => {
     try {
+        console.log('Getting all bids');
         // Получаем все заявки из базы данных, сортируем по дате создания (новые сначала)
         const bids = await prisma.bid.findMany({
             orderBy: { createdAt: 'desc' }, // Сортировка по убыванию даты
@@ -55,6 +56,7 @@ router.get('/', authMiddleware, async (req, res) => {
                         fullName: true,
                     },
                 },
+                // bidType: true, // Не нужно, так как не используется в форматировании
             },
         });
 
@@ -62,13 +64,13 @@ router.get('/', authMiddleware, async (req, res) => {
         const formattedBids = bids.map(bid => ({
             id: bid.id,
             clientId: bid.clientId,
-            clientName: bid.client.name, // Добавляем имя клиента отдельно
+            clientName: bid.client ? bid.client.name : 'Клиент не найден', // Добавляем имя клиента отдельно
             title: bid.tema,
             amount: parseFloat(bid.amount), // Преобразуем в число
             status: bid.status,
             description: bid.description,
             clientObject: bid.clientObject,
-            creatorName: bid.creator.fullName, // Добавляем ФИО создателя
+            creatorName: bid.creator ? bid.creator.fullName : 'Создатель не найден', // Добавляем ФИО создателя
             createdAt: bid.createdAt,
             updatedAt: bid.updatedAt,
             workAddress: bid.workAddress, // Добавляем адрес проведения работ
@@ -89,6 +91,7 @@ router.get('/', authMiddleware, async (req, res) => {
 // Получить одну заявку по ID
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
+        console.log('Getting bid with ID:', req.params.id);
         // Ищем заявку по ID с полными связанными данными
         const bid = await prisma.bid.findUnique({
             where: { id: parseInt(req.params.id) }, // Преобразуем ID в число
@@ -170,16 +173,24 @@ router.get('/:id', authMiddleware, async (req, res) => {
         }
 
         // Определяем текущий статус
-        const currentStatus = bid.bidType?.statuses?.find(s => s.name === bid.status) || null;
+        let currentStatus = null;
+        if (bid.bidType?.statuses && Array.isArray(bid.bidType.statuses)) {
+            currentStatus = bid.bidType.statuses.find(s => s.name === bid.status) || null;
+        }
 
         // Получаем ответственного за текущий статус типа заявки
         let bidTypeResponsibleName = null;
         if (currentStatus?.responsibleUserId) {
-            const responsibleUser = await prisma.user.findUnique({
-                where: { id: parseInt(currentStatus.responsibleUserId) },
-                select: { fullName: true },
-            });
-            bidTypeResponsibleName = responsibleUser ? responsibleUser.fullName : 'Не указан';
+            try {
+                const responsibleUser = await prisma.user.findUnique({
+                    where: { id: parseInt(currentStatus.responsibleUserId) },
+                    select: { fullName: true },
+                });
+                bidTypeResponsibleName = responsibleUser ? responsibleUser.fullName : 'Не указан';
+            } catch (error) {
+                console.error('Error finding responsible user:', error);
+                bidTypeResponsibleName = 'Ошибка получения данных';
+            }
         }
 
         // Определяем сроки обработки на основе типа заявки и статуса
