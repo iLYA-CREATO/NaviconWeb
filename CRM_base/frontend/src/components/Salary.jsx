@@ -15,6 +15,8 @@ const Salary = () => {
 
     // Состояние для списка пользователей
     const [users, setUsers] = useState([]);
+    // Состояние для загрузки пользователей
+    const [usersLoading, setUsersLoading] = useState(false);
     // Состояние для данных формы
     const [formData, setFormData] = useState({
         startDate: '',

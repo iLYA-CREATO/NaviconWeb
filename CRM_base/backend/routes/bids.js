@@ -79,6 +79,7 @@ router.get('/', authMiddleware, async (req, res) => {
             assignedAt: bid.assignedAt,
             plannedDurationHours: bid.plannedDurationHours,
             spentTimeHours: bid.spentTimeHours ? parseFloat(bid.spentTimeHours) : null,
+            parentId: bid.parentId, // Добавляем ID родительской заявки
         }));
 
         res.json(formattedBids); // Отправляем отформатированные данные

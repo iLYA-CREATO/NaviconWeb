@@ -146,4 +146,53 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
+// Bulk upload clients
+router.post('/bulk-upload', authMiddleware, async (req, res) => {
+    try {
+        const { clients } = req.body;
+
+        if (!Array.isArray(clients) || clients.length === 0) {
+            return res.status(400).json({ message: 'Clients array is required' });
+        }
+
+        const createdClients = [];
+        const errors = [];
+
+        for (let i = 0; i < clients.length; i++) {
+            const clientData = clients[i];
+            try {
+                // Validate required fields
+                if (!clientData.name) {
+                    errors.push({ row: i + 1, error: 'Название is required' });
+                    continue;
+                }
+
+                const newClient = await prisma.client.create({
+                    data: {
+                        name: clientData.name,
+                        email: clientData.email || null,
+                        phone: clientData.phone || null,
+                        responsibleId: clientData.responsibleId ? parseInt(clientData.responsibleId) : null,
+                        createdAt: clientData.createdAt ? new Date(clientData.createdAt) : new Date(),
+                    },
+                });
+                createdClients.push(newClient);
+            } catch (error) {
+                console.error(`Error creating client at row ${i + 1}:`, error);
+                errors.push({ row: i + 1, error: error.message });
+            }
+        }
+
+        res.status(201).json({
+            message: `Successfully created ${createdClients.length} clients`,
+            created: createdClients.length,
+            errors: errors.length,
+            errorDetails: errors
+        });
+    } catch (error) {
+        console.error('Bulk upload clients error:', error);
+        res.status(500).json({ message: 'Server error during bulk upload' });
+    }
+});
+
 module.exports = router;

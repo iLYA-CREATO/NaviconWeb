@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
-import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition } from '../services/api';
+import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients } from '../services/api';
+import * as XLSX from 'xlsx';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -123,6 +124,8 @@ const Settings = () => {
         allowedActions: [],
     });
     const [editingStatusPosition, setEditingStatusPosition] = useState(null);
+    const [showClientUploadModal, setShowClientUploadModal] = useState(false);
+    const fileInputRef = useRef(null);
 
     const calculateNextPosition = (statuses) => {
         const existingPositions = statuses.map(s => s.position).sort((a, b) => a - b);
@@ -714,6 +717,49 @@ const Settings = () => {
             }
             return newSet;
         });
+    };
+
+    const handleFileUpload = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            // Process the data - map Excel columns to client fields
+            const clients = jsonData.map(row => ({
+                name: row['Название'] || row['Name'] || '',
+                inn: row['ИНН'] || row['INN'] || '',
+                email: row['Электронная почта'] || row['Email'] || '',
+                phone: row['Телефон'] || row['Phone'] || '',
+                createdAt: row['Дата создания'] || row['Created Date'] || new Date().toISOString(),
+                responsibleId: row['Пользователь'] || row['User'] || user?.id
+            }));
+
+            // Send the data to the backend API
+            try {
+                const response = await bulkUploadClients({ clients });
+                setNotification({
+                    type: 'success',
+                    message: `Успешно загружено ${response.data.created} клиентов${response.data.errors > 0 ? `, ошибок: ${response.data.errors}` : ''}`
+                });
+                setShowClientUploadModal(false);
+            } catch (error) {
+                console.error('Bulk upload error:', error);
+                setNotification({ type: 'error', message: 'Ошибка при загрузке клиентов' });
+            }
+
+        } catch (error) {
+            console.error('Error processing file:', error);
+            setNotification({ type: 'error', message: 'Ошибка при обработке файла' });
+        }
     };
 
     const buildSpecificationsTree = (categories, specifications, level = 0) => {
@@ -2226,10 +2272,56 @@ const Settings = () => {
                     <div className="bg-white rounded-lg shadow p-6">
                         <div className="space-y-4">
                             <button
+                                onClick={() => setShowClientUploadModal(true)}
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                             >
                                 Загрузка клиентов
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal for Client Upload */}
+            {showClientUploadModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <div className="p-6">
+                            <h3 className="text-lg font-semibold mb-4">Загрузка клиентов</h3>
+                            <div className="mb-4">
+                                <p className="text-sm text-gray-600 mb-2">
+                                    Выберите Excel файл с данными клиентов. Файл должен содержать следующие столбцы:
+                                </p>
+                                <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                                    <li>Название - название клиента</li>
+                                    <li>ИНН - ИНН клиента</li>
+                                    <li>Электронная почта - email клиента</li>
+                                    <li>Телефон - телефон клиента</li>
+                                    <li>Дата создания - дата создания записи</li>
+                                    <li>Пользователь - ответственный пользователь</li>
+                                </ul>
+                            </div>
+                            <div className="flex gap-2 pt-4">
+                                <button
+                                    onClick={handleFileUpload}
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                >
+                                    Загрузить файл
+                                </button>
+                                <button
+                                    onClick={() => setShowClientUploadModal(false)}
+                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                >
+                                    Отмена
+                                </button>
+                            </div>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept=".xlsx,.xls"
+                                style={{ display: 'none' }}
+                            />
                         </div>
                     </div>
                 </div>

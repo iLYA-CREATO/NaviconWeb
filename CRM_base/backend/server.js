@@ -33,10 +33,10 @@ const app = express();
 // === Middleware ===
 // Разрешение CORS для всех доменов (в продакшене лучше настроить конкретные домены)
 app.use(cors());
-// Парсинг JSON тела запросов
-app.use(express.json());
+// Парсинг JSON тела запросов (увеличен лимит для bulk операций)
+app.use(express.json({ limit: '50mb' }));
 // Парсинг URL-encoded данных (для форм)
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // === Регистрация маршрутов API ===
 // Все маршруты доступны по префиксу /api

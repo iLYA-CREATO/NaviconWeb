@@ -65,6 +65,7 @@ export const getClient = (id) => api.get(`/clients/${id}`); // Получени�
 export const createClient = (data) => api.post('/clients', data); // Создание нового клиента
 export const updateClient = (id, data) => api.put(`/clients/${id}`, data); // Обновление клиента
 export const deleteClient = (id) => api.delete(`/clients/${id}`); // Удаление клиента
+export const bulkUploadClients = (data) => api.post('/clients/bulk-upload', data); // Массовый импорт клиентов
 
 // === ЗАЯВКИ ===
 // CRUD-операции для заявок

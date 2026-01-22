@@ -62,6 +62,7 @@ const BidDetail = () => {
     const [showMapModal, setShowMapModal] = useState(false);
     const [childBids, setChildBids] = useState([]);
     const [showCreateChildBidModal, setShowCreateChildBidModal] = useState(false);
+    const [isCloneMode, setIsCloneMode] = useState(false);
     const [clients, setClients] = useState([]);
     const [clientObjects, setClientObjects] = useState([]);
     const [bidTypes, setBidTypes] = useState([]);
@@ -489,7 +490,7 @@ const BidDetail = () => {
                 workAddress: childBidFormData.workAddress,
                 contactFullName: childBidFormData.contactFullName,
                 contactPhone: childBidFormData.contactPhone,
-                parentId: parseInt(id),
+                parentId: isCloneMode ? null : parseInt(id),
                 plannedResolutionDate: childBidFormData.plannedResolutionDate,
                 plannedReactionTimeMinutes: childBidFormData.plannedReactionTimeMinutes,
                 assignedAt: childBidFormData.assignedAt,
@@ -499,6 +500,7 @@ const BidDetail = () => {
 
             await createBid(newBidData);
             setShowCreateChildBidModal(false);
+            setIsCloneMode(false);
             setChildBidFormData({
                 clientId: '',
                 title: '',
@@ -515,9 +517,11 @@ const BidDetail = () => {
                 plannedDurationHours: '',
                 amount: 0,
             });
-            fetchChildBids(); // Refresh the child bids list
+            if (!isCloneMode) {
+                fetchChildBids(); // Refresh the child bids list only for child bids
+            }
         } catch (error) {
-            console.error('Error creating child bid:', error);
+            console.error('Error creating bid:', error);
             alert('Ошибка при создании дочерней заявки.');
         }
     };
@@ -562,37 +566,6 @@ const BidDetail = () => {
                     >
                         <span className="text-blue-500 mr-1 font-bold">←</span> Назад
                     </button>
-                    {hasPermission('bid_create') && (
-                        <button
-                            onClick={() => {
-                                // Pre-fill form with parent bid data except title
-                                setChildBidFormData({
-                                    clientId: bid.clientId.toString(),
-                                    title: '',
-                                    bidTypeId: bid.bidTypeId ? bid.bidTypeId.toString() : '',
-                                    description: bid.description || '',
-                                    clientObjectId: bid.clientObjectId ? bid.clientObjectId.toString() : '',
-                                    workAddress: bid.workAddress || '',
-                                    contactFullName: bid.contactFullName || '',
-                                    contactPhone: bid.contactPhone || '',
-                                    parentId: id,
-                                    plannedResolutionDate: getDefaultPlannedResolutionDate(),
-                                    plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes ? bid.plannedReactionTimeMinutes.toString() : '',
-                                    assignedAt: bid.assignedAt ? new Date(bid.assignedAt).toISOString().slice(0, 16) : '',
-                                    plannedDurationHours: bid.plannedDurationHours ? bid.plannedDurationHours.toString() : '',
-                                    amount: bid.amount || 0,
-                                });
-                                // Load client objects for the selected client
-                                if (bid.clientId) {
-                                    fetchClientObjects(bid.clientId.toString());
-                                }
-                                setShowCreateChildBidModal(true);
-                            }}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            Создать заявку
-                        </button>
-                    )}
                 </div>
 
                 {/* Header with bid number and theme */}
@@ -630,6 +603,17 @@ const BidDetail = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Заявку составил/ла</label>
                             <p className="text-gray-900 text-lg">{bid.creatorName}</p>
                         </div>
+                        {bid.parent && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Родительская заявка</label>
+                                <p
+                                    className="text-gray-900 text-lg cursor-pointer hover:text-blue-600 transition"
+                                    onClick={() => navigate(`/dashboard/bids/${bid.parent.id}`)}
+                                >
+                                    №{bid.parent.id} {bid.parent.tema}
+                                </p>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">№, дата УПД</label>
                             <p className="text-gray-900">{updNumber || 'Не указан'} {updDate ? new Date(updDate).toLocaleDateString('ru-RU') : ''}</p>
@@ -926,6 +910,7 @@ const BidDetail = () => {
                                             <thead>
                                                 <tr className="bg-gray-50">
                                                     <th className="px-4 py-2 border-b text-left">ID</th>
+                                                    <th className="px-4 py-2 border-b text-left">Тип</th>
                                                     <th className="px-4 py-2 border-b text-left">Тема</th>
                                                     <th className="px-4 py-2 border-b text-left">Статус</th>
                                                     <th className="px-4 py-2 border-b text-left">Создано</th>
@@ -940,6 +925,7 @@ const BidDetail = () => {
                                                         onClick={() => navigate(`/dashboard/bids/${childBid.id}`)}
                                                     >
                                                         <td className="px-4 py-2 border-b">{childBid.id}</td>
+                                                        <td className="px-4 py-2 border-b">Дочерняя заявка</td>
                                                         <td className="px-4 py-2 border-b">{childBid.title}</td>
                                                         <td className="px-4 py-2 border-b">{childBid.status}</td>
                                                         <td className="px-4 py-2 border-b">
@@ -1151,6 +1137,74 @@ const BidDetail = () => {
                         История
                     </button>
                 </div>
+                {hasPermission('bid_create') && (
+                    <>
+                        <div className='p-2'>
+                            <button
+                                onClick={() => {
+                                    // Pre-fill form with parent bid data except title
+                                    setChildBidFormData({
+                                        clientId: bid.clientId.toString(),
+                                        title: '',
+                                        bidTypeId: bid.bidTypeId ? bid.bidTypeId.toString() : '',
+                                        description: bid.description || '',
+                                        clientObjectId: bid.clientObjectId ? bid.clientObjectId.toString() : '',
+                                        workAddress: bid.workAddress || '',
+                                        contactFullName: bid.contactFullName || '',
+                                        contactPhone: bid.contactPhone || '',
+                                        parentId: id,
+                                        plannedResolutionDate: getDefaultPlannedResolutionDate(),
+                                        plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes ? bid.plannedReactionTimeMinutes.toString() : '',
+                                        assignedAt: bid.assignedAt ? new Date(bid.assignedAt).toISOString().slice(0, 16) : '',
+                                        plannedDurationHours: bid.plannedDurationHours ? bid.plannedDurationHours.toString() : '',
+                                        amount: bid.amount || 0,
+                                    });
+                                    // Load client objects for the selected client
+                                    if (bid.clientId) {
+                                        fetchClientObjects(bid.clientId.toString());
+                                    }
+                                    setIsCloneMode(false);
+                                    setShowCreateChildBidModal(true);
+                                }}
+                                className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                Создать заявку
+                            </button>
+                        </div>
+                        <div className='p-2'>
+                            <button
+                                onClick={() => {
+                                    // Pre-fill form with current bid data for cloning
+                                    setChildBidFormData({
+                                        clientId: bid.clientId.toString(),
+                                        title: bid.tema || '',
+                                        bidTypeId: bid.bidTypeId ? bid.bidTypeId.toString() : '',
+                                        description: bid.description || '',
+                                        clientObjectId: bid.clientObjectId ? bid.clientObjectId.toString() : '',
+                                        workAddress: bid.workAddress || '',
+                                        contactFullName: bid.contactFullName || '',
+                                        contactPhone: bid.contactPhone || '',
+                                        parentId: '',
+                                        plannedResolutionDate: getDefaultPlannedResolutionDate(),
+                                        plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes ? bid.plannedReactionTimeMinutes.toString() : '',
+                                        assignedAt: bid.assignedAt ? new Date(bid.assignedAt).toISOString().slice(0, 16) : '',
+                                        plannedDurationHours: bid.plannedDurationHours ? bid.plannedDurationHours.toString() : '',
+                                        amount: bid.amount || 0,
+                                    });
+                                    // Load client objects for the selected client
+                                    if (bid.clientId) {
+                                        fetchClientObjects(bid.clientId.toString());
+                                    }
+                                    setIsCloneMode(true);
+                                    setShowCreateChildBidModal(true);
+                                }}
+                                className="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                Клонировать заявку
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
 
 
@@ -1317,7 +1371,7 @@ const BidDetail = () => {
             {showCreateChildBidModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-xl font-bold mb-4">Создать дочернюю заявку</h3>
+                        <h3 className="text-xl font-bold mb-4">{isCloneMode ? 'Клонировать заявку' : 'Создать дочернюю заявку'}</h3>
                         <form onSubmit={handleCreateChildBid} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
