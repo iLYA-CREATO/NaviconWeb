@@ -373,11 +373,11 @@ router.post('/', authMiddleware, async (req, res) => {
                 clientId: parseInt(clientId), // ID клиента
                 bidTypeId: bidTypeId && bidTypeId.trim() ? parseInt(bidTypeId) : null, // ID типа заявки
                 tema: title, // Заголовок заявки
-                amount: amount && amount.trim() ? parseFloat(amount) : 0, // Сумма (по умолчанию 0)
+                amount: (amount !== undefined && amount !== null && amount.toString().trim() !== '') ? parseFloat(amount) : 0, // Сумма (по умолчанию 0)
                 status: status || 'Открыта', // Статус (по умолчанию 'Открыта')
                 description, // Описание
                 clientObjectId: clientObjectId && clientObjectId.trim() ? parseInt(clientObjectId) : null, // ID объекта клиента (опционально)
-                parentId: parentId && parentId.trim() ? parseInt(parentId) : null, // ID родительской заявки
+                parentId: parentId && parentId.toString().trim() ? parseInt(parentId) : null, // ID родительской заявки
                 createdBy: req.user.id, // ID пользователя, создавшего заявку
                 updNumber,
                 updDate: updDate ? new Date(updDate) : null,
@@ -385,9 +385,9 @@ router.post('/', authMiddleware, async (req, res) => {
                 workAddress,
                 contactFullName,
                 contactPhone,
-                plannedResolutionDate: plannedResolutionDate && plannedResolutionDate.trim() ? new Date(plannedResolutionDate) : null,
+                plannedResolutionDate: plannedResolutionDate && plannedResolutionDate.trim() ? new Date(plannedResolutionDate.length === 16 ? plannedResolutionDate + ':00' : plannedResolutionDate) : null,
                 plannedReactionTimeMinutes: plannedReactionTimeMinutes && plannedReactionTimeMinutes.trim() ? parseInt(plannedReactionTimeMinutes) : null,
-                assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt) : null,
+                assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt.length === 16 ? assignedAt + ':00' : assignedAt) : null,
                 plannedDurationHours: plannedDurationHours && plannedDurationHours.trim() ? parseInt(plannedDurationHours) : null,
                 spentTimeHours: spentTimeHours && spentTimeHours.trim() ? parseFloat(spentTimeHours) : null,
             },
@@ -411,7 +411,8 @@ router.post('/', authMiddleware, async (req, res) => {
         });
     } catch (error) {
         console.error('Create bid error:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error details:', error.message, error.code, error.meta);
+        res.status(500).json({ message: 'Server error', details: error.message });
     }
 });
 
@@ -475,7 +476,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
             data: {
                 ...(clientId && clientId.trim() && { clientId: parseInt(clientId) }), // Обновляем клиента если указано
                 ...(title && { tema: title }), // Обновляем заголовок если указано
-                ...(amount !== undefined && amount !== null && { amount: amount && amount.trim() ? parseFloat(amount) : 0 }), // Обновляем сумму если указано
+                ...(amount !== undefined && amount !== null && { amount: (amount !== undefined && amount !== null && amount.toString().trim() !== '') ? parseFloat(amount) : 0 }), // Обновляем сумму если указано
                 ...(status !== undefined && { status }), // Обновляем статус если указано
                 ...(description !== undefined && { description }), // Обновляем описание если указано
                 ...(bidTypeId !== undefined && bidTypeId !== null && bidTypeId.trim() && { bidTypeId: parseInt(bidTypeId) }), // Обновляем тип заявки если указано
@@ -486,9 +487,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 ...(workAddress !== undefined && { workAddress }), // Обновляем адрес проведения работ если указано
                 ...(contactFullName !== undefined && { contactFullName }), // Обновляем ФИО контакта если указано
                 ...(contactPhone !== undefined && { contactPhone }), // Обновляем телефон контакта если указано
-                ...(plannedResolutionDate !== undefined && { plannedResolutionDate: plannedResolutionDate && plannedResolutionDate.trim() ? new Date(plannedResolutionDate) : null }),
+                ...(plannedResolutionDate !== undefined && { plannedResolutionDate: plannedResolutionDate && plannedResolutionDate.trim() ? new Date(plannedResolutionDate.length === 16 ? plannedResolutionDate + ':00' : plannedResolutionDate) : null }),
                 ...(plannedReactionTimeMinutes !== undefined && { plannedReactionTimeMinutes: plannedReactionTimeMinutes && plannedReactionTimeMinutes.trim() ? parseInt(plannedReactionTimeMinutes) : null }),
-                ...(assignedAt !== undefined && { assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt) : null }),
+                ...(assignedAt !== undefined && { assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt.length === 16 ? assignedAt + ':00' : assignedAt) : null }),
                 ...(plannedDurationHours !== undefined && { plannedDurationHours: plannedDurationHours && plannedDurationHours.trim() ? parseInt(plannedDurationHours) : null }),
                 ...(spentTimeHours !== undefined && { spentTimeHours: spentTimeHours && spentTimeHours.trim() ? parseFloat(spentTimeHours) : null }),
             },

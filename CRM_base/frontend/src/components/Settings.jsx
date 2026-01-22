@@ -71,11 +71,6 @@ const Settings = () => {
             equipment_delete: false,
 
             // Права вкладок
-            equipment_create: false,
-            equipment_edit: false,
-            equipment_delete: false,
-
-            // Права вкладок
             tab_warehouse: false,
             tab_salary: false,
 
@@ -146,6 +141,7 @@ const Settings = () => {
             { id: 'specification-categories', permission: 'settings_spec_category_button' },
             { id: 'specifications', permission: 'settings_spec_button' },
             { id: 'bid-types', permission: 'settings_bid_type_button' },
+            { id: 'administration', permission: 'settings_administration_button' },
         ];
 
         const firstAvailableTab = availableTabs.find(tab => hasPermission(tab.permission));
@@ -214,6 +210,9 @@ const Settings = () => {
                 if (bidTypes.length === 0 && hasPermission('bid_type_create')) {
                     fetchBidTypes();
                 }
+                break;
+            case 'administration':
+                // Административные функции - данные не требуются
                 break;
             default:
                 break;
@@ -1190,6 +1189,7 @@ const Settings = () => {
                                             settings_spec_category_button: false,
                                             settings_spec_button: false,
                                             settings_bid_type_button: false,
+                                            settings_administration_button: false,
                                         }
                                     });
                                 }}
@@ -2214,6 +2214,24 @@ const Settings = () => {
                             </form>
                         </div>
                     )}
+                </div>
+            )}
+
+            {activeSettingsTab === 'administration' && (
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">Администрирование</h2>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <div className="space-y-4">
+                            <button
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                Загрузка клиентов
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

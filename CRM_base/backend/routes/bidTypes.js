@@ -16,8 +16,7 @@ router.get('/', auth, async (req, res) => {
         const sanitizedBidTypes = bidTypes.map(bt => ({
             ...bt,
             statuses: Array.isArray(bt.statuses) ? bt.statuses : [],
-            transitions: Array.isArray(bt.transitions) ? bt.transitions : [],
-            secondaryStatuses: Array.isArray(bt.secondaryStatuses) ? bt.secondaryStatuses : []
+            transitions: Array.isArray(bt.transitions) ? bt.transitions : []
         }));
         res.json(sanitizedBidTypes);
     } catch (error) {

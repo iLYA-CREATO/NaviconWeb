@@ -75,13 +75,14 @@ model Bid {
         updDate     DateTime?
         contract    String?
         workAddress String?
+        contactFullName String?
+        contactPhone String?
         parentId    Int?
         plannedResolutionDate DateTime?
         plannedReactionTimeMinutes Int?
         assignedAt  DateTime?
         plannedDurationHours Decimal? @db.Decimal(5, 2)
         spentTimeHours Decimal? @db.Decimal(5, 2)
-        secondaryStatus String?
         createdBy   Int
         createdAt   DateTime @default(now())
         updatedAt   DateTime @updatedAt
@@ -163,7 +164,6 @@ model BidType {
        description String?
        statuses    Json?
        transitions Json?
-       secondaryStatuses Json?
        createdAt   DateTime @default(now())
        updatedAt   DateTime @updatedAt
        bids        Bid[]

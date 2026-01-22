@@ -198,17 +198,7 @@ async function main() {
             description: 'Монтажник',
         },
     });
-    console.log('✅ Created role:', installerRole);
 
-    const userRole = await prisma.role.upsert({
-        where: { name: 'Пользователь' },
-        update: {},
-        create: {
-            name: 'Пользователь',
-            description: 'Пользователь',
-        },
-    });
-    console.log('✅ Created role:', userRole);
     // Создание типа заявки по умолчанию
     const defaultBidType = await prisma.bidType.upsert({
         where: { name: 'Стандартная заявка' },
@@ -225,7 +215,6 @@ async function main() {
             ]
         },
     });
-    console.log('✅ Created bid type:', defaultBidType);
 
     // Хэширование пароля
     const hashedPassword = await bcrypt.hash('123', 10);
@@ -249,7 +238,7 @@ async function main() {
 
 
     // Менеджеры
-    const managerUser1 = await prisma.user.upsert({
+    const managerOlga = await prisma.user.upsert({
         where: { username: 'Olga' },
         update: {
             fullName: 'Кречетова Ольга',
@@ -264,7 +253,7 @@ async function main() {
             role: 'Менеджер',
         },
     });
-    const managerUser2 = await prisma.user.upsert({
+    const managerNasty = await prisma.user.upsert({
         where: { username: 'Nasty999' },
         update: {
             fullName: 'Горбунова Анастасия',
@@ -279,7 +268,7 @@ async function main() {
             role: 'Менеджер',
         },
     });
-    const managerUser3 = await prisma.user.upsert({
+    const managerVV = await prisma.user.upsert({
         where: { username: 'VV' },
         update: {
             fullName: 'Василенко Вадим',
@@ -294,7 +283,7 @@ async function main() {
             role: 'Менеджер',
         },
     });
-    const managerUser4 = await prisma.user.upsert({
+    const managerCV = await prisma.user.upsert({
         where: { username: 'CV' },
         update: {
             fullName: 'Стариков Вадим',
@@ -369,7 +358,7 @@ async function main() {
             amount: 50000,
             status: 'Открыта',
             description: 'Complete website redesign project',
-            createdBy: adminUser.id,
+            createdBy: managerNasty.id,
         },
     });
     console.log('✅ Created bid:', bid1);
@@ -382,10 +371,25 @@ async function main() {
             amount: 120000,
             status: 'Открыта',
             description: 'Выдача оборудования',
-            createdBy: adminUser.id,
+            createdBy: managerOlga.id,
         },
     });
     console.log('✅ Created bid:', bid2);
+
+    // Создание дочерней заявки
+    const childBid = await prisma.bid.create({
+        data: {
+            clientId: client1.id,
+            bidTypeId: defaultBidType.id,
+            tema: 'Дочерняя заявка - Уточнение деталей',
+            amount: 25000,
+            status: 'Открыта',
+            description: 'Дочерняя заявка для уточнения технических деталей',
+            parentId: bid1.id,
+            createdBy: adminUser.id,
+        },
+    });
+    console.log('✅ Created child bid:', childBid);
 
     // Создание демо-объектов клиентов
     const object1 = await prisma.clientObject.create({

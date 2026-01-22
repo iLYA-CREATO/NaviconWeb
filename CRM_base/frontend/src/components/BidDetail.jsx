@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment } from '../services/api';
+import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 // Импорт хука для проверки разрешений
@@ -60,6 +60,28 @@ const BidDetail = () => {
     const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
     const [editingEquipment, setEditingEquipment] = useState(null);
     const [showMapModal, setShowMapModal] = useState(false);
+    const [childBids, setChildBids] = useState([]);
+    const [showCreateChildBidModal, setShowCreateChildBidModal] = useState(false);
+    const [clients, setClients] = useState([]);
+    const [clientObjects, setClientObjects] = useState([]);
+    const [bidTypes, setBidTypes] = useState([]);
+    const [showMapModalForChild, setShowMapModalForChild] = useState(false);
+    const [childBidFormData, setChildBidFormData] = useState({
+        clientId: '',
+        title: '',
+        bidTypeId: '',
+        description: '',
+        clientObjectId: '',
+        workAddress: '',
+        contactFullName: '',
+        contactPhone: '',
+        parentId: '',
+        plannedResolutionDate: '',
+        plannedReactionTimeMinutes: '',
+        assignedAt: '',
+        plannedDurationHours: '',
+        amount: 0,
+    });
 
     useEffect(() => {
         fetchBid();
@@ -71,6 +93,9 @@ const BidDetail = () => {
         fetchSpecifications();
         fetchSpecCategories();
         fetchHistory();
+        fetchChildBids();
+        fetchClients();
+        fetchBidTypes();
     }, [id]);
 
     useEffect(() => {
@@ -79,6 +104,11 @@ const BidDetail = () => {
             fetchBidStatusTransitions();
         }
     }, [bid]);
+
+    useEffect(() => {
+        fetchClientObjects(childBidFormData.clientId);
+        setChildBidFormData(prev => ({ ...prev, clientObjectId: '' }));
+    }, [childBidFormData.clientId]);
     useEffect(() => {
         if (bid) {
             setUpdNumber(bid.updNumber || '');
@@ -205,6 +235,49 @@ const BidDetail = () => {
             setHistory(response.data);
         } catch (error) {
             console.error('Error fetching bid history:', error);
+        }
+    };
+
+    const fetchChildBids = async () => {
+        try {
+            // Use the existing getBids API but filter by parentId
+            const response = await getBids();
+            const childBids = response.data.filter(b => b.parentId === parseInt(id));
+            setChildBids(childBids);
+        } catch (error) {
+            console.error('Error fetching child bids:', error);
+        }
+    };
+
+    const fetchClients = async () => {
+        try {
+            const response = await getClients();
+            setClients(response.data);
+        } catch (error) {
+            console.error('Error fetching clients:', error);
+        }
+    };
+
+    const fetchClientObjects = async (clientId) => {
+        if (!clientId) {
+            setClientObjects([]);
+            return;
+        }
+        try {
+            const response = await getClientObjects(clientId);
+            setClientObjects(response.data);
+        } catch (error) {
+            console.error('Error fetching client objects:', error);
+            setClientObjects([]);
+        }
+    };
+
+    const fetchBidTypes = async () => {
+        try {
+            const response = await getBidTypes();
+            setBidTypes(response.data);
+        } catch (error) {
+            console.error('Error fetching bid types:', error);
         }
     };
 
@@ -391,6 +464,64 @@ const BidDetail = () => {
         setEditingWorkAddress(false);
     };
 
+    const getDefaultPlannedResolutionDate = () => {
+        const fiveDaysFromNow = new Date();
+        fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+        return fiveDaysFromNow.toISOString().slice(0, 16);
+    };
+
+    const handleAddressSelectForChild = (address) => {
+        setChildBidFormData({ ...childBidFormData, workAddress: address });
+    };
+
+    const handleCreateChildBid = async (e) => {
+        e.preventDefault();
+        if (!childBidFormData.title.trim()) return;
+
+        try {
+            const newBidData = {
+                clientId: childBidFormData.clientId,
+                title: childBidFormData.title,
+                description: childBidFormData.description,
+                bidTypeId: childBidFormData.bidTypeId,
+                amount: childBidFormData.amount,
+                clientObjectId: childBidFormData.clientObjectId || null,
+                workAddress: childBidFormData.workAddress,
+                contactFullName: childBidFormData.contactFullName,
+                contactPhone: childBidFormData.contactPhone,
+                parentId: parseInt(id),
+                plannedResolutionDate: childBidFormData.plannedResolutionDate,
+                plannedReactionTimeMinutes: childBidFormData.plannedReactionTimeMinutes,
+                assignedAt: childBidFormData.assignedAt,
+                plannedDurationHours: childBidFormData.plannedDurationHours,
+                status: 'Открыта',
+            };
+
+            await createBid(newBidData);
+            setShowCreateChildBidModal(false);
+            setChildBidFormData({
+                clientId: '',
+                title: '',
+                bidTypeId: '',
+                description: '',
+                clientObjectId: '',
+                workAddress: '',
+                contactFullName: '',
+                contactPhone: '',
+                parentId: '',
+                plannedResolutionDate: getDefaultPlannedResolutionDate(),
+                plannedReactionTimeMinutes: '',
+                assignedAt: '',
+                plannedDurationHours: '',
+                amount: 0,
+            });
+            fetchChildBids(); // Refresh the child bids list
+        } catch (error) {
+            console.error('Error creating child bid:', error);
+            alert('Ошибка при создании дочерней заявки.');
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -424,13 +555,51 @@ const BidDetail = () => {
     return (
         <div className="flex min-h-screen">
             <div className="flex-1 p-4">
-                <div className="flex items-center">
+                <div className="flex items-center justify-between mb-4">
                     <button
                         onClick={() => navigate('/dashboard/bids')}
-                        className="w-full text-black text-sm px-2 py-1 flex items-center"
+                        className="text-black text-sm px-2 py-1 flex items-center"
                     >
                         <span className="text-blue-500 mr-1 font-bold">←</span> Назад
                     </button>
+                    {hasPermission('bid_create') && (
+                        <button
+                            onClick={() => {
+                                // Pre-fill form with parent bid data except title
+                                setChildBidFormData({
+                                    clientId: bid.clientId.toString(),
+                                    title: '',
+                                    bidTypeId: bid.bidTypeId ? bid.bidTypeId.toString() : '',
+                                    description: bid.description || '',
+                                    clientObjectId: bid.clientObjectId ? bid.clientObjectId.toString() : '',
+                                    workAddress: bid.workAddress || '',
+                                    contactFullName: bid.contactFullName || '',
+                                    contactPhone: bid.contactPhone || '',
+                                    parentId: id,
+                                    plannedResolutionDate: getDefaultPlannedResolutionDate(),
+                                    plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes ? bid.plannedReactionTimeMinutes.toString() : '',
+                                    assignedAt: bid.assignedAt ? new Date(bid.assignedAt).toISOString().slice(0, 16) : '',
+                                    plannedDurationHours: bid.plannedDurationHours ? bid.plannedDurationHours.toString() : '',
+                                    amount: bid.amount || 0,
+                                });
+                                // Load client objects for the selected client
+                                if (bid.clientId) {
+                                    fetchClientObjects(bid.clientId.toString());
+                                }
+                                setShowCreateChildBidModal(true);
+                            }}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                        >
+                            Создать заявку
+                        </button>
+                    )}
+                </div>
+
+                {/* Header with bid number and theme */}
+                <div className="mb-4">
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        №{bid.id} {bid.tema}
+                    </h1>
                 </div>
 
                 <div className="bg-white rounded-lg shadow p-4">
@@ -750,8 +919,51 @@ const BidDetail = () => {
                             </div>
                         )}
                         {activeTab === 'nested' && (
-                            <div className="text-center py-8">
-                                <p className="text-gray-500">Вложенные заявки в разработке</p>
+                            <div>
+                                {childBids.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full bg-white border border-gray-300">
+                                            <thead>
+                                                <tr className="bg-gray-50">
+                                                    <th className="px-4 py-2 border-b text-left">ID</th>
+                                                    <th className="px-4 py-2 border-b text-left">Тема</th>
+                                                    <th className="px-4 py-2 border-b text-left">Статус</th>
+                                                    <th className="px-4 py-2 border-b text-left">Создано</th>
+                                                    <th className="px-4 py-2 border-b text-left">Действия</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {childBids.map(childBid => (
+                                                    <tr
+                                                        key={childBid.id}
+                                                        className="hover:bg-gray-50 cursor-pointer"
+                                                        onClick={() => navigate(`/dashboard/bids/${childBid.id}`)}
+                                                    >
+                                                        <td className="px-4 py-2 border-b">{childBid.id}</td>
+                                                        <td className="px-4 py-2 border-b">{childBid.title}</td>
+                                                        <td className="px-4 py-2 border-b">{childBid.status}</td>
+                                                        <td className="px-4 py-2 border-b">
+                                                            {new Date(childBid.createdAt).toLocaleDateString('ru-RU')}
+                                                        </td>
+                                                        <td className="px-4 py-2 border-b">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigate(`/dashboard/bids/${childBid.id}`);
+                                                                }}
+                                                                className="text-blue-500 hover:text-blue-700"
+                                                            >
+                                                                Перейти
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-center py-4">Вложенных заявок нет</p>
+                                )}
                             </div>
                         )}
                         {activeTab === 'spec' && (
@@ -1092,6 +1304,164 @@ const BidDetail = () => {
                     </div>
                 </div>
             )}
+
+            {/* Map Modal */}
+            <MapModal
+                isOpen={showMapModal}
+                onClose={() => setShowMapModal(false)}
+                onAddressSelect={handleAddressSelect}
+                initialAddress={workAddress}
+            />
+
+            {/* Create Child Bid Modal */}
+            {showCreateChildBidModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-xl font-bold mb-4">Создать дочернюю заявку</h3>
+                        <form onSubmit={handleCreateChildBid} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
+                                <select
+                                    value={childBidFormData.clientId}
+                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, clientId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                >
+                                    <option value="">Выберите клиента</option>
+                                    {clients.map((client) => (
+                                        <option key={client.id} value={client.id}>
+                                            {client.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Объект обслуживания</label>
+                                <select
+                                    value={childBidFormData.clientObjectId}
+                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, clientObjectId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">
+                                        {childBidFormData.clientId ? 'Выберите объект (необязательно)' : 'Сначала выберите клиента'}
+                                    </option>
+                                    {clientObjects.map((obj) => (
+                                        <option key={obj.id} value={obj.id}>
+                                            {obj.brandModel} {obj.stateNumber ? `(${obj.stateNumber})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Тема</label>
+                                <input
+                                    type="text"
+                                    value={childBidFormData.title}
+                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, title: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Тип заявки</label>
+                                <select
+                                    value={childBidFormData.bidTypeId}
+                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, bidTypeId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                >
+                                    <option value="">Выберите тип заявки</option>
+                                    {bidTypes.map((bidType) => (
+                                        <option key={bidType.id} value={bidType.id}>
+                                            {bidType.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                                <textarea
+                                    value={childBidFormData.description}
+                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, description: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows="3"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Адрес проведения работ</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={childBidFormData.workAddress}
+                                        onChange={(e) => setChildBidFormData({ ...childBidFormData, workAddress: e.target.value })}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Введите адрес проведения работ"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowMapModalForChild(true)}
+                                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition whitespace-nowrap"
+                                        title="Выбрать на карте"
+                                    >
+                                        🗺️ Карта
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">ФИО и номер телефона</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={childBidFormData.contactFullName}
+                                        onChange={(e) => setChildBidFormData({ ...childBidFormData, contactFullName: e.target.value })}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="ФИО контактного лица"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={childBidFormData.contactPhone}
+                                        onChange={(e) => setChildBidFormData({ ...childBidFormData, contactPhone: e.target.value })}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Номер телефона"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Плановая дата решения</label>
+                                <input
+                                    type="datetime-local"
+                                    value={childBidFormData.plannedResolutionDate}
+                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, plannedResolutionDate: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="flex justify-end space-x-2 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateChildBidModal(false)}
+                                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                                >
+                                    Создать
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Map Modal for Child Bid */}
+            <MapModal
+                isOpen={showMapModalForChild}
+                onClose={() => setShowMapModalForChild(false)}
+                onAddressSelect={handleAddressSelectForChild}
+                initialAddress={childBidFormData.workAddress}
+            />
         </div>
     );
 };
@@ -1434,14 +1804,6 @@ const EquipmentModal = ({
                     </button>
                 </div>
             </div>
-
-            {/* Map Modal */}
-            <MapModal
-                isOpen={showMapModal}
-                onClose={() => setShowMapModal(false)}
-                onAddressSelect={handleAddressSelect}
-                initialAddress={workAddress}
-            />
         </div>
     );
 };

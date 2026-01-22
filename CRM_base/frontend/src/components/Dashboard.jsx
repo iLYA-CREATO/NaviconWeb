@@ -34,6 +34,7 @@ const Dashboard = () => {
         { id: 'specification-categories', permission: 'settings_spec_category_button', label: 'Категории спецификаций' },
         { id: 'specifications', permission: 'settings_spec_button', label: 'Спецификации' },
         { id: 'bid-types', permission: 'settings_bid_type_button', label: 'Тип Заявки' },
+        { id: 'administration', permission: 'settings_administration_button', label: 'Администрирование' },
     ];
 
     // Установка активной вкладки на первую доступную при входе на страницу настроек
@@ -63,7 +64,7 @@ const Dashboard = () => {
                         {/* Навигация по вкладкам настроек */}
                         <nav className="space-y-2">
                             {availableSettingsTabs
-                                .filter(tab => hasPermission(tab.permission))
+                                .filter(tab => hasPermission(tab.permission) || user?.role === 'Админ')
                                 .map(tab => (
                                     <button
                                         key={tab.id}
