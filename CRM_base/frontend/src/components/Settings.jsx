@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
-import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients } from '../services/api';
+import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients } from '../services/api';
 import * as XLSX from 'xlsx';
 import BackupManagement from './BackupManagement.jsx';
 
@@ -765,6 +765,46 @@ const Settings = () => {
         } catch (error) {
             console.error('Error processing file:', error);
             setNotification({ type: 'error', message: 'Ошибка при обработке файла' });
+        }
+    };
+
+    const handleExportClients = async () => {
+        try {
+            // Fetch all clients without filters
+            const response = await getClients();
+            const clients = response.data;
+
+            // Prepare data for Excel export
+            const exportData = clients.map(client => ({
+                'Название': client.name || '',
+                'ИНН': client.inn || '',
+                'Электронная почта': client.email || '',
+                'Телефон': client.phone || '',
+                'Дата создания': client.createdAt ? new Date(client.createdAt).toLocaleDateString('ru-RU') : '',
+                'Пользователь': client.responsible ? (client.responsible.fullName || client.responsible.username) : 'Не назначен',
+                'Количество заявок': client._count?.bids || 0,
+                'Количество объектов': client._count?.clientObjects || 0
+            }));
+
+            // Create workbook and worksheet
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Клиенты');
+
+            // Generate filename with current date
+            const currentDate = new Date().toISOString().split('T')[0];
+            const filename = `клиенты_${currentDate}.xlsx`;
+
+            // Save file
+            XLSX.writeFile(workbook, filename);
+
+            setNotification({
+                type: 'success',
+                message: `Экспорт завершен. Скачано ${clients.length} клиентов.`
+            });
+        } catch (error) {
+            console.error('Export error:', error);
+            setNotification({ type: 'error', message: 'Ошибка при экспорте клиентов' });
         }
     };
 
@@ -2345,15 +2385,57 @@ const Settings = () => {
                     </div>
 
                     <div className="space-y-6">
-                        {/* Client Upload Card */}
+                        {/* Client Upload/Export Card */}
                         <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-lg font-semibold mb-4">Загрузка клиентов</h3>
-                            <button
-                                onClick={() => setShowClientUploadModal(true)}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                Загрузить клиентов из файла
-                            </button>
+                            <h3 className="text-lg font-semibold mb-4">Управление клиентами</h3>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setShowClientUploadModal(true)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Импорт клиентов
+                                </button>
+                                <button
+                                    onClick={handleExportClients}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Экспорт клиентов
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Object Management Card */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-semibold mb-4">Управление Объектами</h3>
+                            <div className="flex gap-4">
+                                <button
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Импорт объектов
+                                </button>
+                                <button
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Экспорт объектов
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Bid Management Card */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-semibold mb-4">Управление заявками</h3>
+                            <div className="flex gap-4">
+                                <button
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Импорт заявок
+                                </button>
+                                <button
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Экспорт заявок
+                                </button>
+                            </div>
                         </div>
 
                         {/* Backup Management Card */}
