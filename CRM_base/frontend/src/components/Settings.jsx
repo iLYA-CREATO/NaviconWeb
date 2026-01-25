@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients } from '../services/api';
 import * as XLSX from 'xlsx';
+import BackupManagement from './BackupManagement.jsx';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -87,6 +88,7 @@ const Settings = () => {
     const [roles, setRoles] = useState([]);
     const [editingUser, setEditingUser] = useState(null);
     const [notification, setNotification] = useState(null);
+    const [loadingRoles, setLoadingRoles] = useState(false);
     const [specifications, setSpecifications] = useState([]);
     const [showSpecificationForm, setShowSpecificationForm] = useState(false);
     const [editingSpecification, setEditingSpecification] = useState(null);
@@ -232,12 +234,16 @@ const Settings = () => {
     };
 
     const fetchRoles = async () => {
+        if (loadingRoles) return; // Prevent multiple calls
+        setLoadingRoles(true);
         try {
             const response = await getRoles();
             setRoles(response.data);
         } catch (error) {
             console.error('Error fetching roles:', error);
             setRoles([]);
+        } finally {
+            setLoadingRoles(false);
         }
     };
 
@@ -903,10 +909,11 @@ const Settings = () => {
                         ))}
                     </div>
                 )}
+    
+    
             </div>
         );
     };
-
     return (
         <div className="p-8 relative">
             {/* Toast Notification */}
@@ -1236,6 +1243,13 @@ const Settings = () => {
                                             settings_spec_button: false,
                                             settings_bid_type_button: false,
                                             settings_administration_button: false,
+
+                                            // Права бэкапов
+                                            backup_create: false,
+                                            backup_list: false,
+                                            backup_download: false,
+                                            backup_restore: false,
+                                            backup_delete: false,
                                         }
                                     });
                                 }}
@@ -1705,6 +1719,67 @@ const Settings = () => {
                                                         className="mr-2"
                                                     />
                                                     Видеть кнопку "Тип Заявки"
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.settings_administration_button}
+                                                        onChange={(e) => handlePermissionChange('settings_administration_button', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Видеть кнопку "Администрирование"
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Права бэкапов */}
+                                        <div className="bg-green-50 p-4 rounded-lg">
+                                            <h5 className="font-medium mb-3 text-green-800">Бэкапы</h5>
+                                            <div className="space-y-2">
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.backup_create}
+                                                        onChange={(e) => handlePermissionChange('backup_create', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Создание бэкапов
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.backup_list}
+                                                        onChange={(e) => handlePermissionChange('backup_list', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Просмотр списка бэкапов
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.backup_download}
+                                                        onChange={(e) => handlePermissionChange('backup_download', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Скачивание бэкапов
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.backup_restore}
+                                                        onChange={(e) => handlePermissionChange('backup_restore', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Восстановление из бэкапов
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.backup_delete}
+                                                        onChange={(e) => handlePermissionChange('backup_delete', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Удаление бэкапов
                                                 </label>
                                             </div>
                                         </div>
@@ -2269,14 +2344,21 @@ const Settings = () => {
                         <h2 className="text-2xl font-bold text-gray-800">Администрирование</h2>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <div className="space-y-4">
+                    <div className="space-y-6">
+                        {/* Client Upload Card */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h3 className="text-lg font-semibold mb-4">Загрузка клиентов</h3>
                             <button
                                 onClick={() => setShowClientUploadModal(true)}
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                             >
-                                Загрузка клиентов
+                                Загрузить клиентов из файла
                             </button>
+                        </div>
+
+                        {/* Backup Management Card */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <BackupManagement />
                         </div>
                     </div>
                 </div>

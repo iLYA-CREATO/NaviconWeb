@@ -26,6 +26,13 @@ const specificationRoutes = require('./routes/specifications'); // Маршру�
 const specificationCategoryRoutes = require('./routes/specificationCategories'); // Маршруты категорий спецификаций
 const salaryRoutes = require('./routes/salary'); // Маршруты зарплаты
 const bidEquipmentRoutes = require('./routes/bidEquipment'); // Маршруты оборудования заявок
+const backupRoutes = require('./routes/backups'); // Маршруты бэкапов
+
+// Импорт node-cron для автоматических бэкапов
+const cron = require('node-cron');
+const { exec } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
 // Создание экземпляра Express приложения
 const app = express();
@@ -53,11 +60,40 @@ app.use('/api/specifications', specificationRoutes); // /api/specifications/*
 app.use('/api/specification-categories', specificationCategoryRoutes); // /api/specification-categories/*
 app.use('/api/salary', salaryRoutes); // /api/salary/*
 app.use('/api/bid-equipment', bidEquipmentRoutes); // /api/bid-equipment/*
+app.use('/api/backups', backupRoutes); // /api/backups/*
 
 // === Health check endpoint ===
 // Проверка работоспособности сервера
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Navicon API работает с Prisma + PostgreSQL' });
+});
+
+// Функция для создания автоматического бэкапа
+function createScheduledBackup() {
+    const dbConfig = parseDatabaseUrl(process.env.DATABASE_URL);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `scheduled-backup-${timestamp}.sql`;
+    const filepath = path.join(BACKUP_DIR, filename);
+
+    // Команда pg_dump
+    const pgDumpCommand = `pg_dump --host=${dbConfig.host} --port=${dbConfig.port} --username=${dbConfig.username} --dbname=${dbConfig.database} --no-password --format=c --compress=9 --file="${filepath}"`;
+
+    // Устанавливаем пароль в переменную окружения
+    const env = { ...process.env, PGPASSWORD: dbConfig.password };
+
+    exec(pgDumpCommand, { env }, (error, stdout, stderr) => {
+        if (error) {
+            console.error('Ошибка создания автоматического бэкапа:', error);
+        } else {
+            console.log(`✅ Автоматический бэкап создан: ${filename}`);
+        }
+    });
+}
+
+// Настройка автоматических бэкапов (ежедневно в 2:00)
+cron.schedule('0 2 * * *', () => {
+    console.log('🔄 Запуск автоматического бэкапа...');
+    createScheduledBackup();
 });
 
 // Получение порта из переменных окружения или значение по умолчанию
@@ -67,5 +103,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
     console.log(`📊 Используется Prisma ORM с PostgreSQL`);
+    console.log(`💾 Автоматические бэкапы настроены (ежедневно в 2:00)`);
     // Тест перезапуска
 });

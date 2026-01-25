@@ -187,4 +187,23 @@ export const deleteSpecificationCategory = (id) => api.delete(`/specification-ca
 // Отчет по зарплате
 export const getSalaryReport = (params) => api.get('/salary/report', { params }); // Получение отчета по зарплате
 
+// === БЭКАПЫ ===
+export const createBackup = () => api.post('/backups/create'); // Создание бэкапа
+export const getBackups = () => api.get('/backups/list'); // Получение списка бэкапов
+export const downloadBackup = (filename) => api.get(`/backups/download/${filename}`, { responseType: 'blob' }); // Скачивание бэкапа
+export const restoreBackup = (data) => {
+    if (data instanceof FormData) {
+        // Восстановление из файла
+        return api.post('/backups/restore', data, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    } else {
+        // Восстановление из существующего бэкапа
+        return api.post('/backups/restore', { filename: data });
+    }
+}; // Восстановление из бэкапа
+export const deleteBackup = (filename) => api.delete(`/backups/${filename}`); // Удаление бэкапа
+
 export default api;
