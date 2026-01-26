@@ -967,54 +967,52 @@ const BidDetail = () => {
                                         <table className="min-w-full bg-white border border-gray-300">
                                             <thead>
                                                 <tr className="bg-gray-50">
-                                                    <th className="px-4 py-2 border-b text-left">Категория</th>
-                                                    <th className="px-4 py-2 border-b text-left">Спецификация</th>
-                                                    <th className="px-4 py-2 border-b text-left">Стоимость</th>
+                                                    <th className="px-4 py-2 border-b text-left">№</th>
+                                                    <th className="px-4 py-2 border-b text-left">Название</th>
                                                     <th className="px-4 py-2 border-b text-left">%</th>
-                                                    <th className="px-4 py-2 border-b text-left">Исполнители</th>
-                                                    <th className="px-4 py-2 border-b text-left">Комментарий</th>
+                                                    <th className="px-4 py-2 border-b text-left">Стоимость</th>
+                                                    <th className="px-4 py-2 border-b text-left">Исполнитель</th>
                                                     <th className="px-4 py-2 border-b text-left">Действия</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {bidSpecifications.map(spec => (
-                                                    <tr
-                                                        key={spec.id}
-                                                        className="hover:bg-gray-50 cursor-pointer"
-                                                        onClick={() => {
-                                                            setViewingSpec(spec);
-                                                            setShowViewSpecModal(true);
-                                                        }}
-                                                    >
-                                                        <td className="px-4 py-2 border-b">{spec.specification.category.name}</td>
-                                                        <td className="px-4 py-2 border-b">{spec.specification.name}</td>
-                                                        <td className="px-4 py-2 border-b">{spec.specification.cost} руб.</td>
-                                                        <td className="px-4 py-2 border-b">{spec.discount || 0}%</td>
-                                                        <td className="px-4 py-2 border-b">{spec.executors && spec.executors.length > 0 ? spec.executors.map(e => e.fullName).join(', ') : 'Не назначены'}</td>
-                                                        <td className="px-4 py-2 border-b">{spec.comment || '-'}</td>
-                                                        <td className="px-4 py-2 border-b">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setEditingSpec(spec);
-                                                                    setShowAddSpecModal(true);
-                                                                }}
-                                                                className="text-blue-500 hover:text-blue-700 mr-2"
-                                                            >
-                                                                Редактировать
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleDeleteSpec(spec.id);
-                                                                }}
-                                                                className="text-red-500 hover:text-red-700"
-                                                            >
-                                                                Удалить
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {bidSpecifications.map((spec, index) => (
+                                                     <tr
+                                                         key={spec.id}
+                                                         className="hover:bg-gray-50 cursor-pointer"
+                                                         onClick={() => {
+                                                             setViewingSpec(spec);
+                                                             setShowViewSpecModal(true);
+                                                         }}
+                                                     >
+                                                         <td className="px-4 py-2 border-b">{index + 1}</td>
+                                                         <td className="px-4 py-2 border-b">{spec.specification.name}</td>
+                                                         <td className="px-4 py-2 border-b">{spec.discount || 0}%</td>
+                                                         <td className="px-4 py-2 border-b">{(spec.specification.cost * (1 - (spec.discount || 0) / 100)).toFixed(2)} руб.</td>
+                                                         <td className="px-4 py-2 border-b">{spec.executors && spec.executors.length > 0 ? spec.executors.map(e => e.fullName).join(', ') : 'Не назначены'}</td>
+                                                         <td className="px-4 py-2 border-b">
+                                                             <button
+                                                                 onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     setEditingSpec(spec);
+                                                                     setShowAddSpecModal(true);
+                                                                 }}
+                                                                 className="text-blue-500 hover:text-blue-700 mr-2"
+                                                             >
+                                                                 Редактировать
+                                                             </button>
+                                                             <button
+                                                                 onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     handleDeleteSpec(spec.id);
+                                                                 }}
+                                                                 className="text-red-500 hover:text-red-700"
+                                                             >
+                                                                 Удалить
+                                                             </button>
+                                                         </td>
+                                                     </tr>
+                                                 ))}
                                             </tbody>
                                         </table>
                                     </div>
@@ -1264,8 +1262,15 @@ const BidDetail = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Стоимость</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Стандартная цена(руб)</label>
                                 <p className="text-gray-900">{viewingSpec.specification.cost} руб.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Цена с учётом скидки(руб)</label>
+                                <p className="text-green-600 font-semibold">
+                                    {Math.round(viewingSpec.specification.cost * (1 - (viewingSpec.discount || 0) / 100))} руб.
+                                </p>
                             </div>
 
                             <div>
@@ -1283,10 +1288,6 @@ const BidDetail = () => {
                                 </p>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
-                                <p className="text-gray-900">{viewingSpec.comment || 'Нет комментария'}</p>
-                            </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Дата создания</label>
@@ -1536,7 +1537,6 @@ const SpecificationModal = ({
     const [selectedSpecId, setSelectedSpecId] = useState(editingSpec?.specificationId || '');
     const [executorIds, setExecutorIds] = useState(editingSpec?.executorIds || []);
     const [selectedExecutor, setSelectedExecutor] = useState('');
-    const [comment, setComment] = useState(editingSpec?.comment || '');
     const [discount, setDiscount] = useState(editingSpec?.discount || 0);
 
     const selectedSpec = specifications.find(s => s.id === parseInt(selectedSpecId));
@@ -1561,7 +1561,6 @@ const SpecificationModal = ({
         onSave({
             specificationId: selectedSpecId,
             executorIds: executorIds,
-            comment: comment.trim() || null,
             discount: parseFloat(discount) || 0,
         });
     };
@@ -1665,7 +1664,7 @@ const SpecificationModal = ({
                                 readOnly
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
                             />
-                            {discount > 0 && (
+                            {discount !== 0 && (
                                 <div className="text-sm text-gray-600">
                                     С учетом скидки: {(selectedSpec.cost * (1 - discount / 100)).toFixed(2)} руб.
                                 </div>
@@ -1681,8 +1680,6 @@ const SpecificationModal = ({
                         type="number"
                         value={discount}
                         onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                        min="0"
-                        max="100"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="0"
                     />
@@ -1732,17 +1729,6 @@ const SpecificationModal = ({
                     )}
                 </div>
 
-                {/* Comment */}
-                <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
-                    <textarea
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        placeholder="Введите комментарий..."
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
 
                 {/* Buttons */}
                 <div className="flex justify-end space-x-2">

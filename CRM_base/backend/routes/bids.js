@@ -870,8 +870,8 @@ router.post('/:id/specifications', authMiddleware, async (req, res) => {
         // Создаем спецификацию заявки
         const discountValue = discount !== undefined ? parseFloat(discount) : 0;
         const bidSpecification = await prisma.$queryRaw`
-            INSERT INTO "BidSpecification" ("bidId", "specificationId", "executorIds", "comment", "discount", "createdAt", "updatedAt")
-            VALUES (${bidId}, ${parseInt(specificationId)}, ${executorIds ? executorIds.map(id => parseInt(id)) : []}, ${comment || null}, ${discountValue}, NOW(), NOW())
+            INSERT INTO "BidSpecification" ("bidId", "specificationId", "executorIds", "discount", "createdAt", "updatedAt")
+            VALUES (${bidId}, ${parseInt(specificationId)}, ${executorIds ? executorIds.map(id => parseInt(id)) : []}, ${discountValue}, NOW(), NOW())
             RETURNING *
         `;
 
@@ -938,7 +938,6 @@ router.put('/:id/specifications/:specId', authMiddleware, async (req, res) => {
         await prisma.$executeRaw`
             UPDATE "BidSpecification"
             SET "executorIds" = ${executorIds ? executorIds.map(id => parseInt(id)) : []},
-                "comment" = ${comment || null},
                 "discount" = ${discountValue},
                 "updatedAt" = NOW()
             WHERE "id" = ${specId}

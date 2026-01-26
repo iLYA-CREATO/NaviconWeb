@@ -44,12 +44,13 @@ const Bids = () => {
         client: '',
     });
     // Определение всех возможных колонок
-    const allColumns = ['id', 'clientName', 'title', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationHours', 'spentTimeHours', 'remainingTime'];
+    const allColumns = ['id', 'clientName', 'clientObject', 'title', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationHours', 'spentTimeHours', 'remainingTime'];
     // Загрузка начальных состояний из localStorage
     const savedColumns = localStorage.getItem('bidsVisibleColumns');
     const defaultVisibleColumns = {
         id: true,
         clientName: true,
+        clientObject: true,
         title: true,
         creatorName: true,
         status: true,
@@ -64,6 +65,13 @@ const Bids = () => {
     const initialVisibleColumns = savedColumns ? { ...defaultVisibleColumns, ...JSON.parse(savedColumns) } : defaultVisibleColumns;
     const savedOrder = localStorage.getItem('bidsColumnOrder');
     let initialColumnOrder = savedOrder ? JSON.parse(savedOrder).filter(col => allColumns.includes(col)) : allColumns;
+
+    // Ensure all new columns are included in the order
+    allColumns.forEach(col => {
+        if (!initialColumnOrder.includes(col)) {
+            initialColumnOrder.push(col);
+        }
+    });
 
     // Убедимся что статус включен в порядок колонок
     if (!initialColumnOrder.includes('status')) {
@@ -243,6 +251,7 @@ const Bids = () => {
         switch (column) {
             case 'id': return '№';
             case 'clientName': return 'Клиент';
+            case 'clientObject': return 'Объект обслуживания';
             case 'title': return 'Тема';
             case 'creatorName': return 'Создатель';
             case 'status': return 'Статус';
@@ -271,6 +280,7 @@ const Bids = () => {
         switch (column) {
             case 'id': return `№ ${bid.id}`;
             case 'clientName': return bid.clientName;
+            case 'clientObject': return bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '';
             case 'title': return bid.title;
             case 'creatorName': return bid.creatorName;
             case 'status': return (

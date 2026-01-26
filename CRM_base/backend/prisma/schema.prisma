@@ -134,16 +134,15 @@ model Specification {
 }
 
 model BidSpecification {
-    id             Int          @id @default(autoincrement())
-    bidId          Int
-    bid            Bid          @relation(fields: [bidId], references: [id], onDelete: Cascade)
-    specificationId Int
-    specification  Specification @relation(fields: [specificationId], references: [id], onDelete: Cascade)
-    executorIds    Int[]
-    comment        String?
-    discount       Decimal      @db.Decimal(5, 2) @default(0)
-    createdAt      DateTime     @default(now())
-    updatedAt      DateTime     @updatedAt
+     id             Int          @id @default(autoincrement())
+     bidId          Int
+     bid            Bid          @relation(fields: [bidId], references: [id], onDelete: Cascade)
+     specificationId Int
+     specification  Specification @relation(fields: [specificationId], references: [id], onDelete: Cascade)
+     executorIds    Int[]
+     discount       Decimal      @db.Decimal(5, 2) @default(0)
+     createdAt      DateTime     @default(now())
+     updatedAt      DateTime     @updatedAt
 }
 
 model Supplier {

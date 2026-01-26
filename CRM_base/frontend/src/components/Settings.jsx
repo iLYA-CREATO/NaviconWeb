@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
-import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients } from '../services/api';
+import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients, getBids, getClientObjects, bulkUploadClientObjects } from '../services/api';
 import * as XLSX from 'xlsx';
 import BackupManagement from './BackupManagement.jsx';
 
@@ -127,7 +127,9 @@ const Settings = () => {
     });
     const [editingStatusPosition, setEditingStatusPosition] = useState(null);
     const [showClientUploadModal, setShowClientUploadModal] = useState(false);
+    const [showClientObjectUploadModal, setShowClientObjectUploadModal] = useState(false);
     const fileInputRef = useRef(null);
+    const clientObjectFileInputRef = useRef(null);
 
     const calculateNextPosition = (statuses) => {
         const existingPositions = statuses.map(s => s.position).sort((a, b) => a - b);
@@ -808,6 +810,138 @@ const Settings = () => {
         }
     };
 
+    const handleExportBids = async () => {
+        try {
+            // Fetch all bids
+            const response = await getBids();
+            const bids = response.data;
+
+            // Prepare data for Excel export
+            const exportData = bids.map(bid => ({
+                'ID': bid.id || '',
+                'Клиент': bid.client?.name || '',
+                'Тип заявки': bid.bidType?.name || '',
+                'Тема': bid.tema || '',
+                'Сумма': bid.amount || '',
+                'Статус': bid.status || '',
+                'Описание': bid.description || '',
+                'Объект обслуживания': bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber}` : '',
+                'Адрес работы': bid.workAddress || '',
+                'Контактное лицо': bid.contactFullName || '',
+                'Контактный телефон': bid.contactPhone || '',
+                'Дата создания': bid.createdAt ? new Date(bid.createdAt).toLocaleDateString('ru-RU') : '',
+                'Создал': bid.createdByUser?.fullName || '',
+            }));
+
+            // Create workbook and worksheet
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Заявки');
+
+            // Generate filename with current date
+            const currentDate = new Date().toISOString().split('T')[0];
+            const filename = `заявки_${currentDate}.xlsx`;
+
+            // Save file
+            XLSX.writeFile(workbook, filename);
+
+            setNotification({
+                type: 'success',
+                message: `Экспорт завершен. Скачано ${bids.length} заявок.`
+            });
+        } catch (error) {
+            console.error('Export error:', error);
+            setNotification({ type: 'error', message: 'Ошибка при экспорте заявок' });
+        }
+    };
+
+    const handleExportClientObjects = async () => {
+        try {
+            // Fetch all client objects
+            const response = await getClientObjects();
+            const clientObjects = response.data;
+
+            // Prepare data for Excel export
+            const exportData = clientObjects.map(obj => ({
+                'ID': obj.id || '',
+                'Клиент': obj.client?.name || '',
+                'Марка/Модель': obj.brandModel || '',
+                'Государственный номер': obj.stateNumber || '',
+                'Оборудование': obj.equipment || '',
+                'Дата создания': obj.createdAt ? new Date(obj.createdAt).toLocaleDateString('ru-RU') : '',
+            }));
+
+            // Create workbook and worksheet
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Объекты');
+
+            // Generate filename with current date
+            const currentDate = new Date().toISOString().split('T')[0];
+            const filename = `объекты_${currentDate}.xlsx`;
+
+            // Save file
+            XLSX.writeFile(workbook, filename);
+
+            setNotification({
+                type: 'success',
+                message: `Экспорт завершен. Скачано ${clientObjects.length} объектов.`
+            });
+        } catch (error) {
+            console.error('Export error:', error);
+            setNotification({ type: 'error', message: 'Ошибка при экспорте объектов' });
+        }
+    };
+
+    const handleClientObjectFileUpload = () => {
+        clientObjectFileInputRef.current?.click();
+    };
+
+    const handleClientObjectFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            // Process the data - map Excel columns to client object fields
+            const clientObjects = jsonData.map(row => ({
+                clientId: row['Клиент'] || row['Client'] || '',
+                brandModel: row['Марка/Модель'] || row['Brand/Model'] || '',
+                stateNumber: row['Государственный номер'] || row['State Number'] || '',
+                equipment: row['Оборудование'] || row['Equipment'] || '',
+                createdAt: row['Дата создания'] || row['Created Date'] || new Date().toISOString(),
+            }));
+
+            // Send the data to the backend API
+            try {
+                const response = await bulkUploadClientObjects({ clientObjects });
+                setNotification({
+                    type: 'success',
+                    message: `Успешно загружено ${response.data.created} объектов${response.data.errors > 0 ? `, ошибок: ${response.data.errors}` : ''}`
+                });
+                setShowClientObjectUploadModal(false);
+            } catch (error) {
+                console.error('Bulk upload error:', error);
+                setNotification({ type: 'error', message: 'Ошибка при загрузке объектов' });
+            }
+
+        } catch (error) {
+            console.error('Error processing file:', error);
+            setNotification({ type: 'error', message: 'Ошибка при обработке файла' });
+        }
+    };
+
+    const handleBidImportClick = () => {
+        setNotification({
+            type: 'info',
+            message: 'В разработке'
+        });
+    };
+
     const buildSpecificationsTree = (categories, specifications, level = 0) => {
         return categories.map(category => {
             const categorySpecs = specifications.filter(spec => spec.categoryId === category.id);
@@ -882,6 +1016,50 @@ const Settings = () => {
                         {category.children.map(child => (
                             <CategoryTreeItem key={child.id} category={child} level={level + 1} />
                         ))}
+                    </div>
+                )}
+    
+                {/* Modal for Client Object Upload */}
+                {showClientObjectUploadModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                            <div className="p-6">
+                                <h3 className="text-lg font-semibold mb-4">Загрузка объектов</h3>
+                                <div className="mb-4">
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        Выберите Excel файл с данными объектов. Файл должен содержать следующие столбцы:
+                                    </p>
+                                    <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                                        <li>Клиент - ID или название клиента</li>
+                                        <li>Марка/Модель - марка и модель объекта</li>
+                                        <li>Государственный номер - гос. номер</li>
+                                        <li>Оборудование - описание оборудования</li>
+                                        <li>Дата создания - дата создания записи</li>
+                                    </ul>
+                                </div>
+                                <div className="flex gap-2 pt-4">
+                                    <button
+                                        onClick={handleClientObjectFileUpload}
+                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                    >
+                                        Загрузить файл
+                                    </button>
+                                    <button
+                                        onClick={() => setShowClientObjectUploadModal(false)}
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                                <input
+                                    type="file"
+                                    ref={clientObjectFileInputRef}
+                                    onChange={handleClientObjectFileChange}
+                                    accept=".xlsx,.xls"
+                                    style={{ display: 'none' }}
+                                />
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -2409,11 +2587,13 @@ const Settings = () => {
                             <h3 className="text-lg font-semibold mb-4">Управление Объектами</h3>
                             <div className="flex gap-4">
                                 <button
+                                    onClick={() => setShowClientObjectUploadModal(true)}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Импорт объектов
                                 </button>
                                 <button
+                                    onClick={handleExportClientObjects}
                                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Экспорт объектов
@@ -2426,11 +2606,13 @@ const Settings = () => {
                             <h3 className="text-lg font-semibold mb-4">Управление заявками</h3>
                             <div className="flex gap-4">
                                 <button
+                                    onClick={handleBidImportClick}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Импорт заявок
                                 </button>
                                 <button
+                                    onClick={handleExportBids}
                                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Экспорт заявок
