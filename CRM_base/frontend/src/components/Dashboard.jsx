@@ -84,7 +84,7 @@ const Dashboard = () => {
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Боковая панель: ширина зависит от состояния свернутости и страницы настроек */}
-            <aside className={`${isSettings ? `${isSidebarCollapsed ? 'w-16' : 'w-48'} px-4 py-6 bg-white fixed left-0 top-0 h-screen transition-all duration-300` : `${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg flex flex-col fixed left-0 top-0 h-screen transition-all duration-300`}`}>
+            <aside className={`${isSettings ? `${isSidebarCollapsed ? 'w-16' : 'w-56'} px-4 py-6 bg-white fixed left-0 top-0 h-screen transition-all duration-300` : `${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg flex flex-col fixed left-0 top-0 h-screen transition-all duration-300`}`}>
                 {/* Условный рендеринг: если на странице настроек */}
                 {isSettings ? (
                     <div>

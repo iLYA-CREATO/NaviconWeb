@@ -2915,13 +2915,13 @@ const Settings = () => {
                             <div className="flex gap-4">
                                 <button
                                     onClick={() => setShowClientUploadModal(true)}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Импорт клиентов
                                 </button>
                                 <button
                                     onClick={handleExportClients}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Экспорт клиентов
                                 </button>
@@ -2934,13 +2934,13 @@ const Settings = () => {
                             <div className="flex gap-4">
                                 <button
                                     onClick={() => setShowClientObjectUploadModal(true)}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Импорт объектов
                                 </button>
                                 <button
                                     onClick={handleExportClientObjects}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Экспорт объектов
                                 </button>
@@ -2953,13 +2953,13 @@ const Settings = () => {
                             <div className="flex gap-4">
                                 <button
                                     onClick={handleBidImportClick}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Импорт заявок
                                 </button>
                                 <button
                                     onClick={handleExportBids}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Экспорт заявок
                                 </button>
