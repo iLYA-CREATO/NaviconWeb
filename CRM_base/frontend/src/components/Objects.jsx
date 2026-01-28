@@ -73,17 +73,7 @@ const Objects = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Объекты</h2>
-                {hasPermission('client_object_create') && (
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                    >
-                        {showForm ? 'Отмена' : '+ Добавить объект'}
-                    </button>
-                )}
-            </div>
+            <h1 className="text-2xl font-bold mb-4">Объекты</h1>
 
             {showForm && (
                 <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -156,7 +146,20 @@ const Objects = () => {
 
             {!showForm && (
                 <div>
-                    <div className="mb-4">
+                    {/* Карточка с элементами управления */}
+                    <div className="bg-gray-200 rounded-lg p-4 mb-6">
+                        {/* Кнопка создания нового объекта */}
+                        <div className="flex justify-end mb-4">
+                            {hasPermission('client_object_create') && (
+                                <button
+                                    onClick={() => setShowForm(!showForm)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    {showForm ? 'Отмена' : '+ Добавить объект'}
+                                </button>
+                            )}
+                        </div>
+                        {/* Поле поиска */}
                         <input
                             type="text"
                             placeholder="Поиск по номеру объекта, клиенту или марке..."

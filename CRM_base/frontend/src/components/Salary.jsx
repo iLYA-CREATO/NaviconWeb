@@ -211,106 +211,109 @@ const Salary = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Зарплата</h2>
+            <h1 className="text-2xl font-bold mb-4">Зарплата</h1>
 
-            {/* Форма для параметров отчета */}
-            <div className="bg-white p-6 rounded-lg shadow mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
-                        <input
-                            type="date"
-                            name="startDate"
-                            value={formData.startDate}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
-                        <input
-                            type="date"
-                            name="endDate"
-                            value={formData.endDate}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Сотрудник</label>
-                        <select
-                            name="userId"
-                            value={formData.userId}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="all">Все сотрудники</option>
-                            {users.map((user) => (
-                                <option key={user.id} value={user.id}>
-                                    {user.fullName || user.username}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex items-end">
-                        <button
-                            onClick={handleGenerateReport}
-                            disabled={loading}
-                            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            {loading ? 'Формирование...' : 'Сформировать'}
-                        </button>
+            {/* Карточка с элементами управления */}
+            <div className="bg-gray-200 rounded-lg p-4 mb-6">
+                {/* Форма для параметров отчета */}
+                <div className="mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+                            <input
+                                type="date"
+                                name="startDate"
+                                value={formData.startDate}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+                            <input
+                                type="date"
+                                name="endDate"
+                                value={formData.endDate}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Сотрудник</label>
+                            <select
+                                name="userId"
+                                value={formData.userId}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="all">Все сотрудники</option>
+                                {users.map((user) => (
+                                    <option key={user.id} value={user.id}>
+                                        {user.fullName || user.username}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex items-end">
+                            <button
+                                onClick={handleGenerateReport}
+                                disabled={loading}
+                                className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                {loading ? 'Формирование...' : 'Сформировать'}
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Настройки столбцов */}
-            <div className="mb-4 flex justify-end">
-                <div className="relative column-settings">
-                    <button
-                        onClick={() => setShowColumnSettings(!showColumnSettings)}
-                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
-                    >
-                        Настройки столбцов
-                    </button>
-                    {showColumnSettings && (
-                        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
-                            <div className="p-4">
-                                <h4 className="font-medium mb-2">Настройки столбцов</h4>
-                                {columnOrder.map((column, index) => (
-                                    <div key={column} className="flex items-center justify-between mb-2">
-                                        <label className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={visibleColumns[column]}
-                                                onChange={() => handleColumnToggle(column)}
-                                                className="mr-2"
-                                            />
-                                            {getColumnLabel(column)}
-                                        </label>
-                                        {visibleColumns[column] && (
-                                            <div className="flex gap-1">
-                                                <button
-                                                    onClick={() => moveUp(index)}
-                                                    disabled={index === 0}
-                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
-                                                >
-                                                    ↑
-                                                </button>
-                                                <button
-                                                    onClick={() => moveDown(index)}
-                                                    disabled={index === columnOrder.length - 1}
-                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
-                                                >
-                                                    ↓
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                {/* Настройки столбцов */}
+                <div className="flex justify-end">
+                    <div className="relative column-settings">
+                        <button
+                            onClick={() => setShowColumnSettings(!showColumnSettings)}
+                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                        >
+                            Настройки столбцов
+                        </button>
+                        {showColumnSettings && (
+                            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
+                                <div className="p-4">
+                                    <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                    {columnOrder.map((column, index) => (
+                                        <div key={column} className="flex items-center justify-between mb-2">
+                                            <label className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={visibleColumns[column]}
+                                                    onChange={() => handleColumnToggle(column)}
+                                                    className="mr-2"
+                                                />
+                                                {getColumnLabel(column)}
+                                            </label>
+                                            {visibleColumns[column] && (
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => moveUp(index)}
+                                                        disabled={index === 0}
+                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                    >
+                                                        ↑
+                                                    </button>
+                                                    <button
+                                                        onClick={() => moveDown(index)}
+                                                        disabled={index === columnOrder.length - 1}
+                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                    >
+                                                        ↓
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
 

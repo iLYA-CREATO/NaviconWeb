@@ -214,110 +214,113 @@ const Clients = () => {
 
     return (
         <div>
-            {/* Заголовок страницы с кнопкой добавления клиента */}
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Клиенты</h2>
-                {hasPermission('client_create') && (
-                    <button
-                        onClick={() => setShowModal(true)} // Открытие модального окна создания клиента
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                    >
-                        + Добавить клиента
-                    </button>
-                )}
-            </div>
+            <h1 className="text-2xl font-bold mb-4">Клиенты</h1>
 
-            {/* Панель поиска и фильтров */}
-            <div className="mb-4 flex gap-4">
-                <div className="flex-1">
-                    <input
-                        type="text"
-                        placeholder="Поиск по имени..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)} // Обновление поискового запроса
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-                <div className="relative column-settings">
-                    <button
-                        onClick={() => setShowColumnSettings(!showColumnSettings)}
-                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
-                    >
-                        Настройки столбцов
-                    </button>
-                    {showColumnSettings && (
-                        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
-                            <div className="p-4">
-                                <h4 className="font-medium mb-2">Настройки столбцов</h4>
-                                {columnOrder.map((column, index) => (
-                                    <div key={column} className="flex items-center justify-between mb-2">
-                                        <label className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={visibleColumns[column]}
-                                                onChange={() => handleColumnToggle(column)}
-                                                className="mr-2"
-                                            />
-                                            {getColumnLabel(column)}
-                                        </label>
-                                        {visibleColumns[column] && (
-                                            <div className="flex gap-1">
-                                                <button
-                                                    onClick={() => moveUp(index)}
-                                                    disabled={index === 0}
-                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
-                                                >
-                                                    ↑
-                                                </button>
-                                                <button
-                                                    onClick={() => moveDown(index)}
-                                                    disabled={index === columnOrder.length - 1}
-                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
-                                                >
-                                                    ↓
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+            {/* Карточка с фильтрами и элементами управления */}
+            <div className="bg-gray-200 rounded-lg p-4 mb-6">
+                {/* Кнопка создания нового клиента */}
+                <div className="flex justify-end mb-4">
+                    {hasPermission('client_create') && (
+                        <button
+                            onClick={() => setShowModal(true)} // Открытие модального окна создания клиента
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                        >
+                            + Добавить клиента
+                        </button>
                     )}
                 </div>
-                <button
-                    onClick={() => setShowFilterModal(true)} // Открытие модального окна выбора фильтров
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
-                >
-                    Добавить фильтр
-                </button>
-            </div>
-
-            {/* Фильтр по ответственному, показывается если включен */}
-            {visibleFilters.responsible && (
-                <div className="mb-4 flex items-center gap-2">
-                    <select
-                        value={responsibleFilter}
-                        onChange={(e) => setResponsibleFilter(e.target.value)} // Обновление фильтра
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Все ответственные</option>
-                        {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                                {user.fullName || user.username} {/* Отображение полного имени или username */}
-                            </option>
-                        ))}
-                    </select>
+                {/* Панель поиска и фильтров */}
+                <div className="mb-4 flex gap-4">
+                    <div className="flex-1">
+                        <input
+                            type="text"
+                            placeholder="Поиск по имени..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)} // Обновление поискового запроса
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="relative column-settings">
+                        <button
+                            onClick={() => setShowColumnSettings(!showColumnSettings)}
+                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                        >
+                            Настройки столбцов
+                        </button>
+                        {showColumnSettings && (
+                            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
+                                <div className="p-4">
+                                    <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                    {columnOrder.map((column, index) => (
+                                        <div key={column} className="flex items-center justify-between mb-2">
+                                            <label className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={visibleColumns[column]}
+                                                    onChange={() => handleColumnToggle(column)}
+                                                    className="mr-2"
+                                                />
+                                                {getColumnLabel(column)}
+                                            </label>
+                                            {visibleColumns[column] && (
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => moveUp(index)}
+                                                        disabled={index === 0}
+                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                    >
+                                                        ↑
+                                                    </button>
+                                                    <button
+                                                        onClick={() => moveDown(index)}
+                                                        disabled={index === columnOrder.length - 1}
+                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                    >
+                                                        ↓
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <button
-                        onClick={() => {
-                            setVisibleFilters({ ...visibleFilters, responsible: false }); // Скрытие фильтра
-                            setResponsibleFilter(''); // Сброс фильтра
-                        }}
-                        className="text-red-500 hover:text-red-700"
+                        onClick={() => setShowFilterModal(true)} // Открытие модального окна выбора фильтров
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
                     >
-                        X {/* Кнопка удаления фильтра */}
+                        Добавить фильтр
                     </button>
                 </div>
-            )}
+
+                {/* Фильтр по ответственному, показывается если включен */}
+                {visibleFilters.responsible && (
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={responsibleFilter}
+                            onChange={(e) => setResponsibleFilter(e.target.value)} // Обновление фильтра
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Все ответственные</option>
+                            {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.fullName || user.username} {/* Отображение полного имени или username */}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={() => {
+                                setVisibleFilters({ ...visibleFilters, responsible: false }); // Скрытие фильтра
+                                setResponsibleFilter(''); // Сброс фильтра
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                        >
+                            X {/* Кнопка удаления фильтра */}
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {/* Таблица с клиентами */}
             <div className="bg-white rounded-lg shadow overflow-hidden">

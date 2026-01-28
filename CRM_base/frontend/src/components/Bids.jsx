@@ -372,17 +372,6 @@ const Bids = () => {
     return (
         <div>
             <h1 className="text-2xl font-bold mb-4">Заявки</h1>
-            {/* Кнопка для переключения формы */}
-            <div className="flex justify-end items-center mb-6">
-                {hasPermission('bid_create') && (
-                    <button
-                        onClick={() => setShowForm(!showForm)} // Переключение видимости формы
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                    >
-                        {showForm ? 'Отмена' : '+ Добавить заявку'} {/* Текст кнопки зависит от состояния формы */}
-                    </button>
-                )}
-            </div>
 
             {/* Форма создания новой заявки, показывается только если showForm = true */}
             {showForm && (
@@ -557,95 +546,109 @@ const Bids = () => {
             {/* Список заявок, показывается только если форма скрыта */}
             {!showForm && (
                 <div>
-                    {/* Фильтры */}
-                    <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <select
-                            value={filters.creator}
-                            onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Все создатели</option>
-                            {uniqueCreators.map(creator => (
-                                <option key={creator} value={creator}>{creator}</option>
-                            ))}
-                        </select>
-                        <select
-                            value={filters.bidType}
-                            onChange={(e) => setFilters({ ...filters, bidType: e.target.value })}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Все типы заявок</option>
-                            {bidTypes.map(bidType => (
-                                <option key={bidType.id} value={bidType.id}>
-                                    {bidType.name}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={filters.client}
-                            onChange={(e) => setFilters({ ...filters, client: e.target.value })}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Все клиенты</option>
-                            {uniqueClients.map(client => (
-                                <option key={client} value={client}>{client}</option>
-                            ))}
-                        </select>
-                    </div>
-                    {/* Поле поиска и настройки столбцов */}
-                    <div className="mb-4 flex gap-4">
-                        <input
-                            type="text"
-                            placeholder="Поиск по номеру заявки, клиенту, создателю или статусу..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)} // Обновление поискового запроса
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <div className="relative column-settings">
-                            <button
-                                onClick={() => setShowColumnSettings(!showColumnSettings)}
-                                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
-                            >
-                                Настройки столбцов
-                            </button>
-                            {showColumnSettings && (
-                                <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
-                                    <div className="p-4">
-                                        <h4 className="font-medium mb-2">Настройки столбцов</h4>
-                                        {columnOrder.map((column, index) => (
-                                            <div key={column} className="flex items-center justify-between mb-2">
-                                                <label className="flex items-center">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={visibleColumns[column]}
-                                                        onChange={() => handleColumnToggle(column)}
-                                                        className="mr-2"
-                                                    />
-                                                    {getColumnLabel(column)}
-                                                </label>
-                                                {visibleColumns[column] && (
-                                                    <div className="flex gap-1">
-                                                        <button
-                                                            onClick={() => moveUp(index)}
-                                                            disabled={index === 0}
-                                                            className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
-                                                        >
-                                                            ↑
-                                                        </button>
-                                                        <button
-                                                            onClick={() => moveDown(index)}
-                                                            disabled={index === columnOrder.length - 1}
-                                                            className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
-                                                        >
-                                                            ↓
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+                    {/* Карточка с фильтрами и элементами управления */}
+                    <div className="bg-gray-200 rounded-lg p-4 mb-6">
+                        {/* Кнопка создания новой заявки */}
+                        <div className="flex justify-end mb-4">
+                            {hasPermission('bid_create') && (
+                                <button
+                                    onClick={() => setShowForm(!showForm)} // Переключение видимости формы
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    {showForm ? 'Отмена' : '+ Добавить заявку'} {/* Текст кнопки зависит от состояния формы */}
+                                </button>
                             )}
+                        </div>
+                        {/* Фильтры */}
+                        <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <select
+                                value={filters.creator}
+                                onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Все создатели</option>
+                                {uniqueCreators.map(creator => (
+                                    <option key={creator} value={creator}>{creator}</option>
+                                ))}
+                            </select>
+                            <select
+                                value={filters.bidType}
+                                onChange={(e) => setFilters({ ...filters, bidType: e.target.value })}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Все типы заявок</option>
+                                {bidTypes.map(bidType => (
+                                    <option key={bidType.id} value={bidType.id}>
+                                        {bidType.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                value={filters.client}
+                                onChange={(e) => setFilters({ ...filters, client: e.target.value })}
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Все клиенты</option>
+                                {uniqueClients.map(client => (
+                                    <option key={client} value={client}>{client}</option>
+                                ))}
+                            </select>
+                        </div>
+                        {/* Поле поиска и настройки столбцов */}
+                        <div className="flex gap-4">
+                            <input
+                                type="text"
+                                placeholder="Поиск по номеру заявки, клиенту, создателю или статусу..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)} // Обновление поискового запроса
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <div className="relative column-settings">
+                                <button
+                                    onClick={() => setShowColumnSettings(!showColumnSettings)}
+                                    className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                                >
+                                    Настройки столбцов
+                                </button>
+                                {showColumnSettings && (
+                                    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
+                                        <div className="p-4">
+                                            <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                            {columnOrder.map((column, index) => (
+                                                <div key={column} className="flex items-center justify-between mb-2">
+                                                    <label className="flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={visibleColumns[column]}
+                                                            onChange={() => handleColumnToggle(column)}
+                                                            className="mr-2"
+                                                        />
+                                                        {getColumnLabel(column)}
+                                                    </label>
+                                                    {visibleColumns[column] && (
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => moveUp(index)}
+                                                                disabled={index === 0}
+                                                                className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                            >
+                                                                ↑
+                                                            </button>
+                                                            <button
+                                                                onClick={() => moveDown(index)}
+                                                                disabled={index === columnOrder.length - 1}
+                                                                className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                            >
+                                                                ↓
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                     {/* Таблица с заявками */}

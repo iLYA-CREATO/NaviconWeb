@@ -193,9 +193,9 @@ const Dashboard = () => {
                                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                             } ${isSidebarCollapsed ? 'flex justify-center' : ''} block px-4 py-2 rounded-lg font-medium transition`
                                         }
-                                        title={isSidebarCollapsed ? "Склад" : ""}
+                                        title={isSidebarCollapsed ? "Оборудование" : ""}
                                     >
-                                        {isSidebarCollapsed ? '📦' : 'Склад'}
+                                        {isSidebarCollapsed ? '📦' : 'Оборудование'}
                                     </NavLink>
                                 )}
                                 {/* Ссылка на страницу зарплаты */}

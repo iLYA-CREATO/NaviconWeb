@@ -9,8 +9,7 @@ const Equipment = () => {
     const [equipment, setEquipment] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState(null);
-    const [activeTab, setActiveTab] = useState('nomenclature');
-    const [customTabs, setCustomTabs] = useState([]);
+    const [showForm, setShowForm] = useState(false);
     // Определение всех возможных колонок для оборудования
     const equipmentAllColumns = ['id', 'name', 'productCode', 'purchasePrice', 'sellingPrice'];
     // Загрузка начальных состояний из localStorage для оборудования
@@ -38,6 +37,8 @@ const Equipment = () => {
         purchasePrice: '',
     });
     const [error, setError] = useState('');
+    const [customTabs, setCustomTabs] = useState([]);
+    const [activeTab, setActiveTab] = useState('nomenclature');
 
     useEffect(() => {
         fetchEquipment();
@@ -216,9 +217,7 @@ const Equipment = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Оборудование</h2>
-            </div>
+            <h1 className="text-2xl font-bold mb-4">Оборудование</h1>
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
                     {error}
@@ -278,69 +277,74 @@ const Equipment = () => {
 
                     {activeTab === 'nomenclature' && (
                         <>
-                            <div className="mb-4 flex justify-between items-center">
-                                {hasPermission('equipment_create') && (
-                                    <button
-                                        onClick={() => openCustomTab('create-equipment', 'Создание оборудования')}
-                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                                    >
-                                        Новое оборудование
-                                    </button>
-                                )}
-                            </div>
-                            <div className="mb-4 flex gap-4">
-                                <input
-                                    type="text"
-                                    placeholder="Поиск по ID, названию или коду..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <div className="relative equipment-column-settings">
-                                    <button
-                                        onClick={() => setShowEquipmentColumnSettings(!showEquipmentColumnSettings)}
-                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
-                                    >
-                                        Настройки столбцов
-                                    </button>
-                                    {showEquipmentColumnSettings && (
-                                        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 equipment-column-settings">
-                                            <div className="p-4">
-                                                <h4 className="font-medium mb-2">Настройки столбцов</h4>
-                                                {equipmentColumnOrder.map((column, index) => (
-                                                    <div key={column} className="flex items-center justify-between mb-2">
-                                                        <label className="flex items-center">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={equipmentVisibleColumns[column]}
-                                                                onChange={() => handleEquipmentColumnToggle(column)}
-                                                                className="mr-2"
-                                                            />
-                                                            {getEquipmentColumnLabel(column)}
-                                                        </label>
-                                                        {equipmentVisibleColumns[column] && (
-                                                            <div className="flex gap-1">
-                                                                <button
-                                                                    onClick={() => moveEquipmentUp(index)}
-                                                                    disabled={index === 0}
-                                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
-                                                                >
-                                                                    ↑
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => moveEquipmentDown(index)}
-                                                                    disabled={index === equipmentColumnOrder.length - 1}
-                                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
-                                                                >
-                                                                    ↓
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
+                            {/* Карточка с элементами управления */}
+                            <div className="bg-gray-200 rounded-lg p-4 mb-6">
+                                {/* Кнопка создания нового оборудования */}
+                                <div className="flex justify-end mb-4">
+                                    {hasPermission('equipment_create') && (
+                                        <button
+                                            onClick={() => openCustomTab('create-equipment', 'Создание оборудования')}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                        >
+                                            Новое оборудование
+                                        </button>
                                     )}
+                                </div>
+                                {/* Поле поиска и настройки столбцов */}
+                                <div className="flex gap-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Поиск по ID, названию или коду..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <div className="relative equipment-column-settings">
+                                        <button
+                                            onClick={() => setShowEquipmentColumnSettings(!showEquipmentColumnSettings)}
+                                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                                        >
+                                            Настройки столбцов
+                                        </button>
+                                        {showEquipmentColumnSettings && (
+                                            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 equipment-column-settings">
+                                                <div className="p-4">
+                                                    <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                                    {equipmentColumnOrder.map((column, index) => (
+                                                        <div key={column} className="flex items-center justify-between mb-2">
+                                                            <label className="flex items-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={equipmentVisibleColumns[column]}
+                                                                    onChange={() => handleEquipmentColumnToggle(column)}
+                                                                    className="mr-2"
+                                                                />
+                                                                {getEquipmentColumnLabel(column)}
+                                                            </label>
+                                                            {equipmentVisibleColumns[column] && (
+                                                                <div className="flex gap-1">
+                                                                    <button
+                                                                        onClick={() => moveEquipmentUp(index)}
+                                                                        disabled={index === 0}
+                                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                    >
+                                                                        ↑
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => moveEquipmentDown(index)}
+                                                                        disabled={index === equipmentColumnOrder.length - 1}
+                                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                    >
+                                                                        ↓
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <div className="bg-white rounded-lg shadow overflow-hidden">
