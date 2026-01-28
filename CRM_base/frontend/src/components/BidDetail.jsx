@@ -15,6 +15,8 @@ import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 // Импорт компонента карты
 import MapModal from './MapModal';
+// Импорт иконок из Lucide React
+import { Map, Trash2 } from 'lucide-react';
 
 // Основной компонент BidDetail
 const BidDetail = () => {
@@ -680,7 +682,7 @@ const BidDetail = () => {
                                             className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
                                             title="Выбрать на карте"
                                         >
-                                            🗺️
+                                            <Map size={16} />
                                         </button>
                                         <button
                                             onClick={() => {
@@ -857,7 +859,7 @@ const BidDetail = () => {
                                                                      className="text-red-500 hover:text-red-700 text-sm"
                                                                      title="Удалить"
                                                                  >
-                                                                     🗑️
+                                                                     <Trash2 size={16} />
                                                                  </button>
                                                              </div>
                                                          )}
@@ -1458,7 +1460,7 @@ const BidDetail = () => {
                                         className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition whitespace-nowrap"
                                         title="Выбрать на карте"
                                     >
-                                        🗺️ Карта
+                                        <Map size={16} /> Карта
                                     </button>
                                 </div>
                             </div>

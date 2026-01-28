@@ -215,8 +215,8 @@ model BidEquipment {
 model ClientAttribute {
     id          Int      @id @default(autoincrement())
     name        String
-    type        String   // 'string', 'number', 'boolean', 'select'
-    options     Json?    // For select type, array of options
+    type        String   // 'string', 'number', 'boolean', 'select', 'multiselect', 'image'
+    options     Json?    // For select/multiselect types, array of options
     isEnabled   Boolean  @default(true)
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt

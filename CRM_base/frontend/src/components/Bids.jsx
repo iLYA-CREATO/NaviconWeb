@@ -16,6 +16,8 @@ import { getBids, getBid, createBid, getClients, getClientObjects, getBidTypes }
 import { usePermissions } from '../hooks/usePermissions';
 // Импорт компонента карты
 import MapModal from './MapModal';
+// Импорт иконок из Lucide React
+import { Map } from 'lucide-react';
 
 const Bids = () => {
     // Хук для навигации между маршрутами
@@ -459,10 +461,11 @@ const Bids = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowMapModal(true)}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition whitespace-nowrap"
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition whitespace-nowrap flex items-center gap-2"
                                     title="Выбрать на карте"
                                 >
-                                    🗺️ Карта
+                                    <Map size={16} />
+                                    Карта
                                 </button>
                             </div>
                         </div>

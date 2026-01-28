@@ -74,7 +74,15 @@ const ClientDetail = () => {
         const attributes = {};
         enabledAttributes.forEach(attr => {
             const value = client.attributeValues?.find(av => av.attributeId === attr.id)?.value || '';
-            attributes[attr.id] = value;
+            if (attr.type === 'multiselect' && value) {
+                try {
+                    attributes[attr.id] = JSON.parse(value);
+                } catch {
+                    attributes[attr.id] = [];
+                }
+            } else {
+                attributes[attr.id] = value;
+            }
         });
         setFormData({
             name: client.name || '',
@@ -290,6 +298,65 @@ const ClientDetail = () => {
                                                 <option key={option} value={option}>{option}</option>
                                             ))}
                                         </select>
+                                    ) : attr.type === 'multiselect' ? (
+                                        <div className="space-y-2">
+                                            {attr.options?.map(option => {
+                                                const currentValues = formData.attributes[attr.id] ? JSON.parse(formData.attributes[attr.id]) : [];
+                                                return (
+                                                    <label key={option} className="flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={currentValues.includes(option)}
+                                                            onChange={(e) => {
+                                                                const newValues = e.target.checked
+                                                                    ? [...currentValues, option]
+                                                                    : currentValues.filter(v => v !== option);
+                                                                handleInputChange({
+                                                                    target: {
+                                                                        name: `attr_${attr.id}`,
+                                                                        value: JSON.stringify(newValues)
+                                                                    }
+                                                                });
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                                            disabled={saving}
+                                                        />
+                                                        <span className="ml-2 text-sm text-gray-700">{option}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : attr.type === 'image' ? (
+                                        <div>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onload = (event) => {
+                                                            handleInputChange({
+                                                                target: {
+                                                                    name: `attr_${attr.id}`,
+                                                                    value: event.target.result
+                                                                }
+                                                            });
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                disabled={saving}
+                                            />
+                                            {formData.attributes[attr.id] && (
+                                                <img
+                                                    src={formData.attributes[attr.id]}
+                                                    alt="Preview"
+                                                    className="mt-2 max-w-full h-32 object-cover rounded"
+                                                />
+                                            )}
+                                        </div>
                                     ) : attr.type === 'boolean' ? (
                                         <input
                                             type="checkbox"
@@ -324,7 +391,30 @@ const ClientDetail = () => {
                                         />
                                     )
                                 ) : (
-                                    <p className="text-gray-900 text-lg">{value || 'Не указано'}</p>
+                                    attr.type === 'multiselect' ? (
+                                        <p className="text-gray-900 text-lg">
+                                            {value ? (() => {
+                                                try {
+                                                    const parsed = JSON.parse(value);
+                                                    return Array.isArray(parsed) ? parsed.join(', ') : 'Не указано';
+                                                } catch {
+                                                    return 'Не указано';
+                                                }
+                                            })() : 'Не указано'}
+                                        </p>
+                                    ) : attr.type === 'image' ? (
+                                        value ? (
+                                            <img
+                                                src={value}
+                                                alt={attr.name}
+                                                className="max-w-full h-32 object-cover rounded"
+                                            />
+                                        ) : (
+                                            <p className="text-gray-900 text-lg">Не указано</p>
+                                        )
+                                    ) : (
+                                        <p className="text-gray-900 text-lg">{value || 'Не указано'}</p>
+                                    )
                                 )}
                             </div>
                         );

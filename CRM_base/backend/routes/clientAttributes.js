@@ -39,19 +39,19 @@ router.post('/', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Name and type are required' });
         }
 
-        if (!['string', 'number', 'boolean', 'select'].includes(type)) {
+        if (!['string', 'number', 'boolean', 'select', 'multiselect', 'image'].includes(type)) {
             return res.status(400).json({ message: 'Invalid type' });
         }
 
-        if (type === 'select' && (!options || !Array.isArray(options))) {
-            return res.status(400).json({ message: 'Options array is required for select type' });
+        if ((type === 'select' || type === 'multiselect') && (!Array.isArray(options))) {
+            return res.status(400).json({ message: 'Options must be an array for select/multiselect type' });
         }
 
         const attribute = await prisma.clientAttribute.create({
             data: {
                 name,
                 type,
-                options: type === 'select' ? options : null,
+                options: (type === 'select' || type === 'multiselect') && options.length > 0 ? options : null,
                 isEnabled: isEnabled !== undefined ? isEnabled : true,
             },
         });
@@ -69,12 +69,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
         const { id } = req.params;
         const { name, type, options, isEnabled } = req.body;
 
-        if (type && !['string', 'number', 'boolean', 'select'].includes(type)) {
+        if (type && !['string', 'number', 'boolean', 'select', 'multiselect', 'image'].includes(type)) {
             return res.status(400).json({ message: 'Invalid type' });
         }
 
-        if (type === 'select' && options !== undefined && !Array.isArray(options)) {
-            return res.status(400).json({ message: 'Options must be an array for select type' });
+        if ((type === 'select' || type === 'multiselect') && options !== undefined && !Array.isArray(options)) {
+            return res.status(400).json({ message: 'Options must be an array for select/multiselect type' });
         }
 
         const attribute = await prisma.clientAttribute.update({
@@ -82,7 +82,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
             data: {
                 ...(name && { name }),
                 ...(type && { type }),
-                ...(options !== undefined && { options }),
+                ...(options !== undefined && { options: Array.isArray(options) && options.length > 0 ? options : null }),
                 ...(isEnabled !== undefined && { isEnabled }),
             },
         });

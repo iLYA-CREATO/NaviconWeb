@@ -8,8 +8,10 @@
 
 // Импорт компонентов и хуков из React Router
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+// Импорт иконок из Lucide React
+import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog } from 'lucide-react';
 // Импорт хука состояния
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext.jsx';
 // Импорт хука прав доступа
@@ -51,18 +53,33 @@ const Dashboard = () => {
     }, [isSettings, activeSettingsTab]);
 
     // Функция для получения иконки для вкладки настроек
-    const getSettingsIcon = (tabId) => {
+    const getSettingsIcon = useMemo(() => (tabId) => {
         const icons = {
-            'user': '👤',
-            'roles': '🔐',
-            'client-attributes': '🏷️',
-            'specification-categories': '📂',
-            'specifications': '📋',
-            'bid-types': '🎯',
-            'administration': '⚙️'
+            'user': <User key="user-icon" size={20} />,
+            'roles': <Shield key="roles-icon" size={20} />,
+            'client-attributes': <Tag key="client-attributes-icon" size={20} />,
+            'specification-categories': <Folder key="specification-categories-icon" size={20} />,
+            'specifications': <FileText key="specifications-icon" size={20} />,
+            'bid-types': <Target key="bid-types-icon" size={20} />,
+            'administration': <Settings key="administration-icon" size={20} />
         };
-        return icons[tabId] || '⚙️';
-    };
+        return icons[tabId] || <Settings key="default-settings-icon" size={20} />;
+    }, []);
+
+    // Функция для получения иконки для основной навигации
+    const getNavIcon = useMemo(() => (navId) => {
+        const icons = {
+            'bids': <ClipboardList key="bids-icon" size={20} />,
+            'clients': <Users key="clients-icon" size={20} />,
+            'contracts': <FileText key="contracts-icon" size={20} />,
+            'objects': <Building key="objects-icon" size={20} />,
+            'equipment': <Package key="equipment-icon" size={20} />,
+            'salary': <DollarSign key="salary-icon" size={20} />,
+            'settings': <Cog key="settings-icon" size={20} />,
+            'logout': <LogOut key="logout-icon" size={20} />
+        };
+        return icons[navId] || <Cog key="default-nav-icon" size={20} />;
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -82,10 +99,10 @@ const Dashboard = () => {
                         {/* Кнопка возврата на предыдущую страницу */}
                         <button
                             onClick={() => window.history.back()}
-                            className={`mb-4 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition font-medium ${isSidebarCollapsed ? 'flex justify-center items-center w-full p-2 text-lg' : 'px-4 py-2 w-full'}`}
+                            className={`mb-4 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition font-medium ${isSidebarCollapsed ? 'flex justify-center items-center w-full p-2' : 'px-4 py-2 w-full'}`}
                             title="Вернуться"
                         >
-                            🚪
+                            {isSidebarCollapsed ? <DoorOpen size={20} /> : 'Вернуться'}
                         </button>
                         {/* Навигация по вкладкам настроек */}
                         <nav className="space-y-2">
@@ -134,11 +151,11 @@ const Dashboard = () => {
                                             isActive
                                                 ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная ссылка
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
-                                        } ${isSidebarCollapsed ? 'flex justify-center' : ''} block px-4 py-2 rounded-lg font-medium transition`
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
                                     }
                                     title={isSidebarCollapsed ? "Заявки" : ""}
                                 >
-                                    {isSidebarCollapsed ? '📋' : 'Заявки'}
+                                    {isSidebarCollapsed ? getNavIcon('bids') : 'Заявки'}
                                 </NavLink>
                                 {/* Ссылка на страницу клиентов */}
                                 <NavLink
@@ -148,11 +165,11 @@ const Dashboard = () => {
                                             isActive
                                                 ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } ${isSidebarCollapsed ? 'flex justify-center' : ''} block px-4 py-2 rounded-lg font-medium transition`
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
                                     }
                                     title={isSidebarCollapsed ? "Клиенты" : ""}
                                 >
-                                    {isSidebarCollapsed ? '👥' : 'Клиенты'}
+                                    {isSidebarCollapsed ? getNavIcon('clients') : 'Клиенты'}
                                 </NavLink>
                                 {/* Ссылка на страницу договоров */}
                                 <NavLink
@@ -162,11 +179,11 @@ const Dashboard = () => {
                                             isActive
                                                 ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } ${isSidebarCollapsed ? 'flex justify-center' : ''} block px-4 py-2 rounded-lg font-medium transition`
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
                                     }
                                     title={isSidebarCollapsed ? "Договоры" : ""}
                                 >
-                                    {isSidebarCollapsed ? '📄' : 'Договоры'}
+                                    {isSidebarCollapsed ? getNavIcon('contracts') : 'Договоры'}
                                 </NavLink>
                                 {/* Ссылка на страницу объектов */}
                                 <NavLink
@@ -176,11 +193,11 @@ const Dashboard = () => {
                                             isActive
                                                 ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } ${isSidebarCollapsed ? 'flex justify-center' : ''} block px-4 py-2 rounded-lg font-medium transition`
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
                                     }
                                     title={isSidebarCollapsed ? "Объекты" : ""}
                                 >
-                                    {isSidebarCollapsed ? '🏢' : 'Объекты'}
+                                    {isSidebarCollapsed ? getNavIcon('objects') : 'Объекты'}
                                 </NavLink>
                                 {/* Ссылка на страницу оборудования */}
                                 {canAccessTab('warehouse') && (
@@ -191,11 +208,11 @@ const Dashboard = () => {
                                                 isActive
                                                     ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                            } ${isSidebarCollapsed ? 'flex justify-center' : ''} block px-4 py-2 rounded-lg font-medium transition`
+                                            } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
                                         }
                                         title={isSidebarCollapsed ? "Оборудование" : ""}
                                     >
-                                        {isSidebarCollapsed ? '📦' : 'Оборудование'}
+                                        {isSidebarCollapsed ? getNavIcon('equipment') : 'Оборудование'}
                                     </NavLink>
                                 )}
                                 {/* Ссылка на страницу зарплаты */}
@@ -207,11 +224,11 @@ const Dashboard = () => {
                                                 isActive
                                                     ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                            } ${isSidebarCollapsed ? 'flex justify-center' : ''} block px-4 py-2 rounded-lg font-medium transition`
+                                            } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
                                         }
                                         title={isSidebarCollapsed ? "Зарплата" : ""}
                                     >
-                                        {isSidebarCollapsed ? '💰' : 'З/П'}
+                                        {isSidebarCollapsed ? getNavIcon('salary') : 'З/П'}
                                     </NavLink>
                                 )}
                             </div>
@@ -223,11 +240,11 @@ const Dashboard = () => {
                             <NavLink
                                 to="/dashboard/settings"
                                 className={({ isActive }) =>
-                                    `${isActive ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} ${isSidebarCollapsed ? 'flex justify-center' : ''} block px-4 py-2 rounded-lg font-medium transition mb-4`
+                                    `${isActive ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition mb-4`
                                 }
                                 title={isSidebarCollapsed ? "Настройки" : ""}
                             >
-                                {isSidebarCollapsed ? '⚙️' : 'Настройки'}
+                                {isSidebarCollapsed ? getNavIcon('settings') : 'Настройки'}
                             </NavLink>
                             {/* Кнопка выхода */}
                             <button
@@ -235,7 +252,7 @@ const Dashboard = () => {
                                 className={`${isSidebarCollapsed ? 'flex justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded transition-all' : 'w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition'}`}
                                 title={isSidebarCollapsed ? "Выйти" : ""}
                             >
-                                {isSidebarCollapsed ? '🚪' : 'Выйти'}
+                                {isSidebarCollapsed ? getNavIcon('logout') : 'Выйти'}
                             </button>
                         </div>
                     </>
