@@ -3,7 +3,7 @@
  *
  * Этот компонент управляет отображением и созданием клиентов.
  * Показывает список клиентов, позволяет искать и фильтровать, а также добавлять новых клиентов.
- * Сохраняет настройки поиска и фильтров в localStorage.
+ * Сохраняет настройки поиска, фильтров и столбцов в localStorage.
  */
 
 // Импорт хуков React для управления состоянием и эффектами
@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 // Импорт хука для навигации между маршрутами
 import { useNavigate } from 'react-router-dom';
 // Импорт функций API для работы с клиентами и пользователями
-import { getClients, createClient, getUsers } from '../services/api';
+import { getClients, createClient, getUsers, getEnabledClientAttributes } from '../services/api';
 // Импорт хука для проверки разрешений
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -46,6 +46,36 @@ const Clients = () => {
     // Состояние для показа модального окна выбора фильтров
     const [showFilterModal, setShowFilterModal] = useState(false);
 
+    // Определение всех возможных колонок
+    const allColumns = ['name', 'email', 'phone', 'responsible', 'bidsCount', 'objectsCount'];
+    // Загрузка начальных состояний из localStorage
+    const savedColumns = localStorage.getItem('clientsVisibleColumns');
+    const defaultVisibleColumns = {
+        name: true,
+        email: true,
+        phone: true,
+        responsible: true,
+        bidsCount: true,
+        objectsCount: true,
+    };
+    const initialVisibleColumns = savedColumns ? { ...defaultVisibleColumns, ...JSON.parse(savedColumns) } : defaultVisibleColumns;
+    const savedOrder = localStorage.getItem('clientsColumnOrder');
+    let initialColumnOrder = savedOrder ? JSON.parse(savedOrder).filter(col => allColumns.includes(col)) : allColumns;
+
+    // Ensure all new columns are included in the order
+    allColumns.forEach(col => {
+        if (!initialColumnOrder.includes(col)) {
+            initialColumnOrder.push(col);
+        }
+    });
+
+    // Состояние для порядка колонок
+    const [columnOrder, setColumnOrder] = useState(initialColumnOrder);
+    // Состояние для видимых колонок в таблице
+    const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
+    // Состояние для показа выпадающего списка настроек колонок
+    const [showColumnSettings, setShowColumnSettings] = useState(false);
+
     // useEffect для загрузки клиентов с debounce при изменении поиска или фильтра
     useEffect(() => {
         const timeout = setTimeout(() => fetchClients(searchQuery, responsibleFilter), 300); // Задержка 300мс для оптимизации
@@ -64,6 +94,27 @@ const Clients = () => {
         };
         fetchUsers(); // Вызов функции
     }, []); // Пустой массив зависимостей - выполняется один раз при монтировании
+
+    // useEffect для сохранения настроек колонок в localStorage
+    useEffect(() => {
+        localStorage.setItem('clientsVisibleColumns', JSON.stringify(visibleColumns));
+    }, [visibleColumns]);
+
+    // useEffect to save column order to localStorage
+    useEffect(() => {
+        localStorage.setItem('clientsColumnOrder', JSON.stringify(columnOrder));
+    }, [columnOrder]);
+
+    // useEffect to close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showColumnSettings && !event.target.closest('.column-settings')) {
+                setShowColumnSettings(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showColumnSettings]);
 
     // Функция для загрузки клиентов с параметрами поиска и фильтра
     const fetchClients = async (search = '', responsibleId = '') => {
@@ -107,6 +158,60 @@ const Clients = () => {
         setShowModal(false); // Скрытие модального окна
     };
 
+    // Обработчик изменения видимости столбцов
+    const handleColumnToggle = (column) => {
+        setVisibleColumns(prev => ({
+            ...prev,
+            [column]: !prev[column]
+        }));
+    };
+
+    // Функции для изменения порядка столбцов
+    const moveUp = (index) => {
+        if (index > 0) {
+            const newOrder = [...columnOrder];
+            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+            setColumnOrder(newOrder);
+        }
+    };
+
+    const moveDown = (index) => {
+        if (index < columnOrder.length - 1) {
+            const newOrder = [...columnOrder];
+            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+            setColumnOrder(newOrder);
+        }
+    };
+
+    // Функция для получения названия столбца
+    const getColumnLabel = (column) => {
+        switch (column) {
+            case 'name': return 'Имя';
+            case 'email': return 'Email';
+            case 'phone': return 'Телефон';
+            case 'responsible': return 'Ответственный';
+            case 'bidsCount': return 'Заявок';
+            case 'objectsCount': return 'Объектов';
+            default: return column;
+        }
+    };
+
+    // Функция для получения содержимого ячейки
+    const getCellContent = (client, column) => {
+        switch (column) {
+            case 'name': return client.name;
+            case 'email': return client.email;
+            case 'phone': return client.phone;
+            case 'responsible': return client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен';
+            case 'bidsCount': return client._count?.bids || 0;
+            case 'objectsCount': return client._count?.clientObjects || 0;
+            default: return '';
+        }
+    };
+
+    // Определение видимых столбцов в порядке columnOrder
+    const displayColumns = columnOrder.filter(col => visibleColumns[col]);
+
     return (
         <div>
             {/* Заголовок страницы с кнопкой добавления клиента */}
@@ -132,6 +237,52 @@ const Clients = () => {
                         onChange={(e) => setSearchQuery(e.target.value)} // Обновление поискового запроса
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                </div>
+                <div className="relative column-settings">
+                    <button
+                        onClick={() => setShowColumnSettings(!showColumnSettings)}
+                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                    >
+                        Настройки столбцов
+                    </button>
+                    {showColumnSettings && (
+                        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
+                            <div className="p-4">
+                                <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                {columnOrder.map((column, index) => (
+                                    <div key={column} className="flex items-center justify-between mb-2">
+                                        <label className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={visibleColumns[column]}
+                                                onChange={() => handleColumnToggle(column)}
+                                                className="mr-2"
+                                            />
+                                            {getColumnLabel(column)}
+                                        </label>
+                                        {visibleColumns[column] && (
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => moveUp(index)}
+                                                    disabled={index === 0}
+                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                >
+                                                    ↑
+                                                </button>
+                                                <button
+                                                    onClick={() => moveDown(index)}
+                                                    disabled={index === columnOrder.length - 1}
+                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                >
+                                                    ↓
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <button
                     onClick={() => setShowFilterModal(true)} // Открытие модального окна выбора фильтров
@@ -173,18 +324,23 @@ const Clients = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Имя</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Телефон</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ответственный</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заявок</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Объектов</th>
+                        {displayColumns.map(column => (
+                            <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                {getColumnLabel(column)}
+                            </th>
+                        ))}
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                     {/* Отображение списка клиентов */}
                     {clients.map((client) => (
-                        <tr key={client.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(client)}><td className="px-6 py-4 whitespace-nowrap">{client.name}</td><td className="px-6 py-4 whitespace-nowrap">{client.email}</td><td className="px-6 py-4 whitespace-nowrap">{client.phone}</td><td className="px-6 py-4 whitespace-nowrap">{client.responsible ? client.responsible.fullName || client.responsible.email : 'Не назначен'}</td><td className="px-6 py-4 whitespace-nowrap">{client._count?.bids || 0}</td><td className="px-6 py-4 whitespace-nowrap">{client._count?.clientObjects || 0}</td></tr>
+                        <tr key={client.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(client)}>
+                            {displayColumns.map(column => (
+                                <td key={column} className="px-6 py-4 whitespace-nowrap">
+                                    {getCellContent(client, column)}
+                                </td>
+                            ))}
+                        </tr>
                     ))}
                     </tbody>
                 </table>

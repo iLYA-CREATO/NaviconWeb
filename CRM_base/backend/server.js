@@ -27,6 +27,7 @@ const specificationCategoryRoutes = require('./routes/specificationCategories');
 const salaryRoutes = require('./routes/salary'); // Маршруты зарплаты
 const bidEquipmentRoutes = require('./routes/bidEquipment'); // Маршруты оборудования заявок
 const backupRoutes = require('./routes/backups'); // Маршруты бэкапов
+const clientAttributeRoutes = require('./routes/clientAttributes'); // Маршруты атрибутов клиентов
 
 // Импорт node-cron для автоматических бэкапов
 const cron = require('node-cron');
@@ -61,6 +62,8 @@ app.use('/api/specification-categories', specificationCategoryRoutes); // /api/s
 app.use('/api/salary', salaryRoutes); // /api/salary/*
 app.use('/api/bid-equipment', bidEquipmentRoutes); // /api/bid-equipment/*
 app.use('/api/backups', backupRoutes); // /api/backups/*
+
+app.use('/api/client-attributes', clientAttributeRoutes); // /api/client-attributes/*
 
 // === Health check endpoint ===
 // Проверка работоспособности сервера

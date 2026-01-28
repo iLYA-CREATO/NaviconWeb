@@ -56,6 +56,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
                         email: true,
                     },
                 },
+                attributeValues: {
+                    include: {
+                        attribute: true,
+                    },
+                },
             },
         });
 
@@ -88,6 +93,19 @@ router.post('/', authMiddleware, async (req, res) => {
             },
         });
 
+        const attributes = req.body.attributes || {};
+        for (const [attrId, value] of Object.entries(attributes)) {
+            if (value !== '' && value !== undefined) {
+                await prisma.clientAttributeValue.create({
+                    data: {
+                        clientId: newClient.id,
+                        attributeId: parseInt(attrId),
+                        value: String(value),
+                    },
+                });
+            }
+        }
+
         res.status(201).json(newClient);
     } catch (error) {
         console.error('Create client error:', error);
@@ -118,6 +136,35 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 },
             },
         });
+
+        const attributes = req.body.attributes || {};
+        for (const [attrId, value] of Object.entries(attributes)) {
+            if (value !== '' && value !== undefined) {
+                await prisma.clientAttributeValue.upsert({
+                    where: {
+                        clientId_attributeId: {
+                            clientId: parseInt(req.params.id),
+                            attributeId: parseInt(attrId),
+                        },
+                    },
+                    update: {
+                        value: String(value),
+                    },
+                    create: {
+                        clientId: parseInt(req.params.id),
+                        attributeId: parseInt(attrId),
+                        value: String(value),
+                    },
+                });
+            } else {
+                await prisma.clientAttributeValue.deleteMany({
+                    where: {
+                        clientId: parseInt(req.params.id),
+                        attributeId: parseInt(attrId),
+                    },
+                });
+            }
+        }
 
         res.json(updatedClient);
     } catch (error) {

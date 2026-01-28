@@ -68,6 +68,13 @@ export const deleteClient = (id) => api.delete(`/clients/${id}`); // Удале�
 export const bulkUploadClients = (data) => api.post('/clients/bulk-upload', data); // Массовый импорт клиентов
 export const bulkUploadClientObjects = (data) => api.post('/client-objects/bulk-upload', data); // Массовый импорт объектов клиентов
 
+// === АТРИБУТЫ КЛИЕНТОВ ===
+export const getClientAttributes = () => api.get('/client-attributes'); // Получение всех атрибутов клиентов
+export const getEnabledClientAttributes = () => api.get('/client-attributes/enabled'); // Получение включенных атрибутов клиентов
+export const createClientAttribute = (data) => api.post('/client-attributes', data); // Создание нового атрибута клиента
+export const updateClientAttribute = (id, data) => api.put(`/client-attributes/${id}`, data); // Обновление атрибута клиента
+export const deleteClientAttribute = (id) => api.delete(`/client-attributes/${id}`); // Удаление атрибута клиента
+
 // === ЗАЯВКИ ===
 // CRUD-операции для заявок
 export const getBids = () => api.get('/bids'); // Получение всех заявок

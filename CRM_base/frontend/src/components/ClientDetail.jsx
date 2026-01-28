@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getClient, getClientObjects, updateClient, getUsers } from '../services/api';
+import { getClient, getClientObjects, updateClient, getUsers, getEnabledClientAttributes } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 const ClientDetail = () => {
@@ -17,15 +17,18 @@ const ClientDetail = () => {
         name: '',
         email: '',
         phone: '',
-        responsibleId: null
+        responsibleId: null,
+        attributes: {}
     });
     const [users, setUsers] = useState([]);
     const [saving, setSaving] = useState(false);
+    const [enabledAttributes, setEnabledAttributes] = useState([]);
 
     useEffect(() => {
         fetchClient();
         fetchClientObjects();
         fetchUsers();
+        fetchEnabledAttributes();
     }, [id]);
 
     const fetchClient = async () => {
@@ -58,12 +61,27 @@ const ClientDetail = () => {
         }
     };
 
+    const fetchEnabledAttributes = async () => {
+        try {
+            const response = await getEnabledClientAttributes();
+            setEnabledAttributes(response.data);
+        } catch (error) {
+            console.error('Error fetching enabled attributes:', error);
+        }
+    };
+
     const handleEdit = () => {
+        const attributes = {};
+        enabledAttributes.forEach(attr => {
+            const value = client.attributeValues?.find(av => av.attributeId === attr.id)?.value || '';
+            attributes[attr.id] = value;
+        });
         setFormData({
             name: client.name || '',
             email: client.email || '',
             phone: client.phone || '',
-            responsibleId: client.responsibleId || null
+            responsibleId: client.responsibleId || null,
+            attributes
         });
         setIsEditing(true);
     };
@@ -74,7 +92,8 @@ const ClientDetail = () => {
             name: '',
             email: '',
             phone: '',
-            responsibleId: null
+            responsibleId: null,
+            attributes: {}
         });
     };
 
@@ -94,10 +113,21 @@ const ClientDetail = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: name === 'responsibleId' ? (value ? parseInt(value) : null) : value
-        }));
+        if (name.startsWith('attr_')) {
+            const attrId = name.replace('attr_', '');
+            setFormData(prev => ({
+                ...prev,
+                attributes: {
+                    ...prev.attributes,
+                    [attrId]: value
+                }
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: name === 'responsibleId' ? (value ? parseInt(value) : null) : value
+            }));
+        }
     };
 
     if (loading) {
@@ -241,6 +271,64 @@ const ClientDetail = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Количество объектов</label>
                         <p className="text-gray-900 text-lg">{clientObjects.length}</p>
                     </div>
+                    {enabledAttributes.map(attr => {
+                        const value = client.attributeValues?.find(av => av.attributeId === attr.id)?.value || '';
+                        return (
+                            <div key={attr.id}>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{attr.name}</label>
+                                {isEditing ? (
+                                    attr.type === 'select' ? (
+                                        <select
+                                            name={`attr_${attr.id}`}
+                                            value={formData.attributes[attr.id] || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            disabled={saving}
+                                        >
+                                            <option value="">Не выбрано</option>
+                                            {attr.options?.map(option => (
+                                                <option key={option} value={option}>{option}</option>
+                                            ))}
+                                        </select>
+                                    ) : attr.type === 'boolean' ? (
+                                        <input
+                                            type="checkbox"
+                                            name={`attr_${attr.id}`}
+                                            checked={formData.attributes[attr.id] === 'true'}
+                                            onChange={(e) => handleInputChange({
+                                                target: {
+                                                    name: `attr_${attr.id}`,
+                                                    value: e.target.checked ? 'true' : 'false'
+                                                }
+                                            })}
+                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                            disabled={saving}
+                                        />
+                                    ) : attr.type === 'number' ? (
+                                        <input
+                                            type="number"
+                                            name={`attr_${attr.id}`}
+                                            value={formData.attributes[attr.id] || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            disabled={saving}
+                                        />
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            name={`attr_${attr.id}`}
+                                            value={formData.attributes[attr.id] || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            disabled={saving}
+                                        />
+                                    )
+                                ) : (
+                                    <p className="text-gray-900 text-lg">{value || 'Не указано'}</p>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 

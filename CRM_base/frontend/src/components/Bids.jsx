@@ -371,6 +371,7 @@ const Bids = () => {
 
     return (
         <div>
+            <h1 className="text-2xl font-bold mb-4">Заявки</h1>
             {/* Кнопка для переключения формы */}
             <div className="flex justify-end items-center mb-6">
                 {hasPermission('bid_create') && (

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
-import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients, getBids, getClientObjects, bulkUploadClientObjects } from '../services/api';
+import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients, getBids, getClientObjects, bulkUploadClientObjects, getClientAttributes, getEnabledClientAttributes, createClientAttribute, updateClientAttribute, deleteClientAttribute } from '../services/api';
 import * as XLSX from 'xlsx';
 import BackupManagement from './BackupManagement.jsx';
 
@@ -98,6 +98,15 @@ const Settings = () => {
         discount: '',
         cost: '',
     });
+    const [clientAttributes, setClientAttributes] = useState([]);
+    const [showClientAttributeForm, setShowClientAttributeForm] = useState(false);
+    const [editingClientAttribute, setEditingClientAttribute] = useState(null);
+    const [clientAttributeFormData, setClientAttributeFormData] = useState({
+        name: '',
+        type: 'string',
+        options: [],
+        isEnabled: true,
+    });
     const [specificationCategories, setSpecificationCategories] = useState([]);
     const [allSpecificationCategories, setAllSpecificationCategories] = useState([]);
     const [expandedCategories, setExpandedCategories] = useState(new Set());
@@ -145,6 +154,7 @@ const Settings = () => {
         const availableTabs = [
             { id: 'user', permission: 'settings_user_button' },
             { id: 'roles', permission: 'settings_role_button' },
+            { id: 'client-attributes', permission: 'settings_client_attributes_button' },
             { id: 'specification-categories', permission: 'settings_spec_category_button' },
             { id: 'specifications', permission: 'settings_spec_button' },
             { id: 'bid-types', permission: 'settings_bid_type_button' },
@@ -218,13 +228,16 @@ const Settings = () => {
                     fetchBidTypes();
                 }
                 break;
+            case 'client-attributes':
+                fetchClientAttributes();
+                break;
             case 'administration':
                 // Административные функции - данные не требуются
                 break;
             default:
                 break;
         }
-    }, [activeSettingsTab, hasPermission, users.length, roles.length, allSpecificationCategories.length, specifications.length, bidTypes.length]);
+    }, [activeSettingsTab, hasPermission, users.length, roles.length, clientAttributes.length, allSpecificationCategories.length, specifications.length, bidTypes.length]);
 
     const fetchUsers = async () => {
         try {
@@ -466,6 +479,53 @@ const Settings = () => {
             } catch (error) {
                 console.error('Error deleting role:', error);
                 setNotification({ type: 'error', message: 'Ошибка при удалении роли' });
+            }
+        }
+    };
+
+    const fetchClientAttributes = async () => {
+        try {
+            const response = await getClientAttributes();
+            setClientAttributes(response.data);
+        } catch (error) {
+            console.error('Error fetching client attributes:', error);
+        }
+    };
+
+    const handleClientAttributeSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingClientAttribute) {
+                await updateClientAttribute(editingClientAttribute.id, clientAttributeFormData);
+                setNotification({ type: 'success', message: 'Атрибут обновлен успешно' });
+            } else {
+                await createClientAttribute(clientAttributeFormData);
+                setNotification({ type: 'success', message: 'Атрибут создан успешно' });
+            }
+            setClientAttributeFormData({
+                name: '',
+                type: 'string',
+                options: [],
+                isEnabled: true,
+            });
+            setEditingClientAttribute(null);
+            setShowClientAttributeForm(false);
+            fetchClientAttributes();
+        } catch (error) {
+            console.error('Error saving client attribute:', error);
+            setNotification({ type: 'error', message: 'Ошибка при сохранении атрибута' });
+        }
+    };
+
+    const handleDeleteClientAttribute = async (id) => {
+        if (window.confirm('Вы уверены, что хотите удалить этот атрибут?')) {
+            try {
+                await deleteClientAttribute(id);
+                setNotification({ type: 'success', message: 'Атрибут удален успешно' });
+                fetchClientAttributes();
+            } catch (error) {
+                console.error('Error deleting client attribute:', error);
+                setNotification({ type: 'error', message: 'Ошибка при удалении атрибута' });
             }
         }
     };
@@ -1457,6 +1517,7 @@ const Settings = () => {
                                             // Права видимости кнопок в настройках
                                             settings_user_button: false,
                                             settings_role_button: false,
+                                            settings_client_attributes_button: false,
                                             settings_spec_category_button: false,
                                             settings_spec_button: false,
                                             settings_bid_type_button: false,
@@ -1910,6 +1971,15 @@ const Settings = () => {
                                                         className="mr-2"
                                                     />
                                                     Видеть кнопку "Роли"
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.settings_client_attributes_button}
+                                                        onChange={(e) => handlePermissionChange('settings_client_attributes_button', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Видеть кнопку "Атрибуты клиентов"
                                                 </label>
                                                 <label className="flex items-center">
                                                     <input
@@ -2555,8 +2625,280 @@ const Settings = () => {
                     )}
                 </div>
             )}
+{activeSettingsTab === 'client-attributes' && (
 
-            {activeSettingsTab === 'administration' && (
+    <div>
+
+        <div className="flex justify-between items-center mb-6">
+
+            <h2 className="text-2xl font-bold text-gray-800">Атрибуты клиентов</h2>
+
+            <button
+
+                onClick={() => {
+
+                    setClientAttributeFormData({
+
+                        name: '',
+
+                        type: 'string',
+
+                        options: [],
+
+                        isEnabled: true,
+
+                    });
+
+                    setEditingClientAttribute(null);
+
+                    setShowClientAttributeForm(true);
+
+                }}
+
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+
+            >
+
+                + Добавить атрибут
+
+            </button>
+
+        </div>
+
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+
+            <table className="min-w-full divide-y divide-gray-200">
+
+                <thead className="bg-gray-50">
+
+                    <tr>
+
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тип</th>
+
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Включен</th>
+
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody className="bg-white divide-y divide-gray-200">
+
+                    {clientAttributes.map((attr) => (
+
+                        <tr key={attr.id}>
+
+                            <td className="px-6 py-4 whitespace-nowrap">{attr.name}</td>
+
+                            <td className="px-6 py-4 whitespace-nowrap">{attr.type}</td>
+
+                            <td className="px-6 py-4 whitespace-nowrap">{attr.isEnabled ? 'Да' : 'Нет'}</td>
+
+                            <td className="px-6 py-4 whitespace-nowrap">
+
+                                <button
+
+                                    onClick={() => {
+
+                                        setClientAttributeFormData({
+
+                                            name: attr.name,
+
+                                            type: attr.type,
+
+                                            options: attr.options || [],
+
+                                            isEnabled: attr.isEnabled,
+
+                                        });
+
+                                        setEditingClientAttribute(attr);
+
+                                        setShowClientAttributeForm(true);
+
+                                    }}
+
+                                    className="text-blue-600 hover:text-blue-900 mr-2"
+
+                                >
+
+                                    Редактировать
+
+                                </button>
+
+                                <button
+
+                                    onClick={() => handleDeleteClientAttribute(attr.id)}
+
+                                    className="text-red-600 hover:text-red-900"
+
+                                >
+
+                                    Удалить
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                    ))}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {showClientAttributeForm && (
+
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+
+                <div className="bg-white rounded-lg p-6 w-full max-w-md">
+
+                    <h3 className="text-xl font-bold mb-4">
+
+                        {editingClientAttribute ? 'Редактировать атрибут' : 'Добавить атрибут'}
+
+                    </h3>
+
+                    <form onSubmit={handleClientAttributeSubmit} className="space-y-4">
+
+                        <div>
+
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+
+                            <input
+
+                                type="text"
+
+                                value={clientAttributeFormData.name}
+
+                                onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, name: e.target.value })}
+
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+                                required
+
+                            />
+
+                        </div>
+
+                        <div>
+
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Тип</label>
+
+                            <select
+
+                                value={clientAttributeFormData.type}
+
+                                onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, type: e.target.value })}
+
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+                            >
+
+                                <option value="string">Строка</option>
+
+                                <option value="number">Число</option>
+
+                                <option value="boolean">Булево</option>
+
+                                <option value="select">Выпадающий список</option>
+
+                            </select>
+
+                        </div>
+
+                        {clientAttributeFormData.type === 'select' && (
+
+                            <div>
+
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Опции (через запятую)</label>
+
+                                <input
+
+                                    type="text"
+
+                                    value={clientAttributeFormData.options.join(', ')}
+
+                                    onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, options: e.target.value.split(',').map(s => s.trim()) })}
+
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+                                    placeholder="Опция 1, Опция 2, Опция 3"
+
+                                />
+
+                            </div>
+
+                        )}
+
+                        <div className="flex items-center">
+
+                            <input
+
+                                type="checkbox"
+
+                                checked={clientAttributeFormData.isEnabled}
+
+                                onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, isEnabled: e.target.checked })}
+
+                                className="mr-2"
+
+                            />
+
+                            <label className="text-sm font-medium text-gray-700">Включен</label>
+
+                        </div>
+
+                        <div className="flex gap-2 pt-4">
+
+                            <button
+
+                                type="submit"
+
+                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+
+                            >
+
+                                {editingClientAttribute ? 'Обновить' : 'Создать'}
+
+                            </button>
+
+                            <button
+
+                                type="button"
+
+                                onClick={() => setShowClientAttributeForm(false)}
+
+                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+
+                            >
+
+                                Отмена
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        )}
+
+    </div>
+
+)}
+
+{activeSettingsTab === 'administration' && (
+
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Администрирование</h2>
