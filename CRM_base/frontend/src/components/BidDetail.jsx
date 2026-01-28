@@ -1089,8 +1089,8 @@ const BidDetail = () => {
 
                     {/* Status Dropdown */}
                     {showStatusDropdown && (
-                        <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 shadow-lg z-10 mt-1">
-                            <div className="py-1">
+                        <div className="absolute top-full left-0 right-0 bg-white/80 border border-gray-300 shadow-lg z-10 mt-1 p-1">
+                            <div className="py-1 space-y-1">
                                 {getAvailableStatuses().map(status => (
                                     <button
                                         key={status.position}

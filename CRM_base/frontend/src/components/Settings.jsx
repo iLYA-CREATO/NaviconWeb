@@ -219,8 +219,11 @@ const Settings = () => {
                 }
                 break;
             case 'specifications':
-                if (specifications.length === 0 && hasPermission('spec_create')) {
+                if (specifications.length === 0 && hasPermission('settings_spec_button')) {
                     fetchSpecifications();
+                }
+                if (allSpecificationCategories.length === 0 && hasPermission('settings_spec_button')) {
+                    fetchSpecificationCategories();
                 }
                 break;
             case 'bid-types':
