@@ -269,12 +269,25 @@ const Bids = () => {
     };
 
     // Функция для получения цвета фона статуса
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Закрыта': return 'bg-red-100 text-red-800';
-            case 'Открыта': return 'bg-yellow-100 text-yellow-800';
-            default: return 'bg-blue-100 text-blue-800';
+    const getStatusColor = (bid) => {
+        // Find the status configuration from bidType
+        let statusConfig = null;
+        if (bid.bidType?.statuses && Array.isArray(bid.bidType.statuses)) {
+            statusConfig = bid.bidType.statuses.find(s => s.name === bid.status);
         }
+
+        // Use status config if available, otherwise default
+        const color = statusConfig?.color || '#7a7777'; // Default gray
+
+        // Check if color is light/white and adjust text color accordingly
+        const isLightColor = color === '#ffffff' || color.toLowerCase() === '#fff';
+        const textColor = isLightColor ? '#333333' : '#ffffff'; // Dark text on light bg, white on dark bg
+
+        return {
+            backgroundColor: color,
+            color: textColor,
+            border: isLightColor ? '1px solid #cccccc' : 'none'
+        };
     };
 
     // Функция для получения содержимого ячейки
@@ -285,11 +298,17 @@ const Bids = () => {
             case 'clientObject': return bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '';
             case 'tema': return bid.title;
             case 'creatorName': return bid.creatorName;
-            case 'status': return (
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(bid.status)}`}>
-                    {bid.status}
-                </span>
-            );
+            case 'status': {
+                const statusStyle = getStatusColor(bid);
+                return (
+                    <span
+                        className="px-2 py-1 rounded-full text-xs font-medium"
+                        style={statusStyle}
+                    >
+                        {bid.status}
+                    </span>
+                );
+            }
             case 'description': return <div className="max-w-xs truncate">{bid.description}</div>;
             case 'plannedResolutionDate': return bid.plannedResolutionDate ? new Date(bid.plannedResolutionDate).toLocaleString() : '';
             case 'plannedReactionTimeMinutes': return bid.plannedReactionTimeMinutes || '';

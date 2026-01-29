@@ -58,7 +58,7 @@ router.get('/', authMiddleware, async (req, res) => {
                         fullName: true,
                     },
                 },
-                // bidType: true, // Не нужно, так как не используется в форматировании
+                bidType: true, // Включаем тип заявки для получения статусов
             },
         });
 
@@ -82,6 +82,7 @@ router.get('/', authMiddleware, async (req, res) => {
             plannedDurationHours: bid.plannedDurationHours,
             spentTimeHours: bid.spentTimeHours ? parseFloat(bid.spentTimeHours) : null,
             parentId: bid.parentId, // Добавляем ID родительской заявки
+            bidType: bid.bidType, // Добавляем тип заявки для получения статусов
         }));
 
         res.json(formattedBids); // Отправляем отформатированные данные

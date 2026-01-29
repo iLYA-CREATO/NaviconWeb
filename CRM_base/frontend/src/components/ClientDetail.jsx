@@ -24,10 +24,75 @@ const ClientDetail = () => {
     const [saving, setSaving] = useState(false);
     const [enabledAttributes, setEnabledAttributes] = useState([]);
     const [clientEquipment, setClientEquipment] = useState([]);
+    const [clientFiles, setClientFiles] = useState([]);
+    const [clientContracts, setClientContracts] = useState([]);
     const [allEquipment, setAllEquipment] = useState([]);
     const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
     const [selectedEquipmentId, setSelectedEquipmentId] = useState('');
     const [imei, setImei] = useState('');
+
+    // Column settings for bids table
+    const bidsAllColumns = ['id', 'tema', 'status', 'description'];
+    const savedBidsColumns = localStorage.getItem('clientDetailBidsVisibleColumns');
+    const bidsDefaultVisibleColumns = {
+        id: true,
+        tema: true,
+        status: true,
+        description: true,
+    };
+    const initialBidsVisibleColumns = savedBidsColumns ? { ...bidsDefaultVisibleColumns, ...JSON.parse(savedBidsColumns) } : bidsDefaultVisibleColumns;
+    const savedBidsOrder = localStorage.getItem('clientDetailBidsColumnOrder');
+    let initialBidsColumnOrder = savedBidsOrder ? JSON.parse(savedBidsOrder).filter(col => bidsAllColumns.includes(col)) : bidsAllColumns;
+    bidsAllColumns.forEach(col => {
+        if (!initialBidsColumnOrder.includes(col)) {
+            initialBidsColumnOrder.push(col);
+        }
+    });
+    const [bidsColumnOrder, setBidsColumnOrder] = useState(initialBidsColumnOrder);
+    const [bidsVisibleColumns, setBidsVisibleColumns] = useState(initialBidsVisibleColumns);
+    const [showBidsColumnSettings, setShowBidsColumnSettings] = useState(false);
+
+    // Column settings for equipment table
+    const equipmentAllColumns = ['equipmentName', 'productCode', 'imei', 'bidId', 'actions'];
+    const savedEquipmentColumns = localStorage.getItem('clientDetailEquipmentVisibleColumns');
+    const equipmentDefaultVisibleColumns = {
+        equipmentName: true,
+        productCode: true,
+        imei: true,
+        bidId: true,
+        actions: true,
+    };
+    const initialEquipmentVisibleColumns = savedEquipmentColumns ? { ...equipmentDefaultVisibleColumns, ...JSON.parse(savedEquipmentColumns) } : equipmentDefaultVisibleColumns;
+    const savedEquipmentOrder = localStorage.getItem('clientDetailEquipmentColumnOrder');
+    let initialEquipmentColumnOrder = savedEquipmentOrder ? JSON.parse(savedEquipmentOrder).filter(col => equipmentAllColumns.includes(col)) : equipmentAllColumns;
+    equipmentAllColumns.forEach(col => {
+        if (!initialEquipmentColumnOrder.includes(col)) {
+            initialEquipmentColumnOrder.push(col);
+        }
+    });
+    const [equipmentColumnOrder, setEquipmentColumnOrder] = useState(initialEquipmentColumnOrder);
+    const [equipmentVisibleColumns, setEquipmentVisibleColumns] = useState(initialEquipmentVisibleColumns);
+    const [showEquipmentColumnSettings, setShowEquipmentColumnSettings] = useState(false);
+
+    // Column settings for objects table
+    const objectsAllColumns = ['brandModel', 'stateNumber', 'bids'];
+    const savedObjectsColumns = localStorage.getItem('clientDetailObjectsVisibleColumns');
+    const objectsDefaultVisibleColumns = {
+        brandModel: true,
+        stateNumber: true,
+        bids: true,
+    };
+    const initialObjectsVisibleColumns = savedObjectsColumns ? { ...objectsDefaultVisibleColumns, ...JSON.parse(savedObjectsColumns) } : objectsDefaultVisibleColumns;
+    const savedObjectsOrder = localStorage.getItem('clientDetailObjectsColumnOrder');
+    let initialObjectsColumnOrder = savedObjectsOrder ? JSON.parse(savedObjectsOrder).filter(col => objectsAllColumns.includes(col)) : objectsAllColumns;
+    objectsAllColumns.forEach(col => {
+        if (!initialObjectsColumnOrder.includes(col)) {
+            initialObjectsColumnOrder.push(col);
+        }
+    });
+    const [objectsColumnOrder, setObjectsColumnOrder] = useState(initialObjectsColumnOrder);
+    const [objectsVisibleColumns, setObjectsVisibleColumns] = useState(initialObjectsVisibleColumns);
+    const [showObjectsColumnSettings, setShowObjectsColumnSettings] = useState(false);
 
     useEffect(() => {
         fetchClient();
@@ -37,6 +102,48 @@ const ClientDetail = () => {
         fetchClientEquipment();
         fetchAllEquipment();
     }, [id]);
+
+    // Save column settings to localStorage
+    useEffect(() => {
+        localStorage.setItem('clientDetailBidsVisibleColumns', JSON.stringify(bidsVisibleColumns));
+    }, [bidsVisibleColumns]);
+
+    useEffect(() => {
+        localStorage.setItem('clientDetailBidsColumnOrder', JSON.stringify(bidsColumnOrder));
+    }, [bidsColumnOrder]);
+
+    useEffect(() => {
+        localStorage.setItem('clientDetailEquipmentVisibleColumns', JSON.stringify(equipmentVisibleColumns));
+    }, [equipmentVisibleColumns]);
+
+    useEffect(() => {
+        localStorage.setItem('clientDetailEquipmentColumnOrder', JSON.stringify(equipmentColumnOrder));
+    }, [equipmentColumnOrder]);
+
+    useEffect(() => {
+        localStorage.setItem('clientDetailObjectsVisibleColumns', JSON.stringify(objectsVisibleColumns));
+    }, [objectsVisibleColumns]);
+
+    useEffect(() => {
+        localStorage.setItem('clientDetailObjectsColumnOrder', JSON.stringify(objectsColumnOrder));
+    }, [objectsColumnOrder]);
+
+    // Close dropdowns on outside click
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showBidsColumnSettings && !event.target.closest('.bids-column-settings')) {
+                setShowBidsColumnSettings(false);
+            }
+            if (showEquipmentColumnSettings && !event.target.closest('.equipment-column-settings')) {
+                setShowEquipmentColumnSettings(false);
+            }
+            if (showObjectsColumnSettings && !event.target.closest('.objects-column-settings')) {
+                setShowObjectsColumnSettings(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showBidsColumnSettings, showEquipmentColumnSettings, showObjectsColumnSettings]);
 
     const fetchClient = async () => {
         try {
@@ -121,6 +228,189 @@ const ClientDetail = () => {
         } catch (error) {
             console.error('Error adding client equipment:', error);
             alert('Ошибка при добавлении оборудования.');
+        }
+    };
+
+    // Column settings handlers
+    const handleBidsColumnToggle = (column) => {
+        setBidsVisibleColumns(prev => ({
+            ...prev,
+            [column]: !prev[column]
+        }));
+    };
+
+    const handleBidsColumnMoveUp = (index) => {
+        if (index > 0) {
+            const newOrder = [...bidsColumnOrder];
+            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+            setBidsColumnOrder(newOrder);
+        }
+    };
+
+    const handleBidsColumnMoveDown = (index) => {
+        if (index < bidsColumnOrder.length - 1) {
+            const newOrder = [...bidsColumnOrder];
+            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+            setBidsColumnOrder(newOrder);
+        }
+    };
+
+    const handleEquipmentColumnToggle = (column) => {
+        setEquipmentVisibleColumns(prev => ({
+            ...prev,
+            [column]: !prev[column]
+        }));
+    };
+
+    const handleEquipmentColumnMoveUp = (index) => {
+        if (index > 0) {
+            const newOrder = [...equipmentColumnOrder];
+            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+            setEquipmentColumnOrder(newOrder);
+        }
+    };
+
+    const handleEquipmentColumnMoveDown = (index) => {
+        if (index < equipmentColumnOrder.length - 1) {
+            const newOrder = [...equipmentColumnOrder];
+            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+            setEquipmentColumnOrder(newOrder);
+        }
+    };
+
+    const handleObjectsColumnToggle = (column) => {
+        setObjectsVisibleColumns(prev => ({
+            ...prev,
+            [column]: !prev[column]
+        }));
+    };
+
+    const handleObjectsColumnMoveUp = (index) => {
+        if (index > 0) {
+            const newOrder = [...objectsColumnOrder];
+            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+            setObjectsColumnOrder(newOrder);
+        }
+    };
+
+    const handleObjectsColumnMoveDown = (index) => {
+        if (index < objectsColumnOrder.length - 1) {
+            const newOrder = [...objectsColumnOrder];
+            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+            setObjectsColumnOrder(newOrder);
+        }
+    };
+
+    // Column label functions
+    const getBidsColumnLabel = (column) => {
+        switch (column) {
+            case 'id': return '№';
+            case 'tema': return 'Тема';
+            case 'status': return 'Статус';
+            case 'description': return 'Описание';
+            default: return column;
+        }
+    };
+
+    const getEquipmentColumnLabel = (column) => {
+        switch (column) {
+            case 'equipmentName': return 'Оборудование';
+            case 'productCode': return 'Код товара';
+            case 'imei': return 'IMEI';
+            case 'bidId': return 'Заявка';
+            case 'actions': return 'Действия';
+            default: return column;
+        }
+    };
+
+    const getObjectsColumnLabel = (column) => {
+        switch (column) {
+            case 'brandModel': return 'Марка/Модель';
+            case 'stateNumber': return 'Гос. Номер';
+            case 'bids': return 'Заявки';
+            default: return column;
+        }
+    };
+
+    // Cell content functions
+    const getBidsCellContent = (bid, column) => {
+        switch (column) {
+            case 'id': return `№ ${bid.id}`;
+            case 'tema': return bid.tema;
+            case 'status': {
+                // Find the status configuration from bidType
+                let statusConfig = null;
+                if (bid.bidType?.statuses && Array.isArray(bid.bidType.statuses)) {
+                    statusConfig = bid.bidType.statuses.find(s => s.name === bid.status);
+                }
+
+                // Use status config if available, otherwise default
+                const color = statusConfig?.color || '#7a7777'; // Default gray
+                const displayName = statusConfig?.name || bid.status;
+
+                // Check if color is light/white and adjust text color accordingly
+                const isLightColor = color === '#ffffff' || color.toLowerCase() === '#fff';
+                const textColor = isLightColor ? '#333333' : '#ffffff'; // Dark text on light bg, white on dark bg
+
+                return (
+                    <span
+                        className="px-2 py-1 text-xs rounded-full border"
+                        style={{
+                            backgroundColor: color,
+                            color: textColor,
+                            borderColor: isLightColor ? '#cccccc' : color
+                        }}
+                    >
+                        {displayName}
+                    </span>
+                );
+            }
+            case 'description': return <div className="max-w-xs truncate">{bid.description}</div>;
+            default: return '';
+        }
+    };
+
+    const getEquipmentCellContent = (ce, column) => {
+        switch (column) {
+            case 'equipmentName': return ce.equipment.name;
+            case 'productCode': return ce.equipment.productCode || '-';
+            case 'imei': return ce.imei || '-';
+            case 'bidId': return ce.bid ? (
+                <button
+                    onClick={() => navigate(`/dashboard/bids/${ce.bid.id}`)}
+                    className="text-blue-500 hover:text-blue-700 underline"
+                >
+                    {ce.bid.id}
+                </button>
+            ) : '-';
+            case 'actions': return hasPermission('client_equipment_delete') ? (
+                <button
+                    onClick={() => handleDeleteClientEquipment(ce.id)}
+                    className="text-red-500 hover:text-red-700"
+                >
+                    Удалить
+                </button>
+            ) : null;
+            default: return '';
+        }
+    };
+
+    const getObjectsCellContent = (obj, column) => {
+        switch (column) {
+            case 'brandModel': return obj.brandModel;
+            case 'stateNumber': return obj.stateNumber;
+            case 'bids': return obj.bids && obj.bids.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                    {obj.bids.map((bid) => (
+                        <span key={bid.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                            {bid.tema}
+                        </span>
+                    ))}
+                </div>
+            ) : (
+                <span className="text-gray-500">Нет заявок</span>
+            );
+            default: return '';
         }
     };
 
@@ -486,9 +776,19 @@ const ClientDetail = () => {
                         'Договоры'
                     ].map((tab) => {
                         let displayTab = tab;
+                        let count = 0;
                         if (tab === 'Заявки') {
-                            displayTab = `Заявки${client.bids && client.bids.length > 0 ? ` (${client.bids.length})` : ''}`;
+                            count = client.bids ? client.bids.length : 0;
+                        } else if (tab === 'Оборудование') {
+                            count = clientEquipment.length;
+                        } else if (tab === 'Файлы') {
+                            count = clientFiles.length;
+                        } else if (tab === 'Объекты') {
+                            count = clientObjects.length;
+                        } else if (tab === 'Договоры') {
+                            count = clientContracts.length;
                         }
+                        displayTab = `${tab} (${count})`;
                         return (
                             <button
                                 key={tab}
@@ -513,37 +813,75 @@ const ClientDetail = () => {
                 <div className="bg-white rounded-lg shadow p-6">
                     {activeTab === 'Заявки' && (
                         <div>
-                            <h3 className="text-lg font-semibold mb-4">Заявки клиента</h3>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold">Заявки клиента</h3>
+                                <div className="relative bids-column-settings">
+                                    <button
+                                        onClick={() => setShowBidsColumnSettings(!showBidsColumnSettings)}
+                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition text-sm"
+                                    >
+                                        Настройки столбцов
+                                    </button>
+                                    {showBidsColumnSettings && (
+                                        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                                            <div className="p-4">
+                                                <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                                {bidsColumnOrder.map((column, index) => (
+                                                    <div key={column} className="flex items-center justify-between mb-2">
+                                                        <label className="flex items-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={bidsVisibleColumns[column]}
+                                                                onChange={() => handleBidsColumnToggle(column)}
+                                                                className="mr-2"
+                                                            />
+                                                            {getBidsColumnLabel(column)}
+                                                        </label>
+                                                        {bidsVisibleColumns[column] && (
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => handleBidsColumnMoveUp(index)}
+                                                                    disabled={index === 0}
+                                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                >
+                                                                    ↑
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleBidsColumnMoveDown(index)}
+                                                                    disabled={index === bidsColumnOrder.length - 1}
+                                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                >
+                                                                    ↓
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                             {client.bids && client.bids.length > 0 ? (
                                 <div className="bg-white rounded-lg shadow overflow-hidden">
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">тема</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
+                                                {bidsColumnOrder.filter(col => bidsVisibleColumns[col]).map(column => (
+                                                    <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                        {getBidsColumnLabel(column)}
+                                                    </th>
+                                                ))}
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {client.bids.map((bid) => (
                                                 <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/dashboard/bids/${bid.id}`)}>
-                                                    <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">{bid.tema}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`px-2 py-1 text-xs rounded-full ${
-                                                            bid.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                            bid.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-red-100 text-red-800'
-                                                        }`}>
-                                                            {bid.status === 'approved' ? 'Одобрена' :
-                                                             bid.status === 'pending' ? 'В ожидании' :
-                                                             'Отклонена'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="max-w-xs truncate">{bid.description}</div>
-                                                    </td>
+                                                    {bidsColumnOrder.filter(col => bidsVisibleColumns[col]).map(column => (
+                                                        <td key={column} className={`px-6 py-4 ${column === 'description' ? '' : 'whitespace-nowrap'}`}>
+                                                            {getBidsCellContent(bid, column)}
+                                                        </td>
+                                                    ))}
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -558,53 +896,83 @@ const ClientDetail = () => {
                         <div>
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold">Оборудование клиента</h3>
-                                {hasPermission('client_equipment_add') && (
-                                    <button
-                                        onClick={() => setShowAddEquipmentModal(true)}
-                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"
-                                    >
-                                        Добавить оборудование
-                                    </button>
-                                )}
+                                <div className="flex gap-2">
+                                    <div className="relative equipment-column-settings">
+                                        <button
+                                            onClick={() => setShowEquipmentColumnSettings(!showEquipmentColumnSettings)}
+                                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition text-sm"
+                                        >
+                                            Настройки столбцов
+                                        </button>
+                                        {showEquipmentColumnSettings && (
+                                            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                                                <div className="p-4">
+                                                    <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                                    {equipmentColumnOrder.map((column, index) => (
+                                                        <div key={column} className="flex items-center justify-between mb-2">
+                                                            <label className="flex items-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={equipmentVisibleColumns[column]}
+                                                                    onChange={() => handleEquipmentColumnToggle(column)}
+                                                                    className="mr-2"
+                                                                />
+                                                                {getEquipmentColumnLabel(column)}
+                                                            </label>
+                                                            {equipmentVisibleColumns[column] && (
+                                                                <div className="flex gap-1">
+                                                                    <button
+                                                                        onClick={() => handleEquipmentColumnMoveUp(index)}
+                                                                        disabled={index === 0}
+                                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                    >
+                                                                        ↑
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleEquipmentColumnMoveDown(index)}
+                                                                        disabled={index === equipmentColumnOrder.length - 1}
+                                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                    >
+                                                                        ↓
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {hasPermission('client_equipment_add') && (
+                                        <button
+                                            onClick={() => setShowAddEquipmentModal(true)}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"
+                                        >
+                                            Добавить оборудование
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             {clientEquipment.length > 0 ? (
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full bg-white border border-gray-300">
                                         <thead>
                                             <tr className="bg-gray-50">
-                                                <th className="px-4 py-2 border-b text-left">Оборудование</th>
-                                                <th className="px-4 py-2 border-b text-left">Код товара</th>
-                                                <th className="px-4 py-2 border-b text-left">IMEI</th>
-                                                <th className="px-4 py-2 border-b text-left">Заявка</th>
-                                                <th className="px-4 py-2 border-b text-left">Действия</th>
+                                                {equipmentColumnOrder.filter(col => equipmentVisibleColumns[col]).map(column => (
+                                                    <th key={column} className="px-4 py-2 border-b text-left text-xs font-medium text-gray-500 uppercase">
+                                                        {getEquipmentColumnLabel(column)}
+                                                    </th>
+                                                ))}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {clientEquipment.map(ce => (
                                                 <tr key={ce.id} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-2 border-b">{ce.equipment.name}</td>
-                                                    <td className="px-4 py-2 border-b">{ce.equipment.productCode || '-'}</td>
-                                                    <td className="px-4 py-2 border-b">{ce.imei || '-'}</td>
-                                                    <td className="px-4 py-2 border-b">
-                                                        {ce.bid ? (
-                                                            <button
-                                                                onClick={() => navigate(`/dashboard/bids/${ce.bid.id}`)}
-                                                                className="text-blue-500 hover:text-blue-700 underline"
-                                                            >
-                                                                {ce.bid.id}
-                                                            </button>
-                                                        ) : '-'}
-                                                    </td>
-                                                    <td className="px-4 py-2 border-b">
-                                                        {hasPermission('client_equipment_delete') && (
-                                                            <button
-                                                                onClick={() => handleDeleteClientEquipment(ce.id)}
-                                                                className="text-red-500 hover:text-red-700"
-                                                            >
-                                                                Удалить
-                                                            </button>
-                                                        )}
-                                                    </td>
+                                                    {equipmentColumnOrder.filter(col => equipmentVisibleColumns[col]).map(column => (
+                                                        <td key={column} className="px-4 py-2 border-b">
+                                                            {getEquipmentCellContent(ce, column)}
+                                                        </td>
+                                                    ))}
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -623,35 +991,75 @@ const ClientDetail = () => {
                     )}
                     {activeTab === 'Объекты' && (
                         <div>
-                            <h3 className="text-lg font-semibold mb-4">Объекты клиента</h3>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold">Объекты клиента</h3>
+                                <div className="relative objects-column-settings">
+                                    <button
+                                        onClick={() => setShowObjectsColumnSettings(!showObjectsColumnSettings)}
+                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition text-sm"
+                                    >
+                                        Настройки столбцов
+                                    </button>
+                                    {showObjectsColumnSettings && (
+                                        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                                            <div className="p-4">
+                                                <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                                {objectsColumnOrder.map((column, index) => (
+                                                    <div key={column} className="flex items-center justify-between mb-2">
+                                                        <label className="flex items-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={objectsVisibleColumns[column]}
+                                                                onChange={() => handleObjectsColumnToggle(column)}
+                                                                className="mr-2"
+                                                            />
+                                                            {getObjectsColumnLabel(column)}
+                                                        </label>
+                                                        {objectsVisibleColumns[column] && (
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => handleObjectsColumnMoveUp(index)}
+                                                                    disabled={index === 0}
+                                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                >
+                                                                    ↑
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleObjectsColumnMoveDown(index)}
+                                                                    disabled={index === objectsColumnOrder.length - 1}
+                                                                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                >
+                                                                    ↓
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                             {clientObjects && clientObjects.length > 0 ? (
                                 <div className="bg-white rounded-lg shadow overflow-hidden">
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Марка/Модель</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Гос. Номер</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заявки</th>
+                                                {objectsColumnOrder.filter(col => objectsVisibleColumns[col]).map(column => (
+                                                    <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                        {getObjectsColumnLabel(column)}
+                                                    </th>
+                                                ))}
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {clientObjects.map((obj) => (
                                                 <tr key={obj.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/dashboard/client-objects/${obj.id}`)}>
-                                                    <td className="px-6 py-4 whitespace-nowrap">{obj.brandModel}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">{obj.stateNumber}</td>
-                                                    <td className="px-6 py-4">
-                                                        {obj.bids && obj.bids.length > 0 ? (
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {obj.bids.map((bid) => (
-                                                                    <span key={bid.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                                                        {bid.tema}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-gray-500">Нет заявок</span>
-                                                        )}
-                                                    </td>
+                                                    {objectsColumnOrder.filter(col => objectsVisibleColumns[col]).map(column => (
+                                                        <td key={column} className="px-6 py-4">
+                                                            {getObjectsCellContent(obj, column)}
+                                                        </td>
+                                                    ))}
                                                 </tr>
                                             ))}
                                         </tbody>
