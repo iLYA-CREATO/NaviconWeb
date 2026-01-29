@@ -260,8 +260,14 @@ const Dashboard = () => {
             </aside>
 
             {/* Основная область для отображения дочерних компонентов */}
-            <main className={`${isSettings ? (isSidebarCollapsed ? 'ml-16' : 'ml-48') : isSidebarCollapsed ? 'ml-16' : 'ml-64'} p-8 transition-all duration-300`}>
-                <Outlet key={activeSettingsTab} context={{ activeSettingsTab }} /> {/* Передача контекста дочерним маршрутам */}
+            <main className={`${isSettings ? (isSidebarCollapsed ? 'ml-16' : 'ml-48') : isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
+                {/* Новая карточка в верхней части */}
+                <div className="w-full bg-white shadow-lg flex h-16">
+                    {/* Здесь можно добавить новые кнопки */}
+                </div>
+                <div className="p-8">
+                    <Outlet key={activeSettingsTab} context={{ activeSettingsTab }} /> {/* Передача контекста дочерним маршрутам */}
+                </div>
             </main>
         </div>
     );
