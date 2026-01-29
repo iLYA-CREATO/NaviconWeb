@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes } from '../services/api';
+import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 // Импорт хука для проверки разрешений
@@ -140,6 +140,7 @@ const BidDetail = () => {
         try {
             const response = await getBid(id);
             setBid(response.data);
+            fetchEquipment(); // Fetch equipment for this bid's client
             // Логируем данные заявки при открытии
             console.log('Открытие заявки ID:', id);
             console.log('Данные заявки:', {
@@ -448,6 +449,19 @@ const BidDetail = () => {
             if (editingEquipment) {
                 await updateBidEquipment(editingEquipment.id, equipmentData);
             } else {
+                // First, ensure the equipment is assigned to the client
+                const clientEquipmentResponse = await getClientEquipmentByClient(bid.clientId);
+                const clientHasEquipment = clientEquipmentResponse.data.some(ce => ce.equipmentId === parseInt(equipmentData.equipmentId));
+
+                if (!clientHasEquipment) {
+                    // Assign equipment to client
+                    await createClientEquipment({
+                        clientId: bid.clientId,
+                        equipmentId: equipmentData.equipmentId
+                    });
+                }
+
+                // Then create bid equipment
                 await createBidEquipment({ ...equipmentData, bidId: id });
             }
             setShowAddEquipmentModal(false);

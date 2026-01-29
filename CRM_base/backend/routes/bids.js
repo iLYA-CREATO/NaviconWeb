@@ -43,11 +43,13 @@ router.get('/', authMiddleware, async (req, res) => {
                     },
                 },
                 clientObject: { // Данные объекта клиента (автомобиль)
-                    select: {
-                        id: true,
-                        brandModel: true,
-                        stateNumber: true,
-                        equipment: true,
+                    include: {
+                        equipment: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
                     },
                 },
                 creator: { // Данные создателя
@@ -107,7 +109,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
                         },
                     },
                 }, // Данные клиента с ответственным
-                clientObject: true, // Полные данные объекта клиента
+                clientObject: {
+                    include: {
+                        equipment: true,
+                    },
+                }, // Полные данные объекта клиента
                 bidType: true, // Данные типа заявки
                 creator: { // Данные создателя
                     select: {

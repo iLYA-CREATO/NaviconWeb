@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getClient, getClientObjects, updateClient, getUsers, getEnabledClientAttributes } from '../services/api';
+import { getClient, getClientObjects, updateClient, getUsers, getEnabledClientAttributes, getClientEquipmentByClient, createClientEquipment, deleteClientEquipment, getEquipment } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 const ClientDetail = () => {
@@ -23,12 +23,19 @@ const ClientDetail = () => {
     const [users, setUsers] = useState([]);
     const [saving, setSaving] = useState(false);
     const [enabledAttributes, setEnabledAttributes] = useState([]);
+    const [clientEquipment, setClientEquipment] = useState([]);
+    const [allEquipment, setAllEquipment] = useState([]);
+    const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
+    const [selectedEquipmentId, setSelectedEquipmentId] = useState('');
+    const [imei, setImei] = useState('');
 
     useEffect(() => {
         fetchClient();
         fetchClientObjects();
         fetchUsers();
         fetchEnabledAttributes();
+        fetchClientEquipment();
+        fetchAllEquipment();
     }, [id]);
 
     const fetchClient = async () => {
@@ -67,6 +74,53 @@ const ClientDetail = () => {
             setEnabledAttributes(response.data);
         } catch (error) {
             console.error('Error fetching enabled attributes:', error);
+        }
+    };
+
+    const fetchClientEquipment = async () => {
+        try {
+            const response = await getClientEquipmentByClient(id);
+            setClientEquipment(response.data);
+        } catch (error) {
+            console.error('Error fetching client equipment:', error);
+        }
+    };
+
+    const fetchAllEquipment = async () => {
+        try {
+            const response = await getEquipment();
+            setAllEquipment(response.data);
+        } catch (error) {
+            console.error('Error fetching all equipment:', error);
+        }
+    };
+
+    const handleDeleteClientEquipment = async (clientEquipmentId) => {
+        if (!confirm('Вы уверены, что хотите удалить это оборудование у клиента?')) return;
+        try {
+            await deleteClientEquipment(clientEquipmentId);
+            fetchClientEquipment();
+        } catch (error) {
+            console.error('Error deleting client equipment:', error);
+            alert('Ошибка при удалении оборудования.');
+        }
+    };
+
+    const handleAddClientEquipment = async () => {
+        if (!selectedEquipmentId) return;
+        try {
+            await createClientEquipment({
+                clientId: parseInt(id),
+                equipmentId: parseInt(selectedEquipmentId),
+                imei: imei.trim() || null
+            });
+            setShowAddEquipmentModal(false);
+            setSelectedEquipmentId('');
+            setImei('');
+            fetchClientEquipment();
+        } catch (error) {
+            console.error('Error adding client equipment:', error);
+            alert('Ошибка при добавлении оборудования.');
         }
     };
 
@@ -426,6 +480,7 @@ const ClientDetail = () => {
                 <div className="flex space-x-1 mb-4">
                     {[
                         'Заявки',
+                        'Оборудование',
                         'Файлы',
                         'Объекты',
                         'Договоры'
@@ -465,7 +520,7 @@ const ClientDetail = () => {
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заголовок</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">тема</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
                                             </tr>
@@ -474,7 +529,7 @@ const ClientDetail = () => {
                                             {client.bids.map((bid) => (
                                                 <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/dashboard/bids/${bid.id}`)}>
                                                     <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">{bid.title}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">{bid.tema}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`px-2 py-1 text-xs rounded-full ${
                                                             bid.status === 'approved' ? 'bg-green-100 text-green-800' :
@@ -496,6 +551,67 @@ const ClientDetail = () => {
                                 </div>
                             ) : (
                                 <p className="text-gray-500">У клиента нет заявок</p>
+                            )}
+                        </div>
+                    )}
+                    {activeTab === 'Оборудование' && (
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold">Оборудование клиента</h3>
+                                {hasPermission('client_equipment_add') && (
+                                    <button
+                                        onClick={() => setShowAddEquipmentModal(true)}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"
+                                    >
+                                        Добавить оборудование
+                                    </button>
+                                )}
+                            </div>
+                            {clientEquipment.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full bg-white border border-gray-300">
+                                        <thead>
+                                            <tr className="bg-gray-50">
+                                                <th className="px-4 py-2 border-b text-left">Оборудование</th>
+                                                <th className="px-4 py-2 border-b text-left">Код товара</th>
+                                                <th className="px-4 py-2 border-b text-left">IMEI</th>
+                                                <th className="px-4 py-2 border-b text-left">Заявка</th>
+                                                <th className="px-4 py-2 border-b text-left">Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {clientEquipment.map(ce => (
+                                                <tr key={ce.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-2 border-b">{ce.equipment.name}</td>
+                                                    <td className="px-4 py-2 border-b">{ce.equipment.productCode || '-'}</td>
+                                                    <td className="px-4 py-2 border-b">{ce.imei || '-'}</td>
+                                                    <td className="px-4 py-2 border-b">
+                                                        {ce.bid ? (
+                                                            <button
+                                                                onClick={() => navigate(`/dashboard/bids/${ce.bid.id}`)}
+                                                                className="text-blue-500 hover:text-blue-700 underline"
+                                                            >
+                                                                {ce.bid.id}
+                                                            </button>
+                                                        ) : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-2 border-b">
+                                                        {hasPermission('client_equipment_delete') && (
+                                                            <button
+                                                                onClick={() => handleDeleteClientEquipment(ce.id)}
+                                                                className="text-red-500 hover:text-red-700"
+                                                            >
+                                                                Удалить
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500 text-center py-4">Оборудование не добавлено</p>
                             )}
                         </div>
                     )}
@@ -528,7 +644,7 @@ const ClientDetail = () => {
                                                             <div className="flex flex-wrap gap-1">
                                                                 {obj.bids.map((bid) => (
                                                                     <span key={bid.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                                                        {bid.title}
+                                                                        {bid.tema}
                                                                     </span>
                                                                 ))}
                                                             </div>
@@ -554,6 +670,61 @@ const ClientDetail = () => {
                     )}
                 </div>
             </div>
+
+            {/* Add Equipment Modal */}
+            {showAddEquipmentModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-lg font-semibold mb-4">Добавить оборудование</h3>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Выберите оборудование</label>
+                            <select
+                                value={selectedEquipmentId}
+                                onChange={(e) => setSelectedEquipmentId(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Выберите оборудование</option>
+                                {allEquipment
+                                    .filter(eq => !clientEquipment.some(ce => ce.equipmentId === eq.id))
+                                    .map(eq => (
+                                        <option key={eq.id} value={eq.id}>
+                                            {eq.name} {eq.productCode ? `(${eq.productCode})` : ''}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">IMEI (необязательно)</label>
+                            <input
+                                type="text"
+                                value={imei}
+                                onChange={(e) => setImei(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Введите IMEI"
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleAddClientEquipment}
+                                disabled={!selectedEquipmentId}
+                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Добавить
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowAddEquipmentModal(false);
+                                    setSelectedEquipmentId('');
+                                    setImei('');
+                                }}
+                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                            >
+                                Отмена
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

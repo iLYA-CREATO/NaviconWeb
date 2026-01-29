@@ -21,6 +21,12 @@ router.get('/', authMiddleware, async (req, res) => {
                         name: true,
                     },
                 },
+                equipment: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
                 bids: {
                     select: {
                         id: true,
@@ -44,6 +50,12 @@ router.get('/:id', authMiddleware, async (req, res) => {
             where: { id: parseInt(req.params.id) },
             include: {
                 client: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                equipment: {
                     select: {
                         id: true,
                         name: true,
@@ -74,15 +86,31 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Создание объекта клиента
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { clientId, brandModel, stateNumber, equipment } = req.body;
+        const { clientId, brandModel, stateNumber, equipmentId } = req.body;
+
+        // If equipmentId provided, check it belongs to the client
+        if (equipmentId) {
+            const equipment = await prisma.equipment.findUnique({
+                where: { id: parseInt(equipmentId) }
+            });
+            if (!equipment) {
+                return res.status(404).json({ message: 'Equipment not found' });
+            }
+            if (equipment.clientId !== parseInt(clientId)) {
+                return res.status(400).json({ message: 'Equipment does not belong to the client' });
+            }
+        }
 
         const newClientObject = await prisma.clientObject.create({
             data: {
                 clientId: parseInt(clientId),
                 brandModel,
                 stateNumber,
-                equipment,
+                equipmentId: equipmentId ? parseInt(equipmentId) : null,
             },
+            include: {
+                equipment: true
+            }
         });
 
         res.status(201).json(newClientObject);
@@ -95,15 +123,39 @@ router.post('/', authMiddleware, async (req, res) => {
 // Обновление объекта клиента
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { brandModel, stateNumber, equipment } = req.body;
+        const { brandModel, stateNumber, equipmentId } = req.body;
+
+        // Get current clientObject to check client
+        const currentObject = await prisma.clientObject.findUnique({
+            where: { id: parseInt(req.params.id) }
+        });
+        if (!currentObject) {
+            return res.status(404).json({ message: 'Client object not found' });
+        }
+
+        // If equipmentId provided, check it belongs to the client
+        if (equipmentId) {
+            const equipment = await prisma.equipment.findUnique({
+                where: { id: parseInt(equipmentId) }
+            });
+            if (!equipment) {
+                return res.status(404).json({ message: 'Equipment not found' });
+            }
+            if (equipment.clientId !== currentObject.clientId) {
+                return res.status(400).json({ message: 'Equipment does not belong to the client' });
+            }
+        }
 
         const updatedClientObject = await prisma.clientObject.update({
             where: { id: parseInt(req.params.id) },
             data: {
                 brandModel,
                 stateNumber,
-                equipment,
+                equipmentId: equipmentId ? parseInt(equipmentId) : null,
             },
+            include: {
+                equipment: true
+            }
         });
 
         res.json(updatedClientObject);

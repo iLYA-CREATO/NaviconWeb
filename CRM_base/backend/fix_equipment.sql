@@ -1,0 +1,1 @@
+UPDATE "Equipment" SET "clientId" = 19 WHERE "clientId" IS NULL OR "clientId" != 19;

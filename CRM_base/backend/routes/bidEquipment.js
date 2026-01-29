@@ -27,6 +27,36 @@ router.post('/', authMiddleware, async (req, res) => {
     try {
         const { bidId, equipmentId, imei, quantity } = req.body;
 
+        // Get bid with client
+        const bid = await prisma.bid.findUnique({
+            where: { id: parseInt(bidId) },
+            include: { client: true }
+        });
+        if (!bid) {
+            return res.status(404).json({ message: 'Bid not found' });
+        }
+
+        // Check that equipment belongs to the bid's client
+        const equipment = await prisma.equipment.findUnique({
+            where: { id: parseInt(equipmentId) }
+        });
+        if (!equipment) {
+            return res.status(404).json({ message: 'Equipment not found' });
+        }
+
+        // Check if equipment is assigned to the client
+        const clientEquipment = await prisma.clientEquipment.findUnique({
+            where: {
+                clientId_equipmentId: {
+                    clientId: bid.clientId,
+                    equipmentId: parseInt(equipmentId)
+                }
+            }
+        });
+        if (!clientEquipment) {
+            return res.status(400).json({ message: 'Equipment is not assigned to the bid\'s client' });
+        }
+
         // Check IMEI uniqueness if provided
         if (imei) {
             const existing = await prisma.bidEquipment.findFirst({
@@ -48,6 +78,20 @@ router.post('/', authMiddleware, async (req, res) => {
                 equipment: true
             }
         });
+
+        // Update ClientEquipment with IMEI and bidId if IMEI is provided
+        if (imei) {
+            await prisma.clientEquipment.updateMany({
+                where: {
+                    clientId: bid.clientId,
+                    equipmentId: parseInt(equipmentId)
+                },
+                data: {
+                    imei: imei,
+                    bidId: parseInt(bidId)
+                }
+            });
+        }
 
         res.status(201).json(newBidEquipment);
     } catch (error) {
@@ -79,9 +123,27 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 quantity: quantity !== undefined ? parseInt(quantity) : undefined,
             },
             include: {
-                equipment: true
+                equipment: true,
+                bid: {
+                    include: {
+                        client: true
+                    }
+                }
             }
         });
+
+        // Update ClientEquipment with new IMEI if it changed
+        if (imei !== undefined) {
+            await prisma.clientEquipment.updateMany({
+                where: {
+                    clientId: updatedBidEquipment.bid.clientId,
+                    equipmentId: updatedBidEquipment.equipmentId
+                },
+                data: {
+                    imei: imei
+                }
+            });
+        }
 
         res.json(updatedBidEquipment);
     } catch (error) {

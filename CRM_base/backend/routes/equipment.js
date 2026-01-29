@@ -53,21 +53,25 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create equipment
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { name, productCode, sellingPrice, purchasePrice } = req.body;
+        const { name, productCode, sellingPrice, purchasePrice, clientId } = req.body;
+
+        if (!clientId) {
+            return res.status(400).json({ message: 'clientId is required' });
+        }
 
         const existingName = await prisma.equipment.findFirst({
-            where: { name: name }
+            where: { name: name, clientId: parseInt(clientId) }
         });
         if (existingName) {
-            return res.status(400).json({ message: 'Оборудование с таким названием уже существует' });
+            return res.status(400).json({ message: 'Оборудование с таким названием уже существует для этого клиента' });
         }
 
         if (productCode) {
             const existingCode = await prisma.equipment.findFirst({
-                where: { productCode: parseInt(productCode) }
+                where: { productCode: parseInt(productCode), clientId: parseInt(clientId) }
             });
             if (existingCode) {
-                return res.status(400).json({ message: 'Оборудование с таким кодом товара уже существует' });
+                return res.status(400).json({ message: 'Оборудование с таким кодом товара уже существует для этого клиента' });
             }
         }
 
@@ -77,13 +81,18 @@ router.post('/', authMiddleware, async (req, res) => {
                 productCode: productCode ? parseInt(productCode) : null,
                 sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
                 purchasePrice: purchasePrice ? parseFloat(purchasePrice) : null,
+                clientId: parseInt(clientId),
             },
+            include: {
+                client: true
+            }
         });
 
         res.status(201).json({
             ...newEquipment,
             sellingPrice: newEquipment.sellingPrice ? parseFloat(newEquipment.sellingPrice) : null,
             purchasePrice: newEquipment.purchasePrice ? parseFloat(newEquipment.purchasePrice) : null,
+            clientName: newEquipment.client.name
         });
     } catch (error) {
         console.error('Create equipment error:', error);

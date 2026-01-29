@@ -136,7 +136,7 @@ const ClientObjectDetail = () => {
                             {clientObject.bids.map((bid) => (
                                 <li key={bid.id} className="flex items-center gap-2">
                                     <span className="font-medium">№ {bid.id}</span>
-                                    <span>{bid.title}</span>
+                                    <span>{bid.tema}</span>
                                 </li>
                             ))}
                         </ul>
@@ -303,7 +303,7 @@ const ClientObjectDetail = () => {
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">№</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заголовок</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">тема</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
                                             </tr>
@@ -312,7 +312,7 @@ const ClientObjectDetail = () => {
                                             {clientObject.bids.map((bid) => (
                                                 <tr key={bid.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/dashboard/bids/${bid.id}`)}>
                                                     <td className="px-6 py-4 whitespace-nowrap">№ {bid.id}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">{bid.title}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">{bid.tema}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`px-2 py-1 text-xs rounded-full ${
                                                             bid.status === 'Accepted' ? 'bg-green-100 text-green-800' :

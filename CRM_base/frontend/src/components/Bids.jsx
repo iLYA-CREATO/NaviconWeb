@@ -46,14 +46,14 @@ const Bids = () => {
         client: '',
     });
     // Определение всех возможных колонок
-    const allColumns = ['id', 'clientName', 'clientObject', 'title', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationHours', 'spentTimeHours', 'remainingTime'];
+    const allColumns = ['id', 'clientName', 'clientObject', 'tema', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationHours', 'spentTimeHours', 'remainingTime'];
     // Загрузка начальных состояний из localStorage
     const savedColumns = localStorage.getItem('bidsVisibleColumns');
     const defaultVisibleColumns = {
         id: true,
         clientName: true,
         clientObject: true,
-        title: true,
+        tema: true,
         creatorName: true,
         status: true,
         description: true,
@@ -254,7 +254,7 @@ const Bids = () => {
             case 'id': return '№';
             case 'clientName': return 'Клиент';
             case 'clientObject': return 'Объект обслуживания';
-            case 'title': return 'Тема';
+            case 'tema': return 'Тема';
             case 'creatorName': return 'Создатель';
             case 'status': return 'Статус';
             case 'description': return 'Описание';
@@ -283,7 +283,7 @@ const Bids = () => {
             case 'id': return `№ ${bid.id}`;
             case 'clientName': return bid.clientName;
             case 'clientObject': return bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '';
-            case 'title': return bid.title;
+            case 'tema': return bid.title;
             case 'creatorName': return bid.creatorName;
             case 'status': return (
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(bid.status)}`}>

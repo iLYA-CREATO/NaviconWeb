@@ -26,6 +26,7 @@ const specificationRoutes = require('./routes/specifications'); // Маршру�
 const specificationCategoryRoutes = require('./routes/specificationCategories'); // Маршруты категорий спецификаций
 const salaryRoutes = require('./routes/salary'); // Маршруты зарплаты
 const bidEquipmentRoutes = require('./routes/bidEquipment'); // Маршруты оборудования заявок
+const clientEquipmentRoutes = require('./routes/clientEquipment'); // Маршруты оборудования клиентов
 const backupRoutes = require('./routes/backups'); // Маршруты бэкапов
 const clientAttributeRoutes = require('./routes/clientAttributes'); // Маршруты атрибутов клиентов
 
@@ -61,6 +62,7 @@ app.use('/api/specifications', specificationRoutes); // /api/specifications/*
 app.use('/api/specification-categories', specificationCategoryRoutes); // /api/specification-categories/*
 app.use('/api/salary', salaryRoutes); // /api/salary/*
 app.use('/api/bid-equipment', bidEquipmentRoutes); // /api/bid-equipment/*
+app.use('/api/client-equipment', clientEquipmentRoutes); // /api/client-equipment/*
 app.use('/api/backups', backupRoutes); // /api/backups/*
 
 app.use('/api/client-attributes', clientAttributeRoutes); // /api/client-attributes/*

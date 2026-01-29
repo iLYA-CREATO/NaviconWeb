@@ -49,6 +49,7 @@ model Client {
       bids         Bid[]
       clientObjects ClientObject[]
       attributeValues ClientAttributeValue[]
+      clientEquipments ClientEquipment[]
   }
 
 model ClientObject {
@@ -56,10 +57,11 @@ model ClientObject {
    clientId    Int
    brandModel  String
    stateNumber String
-   equipment   String?
+   equipmentId Int?
    createdAt   DateTime @default(now())
    updatedAt   DateTime @updatedAt
    client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+   equipment   Equipment? @relation(fields: [equipmentId], references: [id])
    bids        Bid[]
  }
 
@@ -97,6 +99,7 @@ model Bid {
         bidSpecifications BidSpecification[]
         auditLogs   AuditLog[]
         bidEquipments BidEquipment[]
+        clientEquipments ClientEquipment[]
 }
 
 model Comment {
@@ -197,7 +200,9 @@ model Equipment {
       sellingPrice  Decimal? @db.Decimal(10, 2)
       createdAt    DateTime @default(now())
       updatedAt    DateTime @updatedAt
+      clientObjects ClientObject[]
       bidEquipments BidEquipment[]
+      clientEquipments ClientEquipment[]
   }
 
 model BidEquipment {
@@ -210,6 +215,21 @@ model BidEquipment {
      quantity    Int      @default(1)
      createdAt   DateTime @default(now())
      updatedAt   DateTime @updatedAt
+}
+
+model ClientEquipment {
+     id          Int      @id @default(autoincrement())
+     clientId    Int
+     client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+     equipmentId Int
+     equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+     bidId       Int?
+     bid         Bid?     @relation(fields: [bidId], references: [id])
+     imei        String?
+     createdAt   DateTime @default(now())
+     updatedAt   DateTime @updatedAt
+
+     @@unique([clientId, equipmentId])
 }
 
 model ClientAttribute {

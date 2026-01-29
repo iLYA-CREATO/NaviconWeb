@@ -1,0 +1,1 @@
+UPDATE "Equipment" SET "clientId" = 1 WHERE "clientId" IS NULL;

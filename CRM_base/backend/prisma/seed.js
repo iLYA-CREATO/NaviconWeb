@@ -397,7 +397,7 @@ async function main() {
             clientId: client1.id,
             brandModel: 'Toyota Camry',
             stateNumber: 'AA1234BB',
-            equipment: null,
+            equipmentId: null,
         },
     });
     console.log('✅ Created client object:', object1);
@@ -407,7 +407,7 @@ async function main() {
             clientId: client1.id,
             brandModel: 'Honda Civic',
             stateNumber: 'CC5678DD',
-            equipment: 'GPS, Air Conditioning',
+            equipmentId: null,
         },
     });
     console.log('✅ Created client object:', object2);
@@ -615,6 +615,7 @@ async function main() {
             create: {
                 name: equipment.name,
                 productCode: equipment.productCode,
+                clientId: client1.id, // Assign to first client
             },
         });
         createdEquipment.push(eq);
