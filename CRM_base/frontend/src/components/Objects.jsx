@@ -168,15 +168,15 @@ const Objects = () => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
+                    <div className="bg-white rounded-lg shadow overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Клиент</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Марка/Модель</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Гос. Номер</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Оборудование</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Заявки</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Клиент</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Марка/Модель</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Гос. Номер</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Оборудование</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Заявки</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">

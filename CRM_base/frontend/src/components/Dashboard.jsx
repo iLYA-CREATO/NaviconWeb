@@ -9,7 +9,7 @@
 // Импорт компонентов и хуков из React Router
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 // Импорт иконок из Lucide React
-import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog } from 'lucide-react';
+import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog, ChevronLeft, ChevronRight, Bell } from 'lucide-react';
 // Импорт хука состояния
 import { useState, useEffect, useMemo } from 'react';
 // Импорт хука аутентификации
@@ -83,6 +83,25 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-100">
+            {/* Верхняя панель с кнопкой выхода */}
+            <div className="fixed top-0 bg-white shadow-lg flex justify-end items-center h-16 px-4 gap-4 z-10" style={{ left: `${isSettings ? (isSidebarCollapsed ? 4 : 14) : isSidebarCollapsed ? 4 : 16}rem`, width: `calc(100% - ${isSettings ? (isSidebarCollapsed ? 4 : 14) : isSidebarCollapsed ? 4 : 16}rem)`, transition: 'left 0.3s, width 0.3s' }}>
+                <div className="flex items-center gap-2 text-gray-700 font-medium mr-4">
+                    <User size={20} />
+                    {user?.fullName}
+                </div>
+                <button
+                    className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                    title="Уведомления"
+                >
+                    <Bell size={20} />
+                </button>
+                <button
+                    onClick={logout}
+                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition"
+                >
+                    <LogOut size={20} /> Выйти
+                </button>
+            </div>
             {/* Боковая панель: ширина зависит от состояния свернутости и страницы настроек */}
             <aside className={`${isSettings ? `${isSidebarCollapsed ? 'w-16' : 'w-56'} px-4 py-6 bg-white fixed left-0 top-0 h-screen transition-all duration-300` : `${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg flex flex-col fixed left-0 top-0 h-screen transition-all duration-300`}`}>
                 {/* Условный рендеринг: если на странице настроек */}
@@ -128,14 +147,13 @@ const Dashboard = () => {
                     <>
                         {/* Логотип в верхней части боковой панели */}
                         <div className={`p-6 border-b border-gray-200 ${isSidebarCollapsed && !isSettings ? 'flex justify-center' : ''}`}>
-                            {!isSidebarCollapsed && <h1 className="text-2xl font-bold text-blue-600" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>Navicon</h1>}
                             {!isSettings && (
                                 <button
                                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                                    className={`text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all p-2 rounded font-bold text-lg ${isSidebarCollapsed ? '' : 'float-right'}`}
+                                    className={`${isSidebarCollapsed ? 'flex justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded transition-all' : 'flex items-center px-4 py-2 gap-2 rounded-lg font-medium transition text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}
                                     title={isSidebarCollapsed ? "Развернуть" : "Свернуть"}
                                 >
-                                    {isSidebarCollapsed ? '→' : '←'}
+                                    {isSidebarCollapsed ? <ChevronRight size={20} /> : <><ChevronLeft size={20} /> <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Свернуть</span></>}
                                 </button>
                             )}
                         </div>
@@ -151,11 +169,11 @@ const Dashboard = () => {
                                             isActive
                                                 ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' // Активная ссылка
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' // Неактивная
-                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
                                     }
                                     title={isSidebarCollapsed ? "Заявки" : ""}
                                 >
-                                    {isSidebarCollapsed ? getNavIcon('bids') : 'Заявки'}
+                                    {getNavIcon('bids')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Заявки</span>
                                 </NavLink>
                                 {/* Ссылка на страницу клиентов */}
                                 <NavLink
@@ -165,11 +183,11 @@ const Dashboard = () => {
                                             isActive
                                                 ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
                                     }
                                     title={isSidebarCollapsed ? "Клиенты" : ""}
                                 >
-                                    {isSidebarCollapsed ? getNavIcon('clients') : 'Клиенты'}
+                                    {getNavIcon('clients')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Клиенты</span>
                                 </NavLink>
                                 {/* Ссылка на страницу договоров */}
                                 <NavLink
@@ -179,11 +197,11 @@ const Dashboard = () => {
                                             isActive
                                                 ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
                                     }
                                     title={isSidebarCollapsed ? "Договоры" : ""}
                                 >
-                                    {isSidebarCollapsed ? getNavIcon('contracts') : 'Договоры'}
+                                    {getNavIcon('contracts')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Договоры</span>
                                 </NavLink>
                                 {/* Ссылка на страницу объектов */}
                                 <NavLink
@@ -193,11 +211,11 @@ const Dashboard = () => {
                                             isActive
                                                 ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
                                     }
                                     title={isSidebarCollapsed ? "Объекты" : ""}
                                 >
-                                    {isSidebarCollapsed ? getNavIcon('objects') : 'Объекты'}
+                                    {getNavIcon('objects')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Объекты</span>
                                 </NavLink>
                                 {/* Ссылка на страницу оборудования */}
                                 {canAccessTab('warehouse') && (
@@ -208,11 +226,11 @@ const Dashboard = () => {
                                                 isActive
                                                     ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                            } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
+                                            } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
                                         }
                                         title={isSidebarCollapsed ? "Оборудование" : ""}
                                     >
-                                        {isSidebarCollapsed ? getNavIcon('equipment') : 'Оборудование'}
+                                        {getNavIcon('equipment')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Оборудование</span>
                                     </NavLink>
                                 )}
                                 {/* Ссылка на страницу зарплаты */}
@@ -224,47 +242,35 @@ const Dashboard = () => {
                                                 isActive
                                                     ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
                                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                            } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition`
+                                            } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
                                         }
                                         title={isSidebarCollapsed ? "Зарплата" : ""}
                                     >
-                                        {isSidebarCollapsed ? getNavIcon('salary') : 'З/П'}
+                                        {getNavIcon('salary')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>З/П</span>
                                     </NavLink>
                                 )}
                             </div>
                         </nav>
 
-                        {/* Нижняя часть боковой панели с настройками и выходом */}
+                        {/* Нижняя часть боковой панели с настройками */}
                         <div className="p-4 border-t border-gray-200">
-                            {/* Ссылка на настройки */}
                             <NavLink
                                 to="/dashboard/settings"
                                 className={({ isActive }) =>
-                                    `${isActive ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} ${isSidebarCollapsed ? 'flex justify-center p-2' : 'block px-4 py-2'} rounded-lg font-medium transition mb-4`
+                                    `${isActive ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
                                 }
                                 title={isSidebarCollapsed ? "Настройки" : ""}
                             >
-                                {isSidebarCollapsed ? getNavIcon('settings') : 'Настройки'}
+                                {getNavIcon('settings')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Настройки</span>
                             </NavLink>
-                            {/* Кнопка выхода */}
-                            <button
-                                onClick={logout} // Вызов функции выхода из контекста
-                                className={`${isSidebarCollapsed ? 'flex justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 p-2 rounded transition-all' : 'w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition'}`}
-                                title={isSidebarCollapsed ? "Выйти" : ""}
-                            >
-                                {isSidebarCollapsed ? getNavIcon('logout') : 'Выйти'}
-                            </button>
                         </div>
+
                     </>
                 )}
             </aside>
 
             {/* Основная область для отображения дочерних компонентов */}
-            <main className={`${isSettings ? (isSidebarCollapsed ? 'ml-16' : 'ml-48') : isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
-                {/* Новая карточка в верхней части */}
-                <div className="w-full bg-white shadow-lg flex h-16">
-                    {/* Здесь можно добавить новые кнопки */}
-                </div>
+            <main className={`mt-16 ${isSettings ? (isSidebarCollapsed ? 'ml-16' : 'ml-48') : isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
                 <div className="p-8">
                     <Outlet key={activeSettingsTab} context={{ activeSettingsTab }} /> {/* Передача контекста дочерним маршрутам */}
                 </div>

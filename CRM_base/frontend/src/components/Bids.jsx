@@ -45,6 +45,13 @@ const Bids = () => {
         bidType: '',
         client: '',
     });
+    // Состояние для видимых фильтров (сохранение в localStorage)
+    const [visibleFilters, setVisibleFilters] = useState(() => {
+        const saved = localStorage.getItem('bidsVisibleFilters');
+        return saved ? JSON.parse(saved) : { creator: false, bidType: false, client: false }; // По умолчанию все фильтры скрыты
+    });
+    // Состояние для показа модального окна выбора фильтров
+    const [showFilterModal, setShowFilterModal] = useState(false);
     // Определение всех возможных колонок
     const allColumns = ['id', 'clientName', 'clientObject', 'tema', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationHours', 'spentTimeHours', 'remainingTime'];
     // Загрузка начальных состояний из localStorage
@@ -139,6 +146,11 @@ const Bids = () => {
         localStorage.setItem('bidsColumnOrder', JSON.stringify(columnOrder));
     }, [columnOrder]);
 
+    // useEffect to save visible filters to localStorage
+    useEffect(() => {
+        localStorage.setItem('bidsVisibleFilters', JSON.stringify(visibleFilters));
+    }, [visibleFilters]);
+
     // useEffect to close dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -149,6 +161,21 @@ const Bids = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showColumnSettings]);
+
+    // useEffect to handle Ctrl + wheel for horizontal scroll
+    useEffect(() => {
+        const tableContainer = document.querySelector('.table-container');
+        if (tableContainer) {
+            const handleWheel = (event) => {
+                if (event.ctrlKey) {
+                    event.preventDefault();
+                    tableContainer.scrollLeft += event.deltaY;
+                }
+            };
+            tableContainer.addEventListener('wheel', handleWheel);
+            return () => tableContainer.removeEventListener('wheel', handleWheel);
+        }
+    }, []);
 
     // useEffect to load client objects when a client is selected
     useEffect(() => {
@@ -571,69 +598,22 @@ const Bids = () => {
                     {/* Карточка с фильтрами и элементами управления */}
                     <div className="bg-gray-200 rounded-lg p-4 mb-6">
                         {/* Кнопка создания новой заявки */}
-                        <div className="flex justify-end mb-4">
-                            {hasPermission('bid_create') && (
-                                <button
-                                    onClick={() => setShowForm(!showForm)} // Переключение видимости формы
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                                >
-                                    {showForm ? 'Отмена' : '+ Добавить заявку'} {/* Текст кнопки зависит от состояния формы */}
-                                </button>
-                            )}
-                        </div>
-                        {/* Фильтры */}
-                        <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <select
-                                value={filters.creator}
-                                onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        <div className="flex justify-end gap-2 mb-4">
+                            <button
+                                onClick={() => setShowFilterModal(true)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                             >
-                                <option value="">Все создатели</option>
-                                {uniqueCreators.map(creator => (
-                                    <option key={creator} value={creator}>{creator}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={filters.bidType}
-                                onChange={(e) => setFilters({ ...filters, bidType: e.target.value })}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Все типы заявок</option>
-                                {bidTypes.map(bidType => (
-                                    <option key={bidType.id} value={bidType.id}>
-                                        {bidType.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={filters.client}
-                                onChange={(e) => setFilters({ ...filters, client: e.target.value })}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Все клиенты</option>
-                                {uniqueClients.map(client => (
-                                    <option key={client} value={client}>{client}</option>
-                                ))}
-                            </select>
-                        </div>
-                        {/* Поле поиска и настройки столбцов */}
-                        <div className="flex gap-4">
-                            <input
-                                type="text"
-                                placeholder="Поиск по номеру заявки, клиенту, создателю или статусу..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)} // Обновление поискового запроса
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <div className="relative column-settings">
+                                Добавить фильтр
+                            </button>
+                            <div className="relative">
                                 <button
                                     onClick={() => setShowColumnSettings(!showColumnSettings)}
-                                    className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Настройки столбцов
                                 </button>
                                 {showColumnSettings && (
-                                    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
+                                    <div className="column-settings absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
                                         <div className="p-4">
                                             <h4 className="font-medium mb-2">Настройки столбцов</h4>
                                             {columnOrder.map((column, index) => (
@@ -671,15 +651,74 @@ const Bids = () => {
                                     </div>
                                 )}
                             </div>
+                            {hasPermission('bid_create') && (
+                                <button
+                                    onClick={() => setShowForm(!showForm)} // Переключение видимости формы
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    {showForm ? 'Отмена' : '+ Новая заявка'} {/* Текст кнопки зависит от состояния формы */}
+                                </button>
+                            )}
+                        </div>
+                        {/* Фильтры */}
+                        <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {visibleFilters.creator && (
+                                <select
+                                    value={filters.creator}
+                                    onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Все создатели</option>
+                                    {uniqueCreators.map(creator => (
+                                        <option key={creator} value={creator}>{creator}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {visibleFilters.bidType && (
+                                <select
+                                    value={filters.bidType}
+                                    onChange={(e) => setFilters({ ...filters, bidType: e.target.value })}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Все типы заявок</option>
+                                    {bidTypes.map(bidType => (
+                                        <option key={bidType.id} value={bidType.id}>
+                                            {bidType.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            {visibleFilters.client && (
+                                <select
+                                    value={filters.client}
+                                    onChange={(e) => setFilters({ ...filters, client: e.target.value })}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Все клиенты</option>
+                                    {uniqueClients.map(client => (
+                                        <option key={client} value={client}>{client}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                        {/* Поле поиска */}
+                        <div className="flex gap-4">
+                            <input
+                                type="text"
+                                placeholder="Поиск по номеру заявки, клиенту, создателю или статусу..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)} // Обновление поискового запроса
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
                         </div>
                     </div>
                     {/* Таблица с заявками */}
-                    <div className="overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <div className="overflow-x-auto table-container">
+                    <table className="divide-y divide-gray-200" style={{ minWidth: `${displayColumns.length * 120}px` }}>
                         <thead className="bg-gray-50">
                         <tr>
                             {displayColumns.map(column => (
-                                <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                                <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 resize-x overflow-auto" style={{ minWidth: '1px' }}>
                                     {getColumnLabel(column)}
                                 </th>
                             ))}
@@ -698,6 +737,52 @@ const Bids = () => {
                         ))}
                         </tbody>
                     </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Filter Modal */}
+            {showFilterModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-96 max-w-full">
+                        <h3 className="text-lg font-medium mb-4">Настройки фильтров</h3>
+                        <div className="space-y-3">
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.creator}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, creator: !visibleFilters.creator })}
+                                    className="mr-2"
+                                />
+                                Фильтр по создателю
+                            </label>
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.bidType}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, bidType: !visibleFilters.bidType })}
+                                    className="mr-2"
+                                />
+                                Фильтр по типу заявки
+                            </label>
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.client}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, client: !visibleFilters.client })}
+                                    className="mr-2"
+                                />
+                                Фильтр по клиенту
+                            </label>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button
+                                onClick={() => setShowFilterModal(false)}
+                                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
+                            >
+                                Закрыть
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

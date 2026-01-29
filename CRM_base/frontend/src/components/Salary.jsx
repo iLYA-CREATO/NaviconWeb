@@ -318,7 +318,7 @@ const Salary = () => {
             </div>
 
             {/* Таблица отчета */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
                 {report.length > 0 && (
                     <div className="px-6 py-4 bg-gray-50 border-b">
                         <h3 className="text-lg font-medium text-gray-900">
@@ -329,11 +329,11 @@ const Salary = () => {
                         </p>
                     </div>
                 )}
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
                     <thead className="bg-gray-50">
                     <tr>
                         {displayColumns.map(column => (
-                            <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>
                                 {getColumnLabel(column)}
                             </th>
                         ))}
@@ -363,18 +363,18 @@ const Salary = () => {
 
             {/* Сводка по исполнителям */}
             {report.length > 0 && (
-                <div className="bg-white rounded-lg shadow overflow-hidden mt-6">
+                <div className="bg-white rounded-lg shadow overflow-x-auto mt-6">
                     <div className="px-6 py-4 bg-gray-50 border-b">
                         <h3 className="text-lg font-medium text-gray-900">
                             Сводка по исполнителям
                         </h3>
                     </div>
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
                         <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Исполнитель</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Количество спецификаций</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Общая сумма</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Исполнитель</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Количество спецификаций</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Общая сумма</th>
                         </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
