@@ -9,7 +9,7 @@
 // Импорт компонентов и хуков из React Router
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 // Импорт иконок из Lucide React
-import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog, ChevronLeft, ChevronRight, Bell } from 'lucide-react';
+import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog, ChevronLeft, ChevronRight, Bell, BarChart2 } from 'lucide-react';
 // Импорт хука состояния
 import { useState, useEffect, useMemo } from 'react';
 // Импорт хука аутентификации
@@ -79,6 +79,7 @@ const Dashboard = () => {
             'objects': <Building key="objects-icon" size={20} />,
             'equipment': <Package key="equipment-icon" size={20} />,
             'salary': <DollarSign key="salary-icon" size={20} />,
+            'analytics': <BarChart2 key="analytics-icon" size={20} />,
             'settings': <Cog key="settings-icon" size={20} />,
             'logout': <LogOut key="logout-icon" size={20} />
         };
@@ -265,6 +266,20 @@ const Dashboard = () => {
                                         {getNavIcon('salary')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>З/П</span>
                                     </NavLink>
                                 )}
+                                {/* Ссылка на страницу аналитики */}
+                                <NavLink
+                                    to="/dashboard/analytics"
+                                    className={({ isActive }) =>
+                                        `${
+                                            isActive
+                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
+                                    }
+                                    title={isSidebarCollapsed ? "Аналитика" : ""}
+                                >
+                                    {getNavIcon('analytics')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Аналитика</span>
+                                </NavLink>
                             </div>
                         </nav>
 

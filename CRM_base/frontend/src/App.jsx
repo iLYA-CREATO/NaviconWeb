@@ -28,6 +28,7 @@ import Equipment from './components/Equipment';
 import SupplierCreate from './components/SupplierCreate';
 import Settings from './components/Settings';
 import Salary from './components/Salary';
+import Analytics from './components/Analytics';
 import { ErrorProvider } from './components/ErrorModal';
 // Импорт глобальных стилей
 import './index.css';
@@ -77,6 +78,7 @@ function App() {
                                     </PermissionRoute>
                                 }
                             /> {/* Зарплата */}
+                            <Route path="analytics" element={<Analytics />} /> {/* Аналитика */}
                             <Route path="settings" element={<Settings />} /> {/* Настройки */}
                         </Route>
 

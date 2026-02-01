@@ -220,4 +220,9 @@ export const restoreBackup = (data) => {
 }; // Восстановление из бэкапа
 export const deleteBackup = (filename) => api.delete(`/backups/${filename}`); // Удаление бэкапа
 
+// === АНАЛИТИКА ===
+export const getAnalytics = (period = 'all', specificDate = '') => {
+    return api.get('/analytics', { params: { period, specificDate } });
+}; // Получение статистики аналитики
+
 export default api;

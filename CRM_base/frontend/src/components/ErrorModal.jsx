@@ -47,17 +47,15 @@ function ErrorModal({ isOpen, message, errorDetails, onClose }) {
             const normalizedY = (e.clientY - modalCenterY) / (rect.height / 2);
             
             // Вычисляем угол поворота (Y - влево/вправо, X - вверх/вниз)
-            // Ограничиваем нормализованные значения для плавного ограничения
             const clampedX = clampRotation(normalizedX * MAX_ROTATION);
             const clampedY = clampRotation(normalizedY * MAX_ROTATION);
             
             targetRotation.current = {
-                rotateX: -clampedY, // Вращение по X-axis (вверх/вниз) - инвертируем для естественного эффекта
-                rotateY: clampedX   // Вращение по Y-axis (влево/вправо)
+                rotateX: -clampedY,
+                rotateY: clampedX
             };
         };
 
-        // Анимация плавного следования
         const animate = () => {
             setRotation(prev => ({
                 rotateX: lerp(prev.rotateX, targetRotation.current.rotateX, SMOOTH_FACTOR),
@@ -78,7 +76,6 @@ function ErrorModal({ isOpen, message, errorDetails, onClose }) {
         };
     }, [isOpen]);
 
-    // Копирование ошибки в буфер обмена
     const handleCopyError = useCallback(() => {
         const errorText = `Ошибка: ${message}\n\nДетали:\n${errorDetails || 'Нет дополнительных деталей'}\n\nКонсоль:\n${consoleErrorLogs.join('\n')}`;
         
@@ -93,83 +90,89 @@ function ErrorModal({ isOpen, message, errorDetails, onClose }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none">
-            <div
-                ref={modalRef}
-                className="bg-gradient-to-br from-red-900 via-red-800 to-red-950 rounded-2xl shadow-2xl border-4 border-red-500 p-8 max-w-lg w-full mx-4 pointer-events-auto"
-                style={{
-                    transform: `perspective(1000px) rotateX(${rotation.rotateX}deg) rotateY(${rotation.rotateY}deg)`,
-                    transformOrigin: 'center center',
-                    transition: 'transform 0.1s ease-out',
-                }}
-            >
-                {/* Заголовок ошибки */}
-                <div className="text-center mb-6">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-red-600 rounded-full mb-4 shadow-lg">
-                        <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
+        <>
+            {/* Затемняющий фон, блокирующий взаимодействие с задним планом */}
+            <div className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm pointer-events-auto" />
+            
+            {/* Контейнер модального окна */}
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none">
+                <div
+                    ref={modalRef}
+                    className="bg-gradient-to-br from-red-900 via-red-800 to-red-950 rounded-2xl shadow-2xl border-4 border-red-500 p-8 max-w-lg w-full mx-4 pointer-events-auto"
+                    style={{
+                        transform: `perspective(1000px) rotateX(${rotation.rotateX}deg) rotateY(${rotation.rotateY}deg)`,
+                        transformOrigin: 'center center',
+                        transition: 'transform 0.1s ease-out',
+                    }}
+                >
+                    {/* Заголовок ошибки */}
+                    <div className="text-center mb-6">
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-red-600 rounded-full mb-4 shadow-lg">
+                            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-4xl font-bold text-red-500 mb-2 tracking-wider animate-pulse">
+                            ОШИБКА
+                        </h2>
+                        <div className="h-1 bg-red-500 rounded-full w-24 mx-auto"></div>
                     </div>
-                    <h2 className="text-4xl font-bold text-red-500 mb-2 tracking-wider animate-pulse">
-                        ОШИБКА
-                    </h2>
-                    <div className="h-1 bg-red-500 rounded-full w-24 mx-auto"></div>
-                </div>
 
-                {/* Сообщение об ошибке */}
-                <div className="bg-red-950/50 rounded-xl p-4 mb-6 border border-red-700/50">
-                    <p className="text-red-200 text-lg text-center leading-relaxed">
-                        {message}
-                    </p>
-                    {errorDetails && (
-                        <p className="text-red-300/70 text-sm text-center mt-3 font-mono">
-                            {errorDetails}
+                    {/* Сообщение об ошибке */}
+                    <div className="bg-red-950/50 rounded-xl p-4 mb-6 border border-red-700/50">
+                        <p className="text-red-200 text-lg text-center leading-relaxed">
+                            {message}
                         </p>
-                    )}
-                </div>
-
-                {/* Детали ошибки (консоль) */}
-                {consoleErrorLogs.length > 0 && (
-                    <div className="mb-6">
-                        <details className="group">
-                            <summary className="cursor-pointer text-red-300 hover:text-red-200 text-sm flex items-center gap-2 transition-colors">
-                                <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                                Показать детали консоли
-                            </summary>
-                            <div className="mt-2 bg-black/40 rounded-lg p-3 max-h-48 overflow-auto">
-                                <pre className="text-red-400 text-xs font-mono whitespace-pre-wrap break-all">
-                                    {consoleErrorLogs.join('\n')}
-                                </pre>
-                            </div>
-                        </details>
+                        {errorDetails && (
+                            <p className="text-red-300/70 text-sm text-center mt-3 font-mono">
+                                {errorDetails}
+                            </p>
+                        )}
                     </div>
-                )}
 
-                {/* Кнопки действий */}
-                <div className="flex gap-3 justify-center">
-                    <button
-                        onClick={handleCopyError}
-                        className="px-6 py-3 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-red-600/30 transform hover:-translate-y-0.5"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                        </svg>
-                        {copied ? 'Скопировано!' : 'Копировать консоль'}
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-gray-600/30 transform hover:-translate-y-0.5"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Закрыть
-                    </button>
+                    {/* Детали ошибки (консоль) */}
+                    {consoleErrorLogs.length > 0 && (
+                        <div className="mb-6">
+                            <details className="group">
+                                <summary className="cursor-pointer text-red-300 hover:text-red-200 text-sm flex items-center gap-2 transition-colors">
+                                    <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    Показать детали консоли
+                                </summary>
+                                <div className="mt-2 bg-black/40 rounded-lg p-3 max-h-48 overflow-auto">
+                                    <pre className="text-red-400 text-xs font-mono whitespace-pre-wrap break-all">
+                                        {consoleErrorLogs.join('\n')}
+                                    </pre>
+                                </div>
+                            </details>
+                        </div>
+                    )}
+
+                    {/* Кнопки действий */}
+                    <div className="flex gap-3 justify-center">
+                        <button
+                            onClick={handleCopyError}
+                            className="px-6 py-3 bg-red-700 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-red-600/30 transform hover:-translate-y-0.5"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                            {copied ? 'Скопировано!' : 'Копировать консоль'}
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-gray-600/30 transform hover:-translate-y-0.5"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Закрыть
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
 
@@ -202,17 +205,14 @@ console.warn = (...args) => {
     originalConsoleWarn.apply(console, args);
 };
 
-// Получение накопленных ошибок
 export function getConsoleErrors() {
     return consoleErrorLogs.join('\n');
 }
 
-// Очистка ошибок
 export function clearConsoleErrors() {
     consoleErrorLogs = [];
 }
 
-// Контекст для управления ошибками
 const ErrorContext = createContext(null);
 
 export function ErrorProvider({ children }) {
@@ -242,7 +242,6 @@ export function ErrorProvider({ children }) {
     );
 }
 
-// Хук для использования в компонентах
 export function useError() {
     const context = useContext(ErrorContext);
     if (!context) {
