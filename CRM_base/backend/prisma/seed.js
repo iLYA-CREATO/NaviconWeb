@@ -298,6 +298,36 @@ async function main() {
             role: 'Менеджер',
         },
     });
+    const managerKV = await prisma.user.upsert({
+        where: { username: 'KV' },
+        update: {
+            fullName: 'Кирилов Владислав',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+        create: {
+            username: 'CV',
+            fullName: 'Кирилов Владислав',
+            email: 'manager4@mail.ru',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+    });
+    const managerBaran = await prisma.user.upsert({
+        where: { username: 'Baran' },
+        update: {
+            fullName: 'Баранов Олег',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+        create: {
+            username: 'Baran',
+            fullName: 'Баранов Олег',
+            email: 'manager4@mail.ru',
+            password: hashedPassword,
+            role: 'Менеджер',
+        },
+    });
     // Монтажники
     const montagUser1 = await prisma.user.upsert({
         where: { username: 'Vladik' },

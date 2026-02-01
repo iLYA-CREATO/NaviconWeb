@@ -57,6 +57,8 @@ model ClientObject {
    clientId    Int
    brandModel  String
    stateNumber String
+   region      String   @default("68")  // Tambov Oblast region code
+   distance    Int      @default(0)       // Distance in km (up to 400)
    equipmentId Int?
    createdAt   DateTime @default(now())
    updatedAt   DateTime @updatedAt
