@@ -16,12 +16,16 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 // Импорт хука прав доступа
 import { usePermissions } from '../hooks/usePermissions.js';
+// Импорт хука ошибок
+import { useError } from './ErrorModal.jsx';
 
 const Dashboard = () => {
     // Получение данных пользователя и функции выхода из контекста аутентификации
     const { user, logout } = useAuth();
     // Хук для проверки прав доступа
     const { canAccessTab, hasPermission } = usePermissions();
+    // Хук для отображения ошибок
+    const { showError } = useError();
     // Хук для получения текущего пути
     const location = useLocation();
     // Проверка, находится ли пользователь на странице настроек
@@ -100,6 +104,18 @@ const Dashboard = () => {
                     className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition"
                 >
                     <LogOut size={20} /> Выйти
+                </button>
+                {/* Кнопка тестирования ошибки - только для разработки */}
+                <button
+                    onClick={() => {
+                        console.error('Test error: Something went wrong!');
+                        console.warn('Test warning: This is a warning message');
+                        showError('Произошла критическая ошибка', 'Ошибка в модуле обработки данных. Пожалуйста, обратитесь к администратору.');
+                    }}
+                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg transition"
+                    title="Тест ошибки"
+                >
+                    <LogOut size={20} /> Тест
                 </button>
             </div>
             {/* Боковая панель: ширина зависит от состояния свернутости и страницы настроек */}

@@ -17,7 +17,7 @@ import { usePermissions } from '../hooks/usePermissions';
 // Импорт компонента карты
 import MapModal from './MapModal';
 // Импорт иконок из Lucide React
-import { Map } from 'lucide-react';
+import { Map, Bell, X } from 'lucide-react';
 
 const Bids = () => {
     // Хук для навигации между маршрутами
@@ -44,11 +44,13 @@ const Bids = () => {
         creator: '',
         bidType: '',
         client: '',
+        status: '',
+        clientObject: '',
     });
     // Состояние для видимых фильтров (сохранение в localStorage)
     const [visibleFilters, setVisibleFilters] = useState(() => {
         const saved = localStorage.getItem('bidsVisibleFilters');
-        return saved ? JSON.parse(saved) : { creator: false, bidType: false, client: false }; // По умолчанию все фильтры скрыты
+        return saved ? JSON.parse(saved) : { creator: false, bidType: false, client: false, status: false, clientObject: false }; // По умолчанию все фильтры скрыты
     });
     // Состояние для показа модального окна выбора фильтров
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -94,6 +96,15 @@ const Bids = () => {
     const [showColumnSettings, setShowColumnSettings] = useState(false);
     // Состояние для показа модального окна карты
     const [showMapModal, setShowMapModal] = useState(false);
+    // Состояние для показа окна уведомлений
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [notificationFilter, setNotificationFilter] = useState('all');
+    const [notifications, setNotifications] = useState([
+        { id: 1, title: 'Новая заявка', message: 'Создана новая заявка №123 от клиента ABC', unread: true, status: 'new' },
+        { id: 2, title: 'Заявка к исполнению', message: 'Заявка №124 назначена на исполнение', unread: true, status: 'to_execute' },
+        { id: 3, title: 'Заявка выполнена', message: 'Заявка №125 выполнена успешно', unread: false, status: 'completed' },
+        { id: 4, title: 'Просроченная заявка', message: 'Заявка №126 просрочена', unread: true, status: 'overdue' },
+    ]);
     // Default planned resolution date to 5 days from now
     const getDefaultPlannedResolutionDate = () => {
         const fiveDaysFromNow = new Date();
@@ -406,8 +417,10 @@ const Bids = () => {
         const matchesCreator = filters.creator === '' || bid.creatorName === filters.creator;
         const matchesBidType = filters.bidType === '' || bid.bidTypeId === parseInt(filters.bidType);
         const matchesClient = filters.client === '' || bid.clientName === filters.client;
+        const matchesStatus = filters.status === '' || bid.status === filters.status;
+        const matchesClientObject = filters.clientObject === '' || (bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '') === filters.clientObject;
 
-        return matchesSearch && matchesCreator && matchesBidType && matchesClient;
+        return matchesSearch && matchesCreator && matchesBidType && matchesClient && matchesStatus && matchesClientObject;
     });
 
     // Определение видимых столбцов в порядке columnOrder
@@ -416,6 +429,9 @@ const Bids = () => {
     // Вычисление уникальных значений для фильтров
     const uniqueCreators = [...new Set(bids.map(bid => bid.creatorName))].sort();
     const uniqueClients = [...new Set(bids.map(bid => bid.clientName))].sort();
+    // Get all unique status names from all bid types
+    const uniqueStatuses = [...new Set(bidTypes.flatMap(bt => (bt.statuses || []).map(s => s.name)))].sort();
+    const uniqueClientObjects = [...new Set(bids.map(bid => bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '').filter(Boolean))].sort();
 
     return (
         <div>
@@ -700,6 +716,30 @@ const Bids = () => {
                                     ))}
                                 </select>
                             )}
+                            {visibleFilters.status && (
+                                <select
+                                    value={filters.status}
+                                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Все статусы</option>
+                                    {uniqueStatuses.map(status => (
+                                        <option key={status} value={status}>{status}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {visibleFilters.clientObject && (
+                                <select
+                                    value={filters.clientObject}
+                                    onChange={(e) => setFilters({ ...filters, clientObject: e.target.value })}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Все объекты обслуживания</option>
+                                    {uniqueClientObjects.map(obj => (
+                                        <option key={obj} value={obj}>{obj}</option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
                         {/* Поле поиска */}
                         <div className="flex gap-4">
@@ -773,6 +813,24 @@ const Bids = () => {
                                     className="mr-2"
                                 />
                                 Фильтр по клиенту
+                            </label>
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.status}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, status: !visibleFilters.status })}
+                                    className="mr-2"
+                                />
+                                Фильтр по статусу
+                            </label>
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.clientObject}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, clientObject: !visibleFilters.clientObject })}
+                                    className="mr-2"
+                                />
+                                Фильтр по объекту обслуживания
                             </label>
                         </div>
                         <div className="flex justify-end gap-2 mt-6">

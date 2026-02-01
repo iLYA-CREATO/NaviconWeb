@@ -615,7 +615,6 @@ async function main() {
             create: {
                 name: equipment.name,
                 productCode: equipment.productCode,
-                clientId: client1.id, // Assign to first client
             },
         });
         createdEquipment.push(eq);

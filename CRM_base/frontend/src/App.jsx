@@ -28,6 +28,7 @@ import Equipment from './components/Equipment';
 import SupplierCreate from './components/SupplierCreate';
 import Settings from './components/Settings';
 import Salary from './components/Salary';
+import { ErrorProvider } from './components/ErrorModal';
 // Импорт глобальных стилей
 import './index.css';
 
@@ -37,52 +38,54 @@ function App() {
         <Router>
             {/* Провайдер контекста аутентификации для всего приложения */}
             <AuthProvider>
-                <Routes>
-                    {/* Маршрут для страницы входа (доступен без аутентификации) */}
-                    <Route path="/login" element={<Login />} />
+                <ErrorProvider>
+                    <Routes>
+                        {/* Маршрут для страницы входа (доступен без аутентификации) */}
+                        <Route path="/login" element={<Login />} />
 
-                    {/* Защищенный маршрут для дашборда (требует аутентификации) */}
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        }
-                    >
-                        {/* Вложенные маршруты дашборда (отображаются в Outlet компонента Dashboard) */}
-                        <Route index element={<Navigate to="/dashboard/clients" replace />} /> {/* Перенаправление по умолчанию */}
-                        <Route path="clients" element={<Clients />} /> {/* Список клиентов */}
-                        <Route path="clients/:id" element={<ClientDetail />} /> {/* Детали клиента */}
-                        <Route path="client-objects/:id" element={<ClientObjectDetail />} /> {/* Детали объекта клиента */}
-                        <Route path="objects" element={<Objects />} /> {/* Список объектов клиентов */}
-                        <Route path="bids" element={<Bids />} /> {/* Список заявок */}
-                        <Route path="bids/:id" element={<BidDetail />} /> {/* Детали заявки */}
+                        {/* Защищенный маршрут для дашборда (требует аутентификации) */}
                         <Route
-                            path="equipment"
+                            path="/dashboard"
                             element={
-                                <PermissionRoute permissions="tab_warehouse">
-                                    <Equipment />
-                                </PermissionRoute>
+                                <ProtectedRoute>
+                                    <Dashboard />
+                                </ProtectedRoute>
                             }
-                        /> {/* Список оборудования */}
-                        <Route path="suppliers/create" element={<SupplierCreate />} /> {/* Создание поставщика */}
-                        <Route
-                            path="salary"
-                            element={
-                                <PermissionRoute permissions="tab_salary">
-                                    <Salary />
-                                </PermissionRoute>
-                            }
-                        /> {/* Зарплата */}
-                        <Route path="settings" element={<Settings />} /> {/* Настройки */}
-                    </Route>
+                        >
+                            {/* Вложенные маршруты дашборда (отображаются в Outlet компонента Dashboard) */}
+                            <Route index element={<Navigate to="/dashboard/clients" replace />} /> {/* Перенаправление по умолчанию */}
+                            <Route path="clients" element={<Clients />} /> {/* Список клиентов */}
+                            <Route path="clients/:id" element={<ClientDetail />} /> {/* Детали клиента */}
+                            <Route path="client-objects/:id" element={<ClientObjectDetail />} /> {/* Детали объекта клиента */}
+                            <Route path="objects" element={<Objects />} /> {/* Список объектов клиентов */}
+                            <Route path="bids" element={<Bids />} /> {/* Список заявок */}
+                            <Route path="bids/:id" element={<BidDetail />} /> {/* Детали заявки */}
+                            <Route
+                                path="equipment"
+                                element={
+                                    <PermissionRoute permissions="tab_warehouse">
+                                        <Equipment />
+                                    </PermissionRoute>
+                                }
+                            /> {/* Список оборудования */}
+                            <Route path="suppliers/create" element={<SupplierCreate />} /> {/* Создание поставщика */}
+                            <Route
+                                path="salary"
+                                element={
+                                    <PermissionRoute permissions="tab_salary">
+                                        <Salary />
+                                    </PermissionRoute>
+                                }
+                            /> {/* Зарплата */}
+                            <Route path="settings" element={<Settings />} /> {/* Настройки */}
+                        </Route>
 
-                    {/* Перенаправление с корневого пути на дашборд */}
-                    <Route path="/" element={<Navigate to="/dashboard/clients" replace />} />
-                    {/* Перенаправление для всех неизвестных маршрутов */}
-                    <Route path="*" element={<Navigate to="/dashboard/clients" replace />} />
-                </Routes>
+                        {/* Перенаправление с корневого пути на дашборд */}
+                        <Route path="/" element={<Navigate to="/dashboard/clients" replace />} />
+                        {/* Перенаправление для всех неизвестных маршрутов */}
+                        <Route path="*" element={<Navigate to="/dashboard/clients" replace />} />
+                    </Routes>
+                </ErrorProvider>
             </AuthProvider>
         </Router>
     );
