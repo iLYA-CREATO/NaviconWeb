@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment } from '../services/api';
+import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 // Импорт хука для проверки разрешений
@@ -68,6 +68,7 @@ const BidDetail = () => {
     const [clients, setClients] = useState([]);
     const [clientObjects, setClientObjects] = useState([]);
     const [bidTypes, setBidTypes] = useState([]);
+    const [roles, setRoles] = useState([]);
     const [showMapModalForChild, setShowMapModalForChild] = useState(false);
     const [childBidFormData, setChildBidFormData] = useState({
         clientId: '',
@@ -93,6 +94,7 @@ const BidDetail = () => {
         fetchBidEquipment();
         fetchEquipment();
         fetchUsers();
+        fetchRoles();
         fetchSpecifications();
         fetchSpecCategories();
         fetchHistory();
@@ -285,6 +287,15 @@ const BidDetail = () => {
         }
     };
 
+    const fetchRoles = async () => {
+        try {
+            const response = await getRoles();
+            setRoles(response.data);
+        } catch (error) {
+            console.error('Error fetching roles:', error);
+        }
+    };
+
     const fetchBidStatuses = async () => {
         if (bid && bid.bidTypeId) {
             try {
@@ -308,7 +319,26 @@ const BidDetail = () => {
     };
 
 
-    // Получение доступных статусов для перехода из текущего статуса
+    // Получение отображаемого имени ответственного (пользователь или роль)
+    const getResponsibleDisplayName = () => {
+        // Если есть ответственный пользователь, показываем его
+        if (bid.bidTypeResponsibleName) {
+            return bid.bidTypeResponsibleName;
+        }
+        
+        // Иначе ищем роль в текущем статусе
+        if (bid.bidTypeStatuses && bid.status) {
+            const currentStatus = bid.bidTypeStatuses.find(s => s.name === bid.status);
+            if (currentStatus && currentStatus.responsibleRoleId) {
+                const role = roles.find(r => r.id === parseInt(currentStatus.responsibleRoleId));
+                if (role) {
+                    return `Роль: ${role.name}`;
+                }
+            }
+        }
+        
+        return 'Не указан';
+    };
     const getAvailableStatuses = () => {
         if (!bid || !bidStatuses.length || !bidStatusTransitions.length) return [];
 
@@ -345,7 +375,15 @@ const BidDetail = () => {
 
     const handleChangeStatus = async (newStatus) => {
         try {
-            await updateBid(id, { status: newStatus });
+            // Если меняется статус, автоматически назначаем текущего пользователя ответственным
+            // если для нового статуса не назначен конкретный пользователь
+            const newStatusConfig = bid.bidTypeStatuses?.find(s => s.name === newStatus);
+            const needsAutoAssign = !newStatusConfig?.responsibleUserId;
+            
+            await updateBid(id, { 
+                status: newStatus,
+                ...(needsAutoAssign && { currentResponsibleUserId: user?.id })
+            });
             fetchBid();
             fetchHistory();
         } catch (error) {
@@ -1152,7 +1190,7 @@ const BidDetail = () => {
                 </div>
                 <div className='p-2'>
                     <label className="block text-xs text-gray-500 mb-1">Ответственный</label>
-                    <p className="text-gray-900">{bid.bidTypeResponsibleName || 'Не указан'}</p>
+                    <p className="text-gray-900">{getResponsibleDisplayName()}</p>
                 </div>
                 <div className='p-2'>
                     <button

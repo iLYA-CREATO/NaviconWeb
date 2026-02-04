@@ -23,7 +23,8 @@ model User {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     clients   Client[]
-    bids      Bid[]
+    bids      Bid[]    @relation("BidCreator")
+    responsibleBids Bid[]   @relation("BidCurrentResponsible")
     comments  Comment[]
     auditLogs AuditLog[]
 }
@@ -89,12 +90,14 @@ model Bid {
         plannedDurationHours Decimal? @db.Decimal(5, 2)
         spentTimeHours Decimal? @db.Decimal(5, 2)
         createdBy   Int
+        currentResponsibleUserId Int?
         createdAt   DateTime @default(now())
         updatedAt   DateTime @updatedAt
         client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
         bidType     BidType  @relation(fields: [bidTypeId], references: [id])
         clientObject ClientObject? @relation(fields: [clientObjectId], references: [id])
-        creator     User     @relation(fields: [createdBy], references: [id])
+        creator     User     @relation("BidCreator", fields: [createdBy], references: [id])
+        currentResponsible User? @relation("BidCurrentResponsible", fields: [currentResponsibleUserId], references: [id])
         parent      Bid?     @relation("BidHierarchy", fields: [parentId], references: [id])
         children    Bid[]    @relation("BidHierarchy")
         comments    Comment[]

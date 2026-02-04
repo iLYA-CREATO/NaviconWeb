@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 // Импорт хука навигации из React Router для программной навигации
 import { useNavigate, useLocation } from 'react-router-dom';
 // Импорт функций API для взаимодействия с серверными сервисами
-import { getBids, getBid, createBid, getClients, getClientObjects, getBidTypes } from '../services/api';
+import { getBids, getBid, createBid, getClients, getClientObjects, getBidTypes, getUsers, getRoles } from '../services/api';
 // Импорт хука для проверки разрешений
 import { usePermissions } from '../hooks/usePermissions';
 // Импорт компонента карты
@@ -35,6 +35,8 @@ const Bids = () => {
     const [clientObjects, setClientObjects] = useState([]);
     // Состояние для хранения типов заявок, доступных для выбора
     const [bidTypes, setBidTypes] = useState([]);
+    const [users, setUsers] = useState([]); // Список пользователей для фильтра по ответственному
+    const [roles, setRoles] = useState([]); // Список ролей для фильтра по ответственному
     // Состояние для переключения видимости формы создания заявки
     const [showForm, setShowForm] = useState(false);
     // Состояние для поля поиска для фильтрации заявок
@@ -46,11 +48,12 @@ const Bids = () => {
         client: '',
         status: '',
         clientObject: '',
+        responsible: '',
     });
     // Состояние для видимых фильтров (сохранение в localStorage)
     const [visibleFilters, setVisibleFilters] = useState(() => {
         const saved = localStorage.getItem('bidsVisibleFilters');
-        return saved ? JSON.parse(saved) : { creator: false, bidType: false, client: false, status: false, clientObject: false }; // По умолчанию все фильтры скрыты
+        return saved ? JSON.parse(saved) : { creator: false, bidType: false, client: false, status: false, clientObject: false, responsible: false }; // По умолчанию все фильтры скрыты
     });
     // Состояние для показа модального окна выбора фильтров
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -134,6 +137,8 @@ const Bids = () => {
         fetchBids();      // Load all bids
         fetchClients();   // Load all clients for the form dropdown
         fetchBidTypes();  // Load all bid types for the form dropdown
+        fetchUsers();     // Load all users for the responsible filter
+        fetchRoles();     // Load all roles for the responsible filter
         // Check if we need to show the form from navigation state
         if (location.state && location.state.showForm) {
             setShowForm(true);
@@ -258,6 +263,26 @@ const Bids = () => {
             setBidTypes(response.data); // Сохранение данных в состояние
         } catch (error) {
             console.error('Error fetching bid types:', error); // Логирование ошибки
+        }
+    };
+
+    // Функция для загрузки пользователей для фильтра по ответственному
+    const fetchUsers = async () => {
+        try {
+            const response = await getUsers(); // Вызов API для получения пользователей
+            setUsers(response.data); // Сохранение данных в состояние
+        } catch (error) {
+            console.error('Error fetching users:', error); // Логирование ошибки
+        }
+    };
+
+    // Функция для загрузки ролей для фильтра по ответственному
+    const fetchRoles = async () => {
+        try {
+            const response = await getRoles(); // Вызов API для получения ролей
+            setRoles(response.data); // Сохранение данных в состояние
+        } catch (error) {
+            console.error('Error fetching roles:', error); // Логирование ошибки
         }
     };
 
@@ -419,8 +444,10 @@ const Bids = () => {
         const matchesClient = filters.client === '' || bid.clientName === filters.client;
         const matchesStatus = filters.status === '' || bid.status === filters.status;
         const matchesClientObject = filters.clientObject === '' || (bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '') === filters.clientObject;
+        const matchesResponsible = filters.responsible === '' || 
+            (filters.responsible.startsWith('Роль: ') ? bid.bidTypeResponsibleName === filters.responsible : bid.currentResponsibleUserName === filters.responsible);
 
-        return matchesSearch && matchesCreator && matchesBidType && matchesClient && matchesStatus && matchesClientObject;
+        return matchesSearch && matchesCreator && matchesBidType && matchesClient && matchesStatus && matchesClientObject && matchesResponsible;
     });
 
     // Определение видимых столбцов в порядке columnOrder
@@ -740,6 +767,25 @@ const Bids = () => {
                                     ))}
                                 </select>
                             )}
+                            {visibleFilters.responsible && (
+                                <select
+                                    value={filters.responsible}
+                                    onChange={(e) => setFilters({ ...filters, responsible: e.target.value })}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Все ответственные</option>
+                                    <optgroup label="Пользователи">
+                                        {users.map(user => (
+                                            <option key={user.id} value={user.fullName}>{user.fullName}</option>
+                                        ))}
+                                    </optgroup>
+                                    <optgroup label="Роли">
+                                        {roles.map(role => (
+                                            <option key={role.id} value={`Роль: ${role.name}`}>{role.name}</option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            )}
                         </div>
                         {/* Поле поиска */}
                         <div className="flex gap-4">
@@ -831,6 +877,15 @@ const Bids = () => {
                                     className="mr-2"
                                 />
                                 Фильтр по объекту обслуживания
+                            </label>
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.responsible}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, responsible: !visibleFilters.responsible })}
+                                    className="mr-2"
+                                />
+                                Фильтр по ответственному
                             </label>
                         </div>
                         <div className="flex justify-end gap-2 mt-6">

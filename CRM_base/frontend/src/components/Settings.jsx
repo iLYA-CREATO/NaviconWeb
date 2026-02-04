@@ -2353,7 +2353,7 @@ const Settings = () => {
                                                         alert('Нет доступной позиции для нового статуса');
                                                         return;
                                                     }
-                                                    const newStatus = { name: 'Новый статус', position: nextPos, allowedActions: [], responsibleUserId: null, color: '#ffffff' };
+                                                    const newStatus = { name: 'Новый статус', position: nextPos, allowedActions: [], responsibleUserId: null, responsibleRoleId: null, color: '#ffffff' };
                                                     setBidTypeFormData({ ...bidTypeFormData, statuses: [...bidTypeFormData.statuses, newStatus] });
                                                 }
                                             }}
@@ -2370,7 +2370,8 @@ const Settings = () => {
                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Позиция</th>
                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Цвет</th>
-                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ответственный</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Роль</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Пользователь</th>
                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                             </tr>
                                             </thead>
@@ -2416,6 +2417,21 @@ const Settings = () => {
                                                             }}
                                                             className="w-8 h-8 border border-gray-300 rounded cursor-pointer"
                                                         />
+                                                    </td>
+                                                    <td className="px-4 py-2 whitespace-nowrap">
+                                                        <select
+                                                            value={status.responsibleRoleId || ''}
+                                                            onChange={(e) => {
+                                                                const newStatuses = bidTypeFormData.statuses.map(s => s.position === status.position ? { ...s, responsibleRoleId: e.target.value || null } : s);
+                                                                setBidTypeFormData({ ...bidTypeFormData, statuses: newStatuses });
+                                                            }}
+                                                            className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                        >
+                                                            <option value="">Не выбрана</option>
+                                                            {roles.map(role => (
+                                                                <option key={role.id} value={role.id}>{role.name}</option>
+                                                            ))}
+                                                        </select>
                                                     </td>
                                                     <td className="px-4 py-2 whitespace-nowrap">
                                                         <select

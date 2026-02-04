@@ -58,31 +58,82 @@ router.get('/', authMiddleware, async (req, res) => {
                         fullName: true,
                     },
                 },
+                currentResponsible: { // Текущий ответственный
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
                 bidType: true, // Включаем тип заявки для получения статусов
             },
         });
 
         // Форматируем ответ для соответствия ожиданиям фронтенда
-        const formattedBids = bids.map(bid => ({
-            id: bid.id,
-            clientId: bid.clientId,
-            clientName: bid.client ? bid.client.name : 'Клиент не найден', // Добавляем имя клиента отдельно
-            title: bid.tema,
-            amount: parseFloat(bid.amount), // Преобразуем в число
-            status: bid.status,
-            description: bid.description,
-            clientObject: bid.clientObject,
-            creatorName: bid.creator ? bid.creator.fullName : 'Создатель не найден', // Добавляем ФИО создателя
-            createdAt: bid.createdAt,
-            updatedAt: bid.updatedAt,
-            workAddress: bid.workAddress, // Добавляем адрес проведения работ
-            plannedResolutionDate: bid.plannedResolutionDate,
-            plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes,
-            assignedAt: bid.assignedAt,
-            plannedDurationHours: bid.plannedDurationHours,
-            spentTimeHours: bid.spentTimeHours ? parseFloat(bid.spentTimeHours) : null,
-            parentId: bid.parentId, // Добавляем ID родительской заявки
-            bidType: bid.bidType, // Добавляем тип заявки для получения статусов
+        const formattedBids = await Promise.all(bids.map(async (bid) => {
+            // Определяем текущий статус
+            let currentStatus = null;
+            if (bid.bidType?.statuses && Array.isArray(bid.bidType.statuses)) {
+                currentStatus = bid.bidType.statuses.find(s => s.name === bid.status) || null;
+            }
+
+            // Определяем bidTypeResponsibleName
+            let bidTypeResponsibleName = null;
+            
+            // Сначала проверяем, есть ли назначенный ответственный на заявке
+            if (bid.currentResponsibleUserId) {
+                bidTypeResponsibleName = bid.currentResponsible ? bid.currentResponsible.fullName : 'Не указан';
+            }
+            // Если нет, проверяем ответственного пользователя в статусе
+            else if (currentStatus?.responsibleUserId) {
+                try {
+                    const responsibleUser = await prisma.user.findUnique({
+                        where: { id: parseInt(currentStatus.responsibleUserId) },
+                        select: { fullName: true },
+                    });
+                    bidTypeResponsibleName = responsibleUser ? responsibleUser.fullName : 'Не указан';
+                } catch (error) {
+                    console.error('Error finding responsible user:', error);
+                    bidTypeResponsibleName = 'Ошибка получения данных';
+                }
+            }
+            // Если нет пользователя, проверяем роль
+            else if (currentStatus?.responsibleRoleId) {
+                try {
+                    const role = await prisma.role.findUnique({
+                        where: { id: parseInt(currentStatus.responsibleRoleId) },
+                        select: { name: true },
+                    });
+                    bidTypeResponsibleName = role ? `Роль: ${role.name}` : 'Не указан';
+                } catch (error) {
+                    console.error('Error finding responsible role:', error);
+                    bidTypeResponsibleName = 'Ошибка получения данных';
+                }
+            }
+
+            return {
+                id: bid.id,
+                clientId: bid.clientId,
+                clientName: bid.client ? bid.client.name : 'Клиент не найден',
+                title: bid.tema,
+                amount: parseFloat(bid.amount),
+                status: bid.status,
+                description: bid.description,
+                clientObject: bid.clientObject,
+                creatorName: bid.creator ? bid.creator.fullName : 'Создатель не найден',
+                currentResponsibleUserId: bid.currentResponsibleUserId,
+                currentResponsibleUserName: bid.currentResponsible ? bid.currentResponsible.fullName : null,
+                bidTypeResponsibleName,
+                createdAt: bid.createdAt,
+                updatedAt: bid.updatedAt,
+                workAddress: bid.workAddress,
+                plannedResolutionDate: bid.plannedResolutionDate,
+                plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes,
+                assignedAt: bid.assignedAt,
+                plannedDurationHours: bid.plannedDurationHours,
+                spentTimeHours: bid.spentTimeHours ? parseFloat(bid.spentTimeHours) : null,
+                parentId: bid.parentId,
+                bidType: bid.bidType,
+            };
         }));
 
         res.json(formattedBids); // Отправляем отформатированные данные
@@ -188,7 +239,22 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
         // Получаем ответственного за текущий статус типа заявки
         let bidTypeResponsibleName = null;
-        if (currentStatus?.responsibleUserId) {
+        
+        // Сначала проверяем, есть ли назначенный ответственный на заявке
+        if (bid.currentResponsibleUserId) {
+            try {
+                const responsibleUser = await prisma.user.findUnique({
+                    where: { id: bid.currentResponsibleUserId },
+                    select: { fullName: true },
+                });
+                bidTypeResponsibleName = responsibleUser ? responsibleUser.fullName : 'Не указан';
+            } catch (error) {
+                console.error('Error finding responsible user:', error);
+                bidTypeResponsibleName = 'Ошибка получения данных';
+            }
+        }
+        // Если нет, проверяем ответственного пользователя в статусе
+        else if (currentStatus?.responsibleUserId) {
             try {
                 const responsibleUser = await prisma.user.findUnique({
                     where: { id: parseInt(currentStatus.responsibleUserId) },
@@ -197,6 +263,19 @@ router.get('/:id', authMiddleware, async (req, res) => {
                 bidTypeResponsibleName = responsibleUser ? responsibleUser.fullName : 'Не указан';
             } catch (error) {
                 console.error('Error finding responsible user:', error);
+                bidTypeResponsibleName = 'Ошибка получения данных';
+            }
+        }
+        // Если нет пользователя, проверяем роль
+        else if (currentStatus?.responsibleRoleId) {
+            try {
+                const role = await prisma.role.findUnique({
+                    where: { id: parseInt(currentStatus.responsibleRoleId) },
+                    select: { name: true },
+                });
+                bidTypeResponsibleName = role ? `Роль: ${role.name}` : 'Не указан';
+            } catch (error) {
+                console.error('Error finding responsible role:', error);
                 bidTypeResponsibleName = 'Ошибка получения данных';
             }
         }
@@ -293,6 +372,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
             bidTypeName: responseData.bidType ? responseData.bidType.name : 'Не указан',
             bidTypeStatuses: responseData.bidType ? responseData.bidType.statuses : [],
             bidTypeResponsibleName: responseData.bidTypeResponsibleName,
+            currentResponsibleUserId: bid.currentResponsibleUserId,
             clientResponsibleName: responseData.clientResponsibleName,
             creatorName: responseData.creatorName,
             createdAt: responseData.createdAt,
@@ -427,10 +507,10 @@ router.post('/', authMiddleware, async (req, res) => {
 // Обновить заявку
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours, currentResponsibleUserId } = req.body;
 
         // Логируем данные обновления заявки
-        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours };
+        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours, currentResponsibleUserId };
         console.log('Обновление заявки ID:', req.params.id, 'Данные:', updateData);
         logBidData('Обновление заявки ID: ' + req.params.id, updateData);
 
@@ -500,6 +580,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 ...(assignedAt !== undefined && { assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt.length === 16 ? assignedAt + ':00' : assignedAt) : null }),
                 ...(plannedDurationHours !== undefined && { plannedDurationHours: plannedDurationHours && plannedDurationHours.trim() ? parseInt(plannedDurationHours) : null }),
                 ...(spentTimeHours !== undefined && { spentTimeHours: spentTimeHours && spentTimeHours.trim() ? parseFloat(spentTimeHours) : null }),
+                ...(currentResponsibleUserId !== undefined && { currentResponsibleUserId: currentResponsibleUserId ? parseInt(currentResponsibleUserId) : null }),
             },
             include: {
                 client: {
