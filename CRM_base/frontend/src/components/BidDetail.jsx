@@ -327,6 +327,18 @@ const BidDetail = () => {
         }).filter(Boolean); // Убрать null/undefined
     };
 
+    // Функция для получения цвета статуса из bidTypeStatuses
+    const getStatusColorFromBid = (statusName) => {
+        if (!bid || !bid.bidTypeStatuses) return null;
+        const statusConfig = bid.bidTypeStatuses.find(s => s.name === statusName);
+        return statusConfig?.color || null;
+    };
+
+    // Функция для затемнения цвета (для hover эффекта)
+    const adjustColor = (color, amount) => {
+        return '#' + color.replace(/^#/, '').replace(/../g, color => ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
+    };
+
 
 
 
@@ -1093,11 +1105,11 @@ const BidDetail = () => {
 
             <div className="w-64 bg-white shadow pb-4 pt-0 ml-4 relative">
                 <div className="mb-4 relative status-dropdown-container">
-                    <div className={`w-full p-2 text-lg text-left text-white cursor-pointer ${
-                        bid.status === 'Закрыта' ? 'bg-red-500' :
-                        bid.status === 'Открыта' ? 'bg-yellow-500' :
-                            'bg-blue-500'
-                    }`} onClick={() => setShowStatusDropdown(!showStatusDropdown)}>
+                    <div 
+                        className="w-full p-2 text-lg text-left text-white cursor-pointer"
+                        style={{ backgroundColor: getStatusColorFromBid(bid.status) || '#7a7777' }}
+                        onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                    >
                         {bid.status}
                     </div>
 
@@ -1112,11 +1124,10 @@ const BidDetail = () => {
                                             handleChangeStatus(status.name);
                                             setShowStatusDropdown(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 transition-colors ${
-                                            status.name === 'Закрыта' ? 'bg-red-500 text-white hover:bg-red-600' :
-                                            status.name === 'Открыта' ? 'bg-yellow-500 text-white hover:bg-yellow-600' :
-                                                'bg-blue-500 text-white hover:bg-blue-600'
-                                        }`}
+                                        className="w-full text-left px-4 py-2 transition-colors text-white"
+                                        style={{ backgroundColor: status.color || '#7a7777' }}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = status.color ? adjustColor(status.color, -10) : '#6a6666'}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = status.color || '#7a7777'}
                                     >
                                         {status.name}
                                     </button>
