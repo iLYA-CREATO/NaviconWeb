@@ -12,12 +12,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 // Импорт функций API для взаимодействия с серверными сервисами
 import { getBids, getBid, createBid, getClients, getClientObjects, getBidTypes, getUsers, getRoles } from '../services/api';
+import { createNotification } from '../services/api';
 // Импорт хука для проверки разрешений
 import { usePermissions } from '../hooks/usePermissions';
 // Импорт компонента карты
 import MapModal from './MapModal';
 // Импорт иконок из Lucide React
-import { Map, Bell, X } from 'lucide-react';
+import { Map, X } from 'lucide-react';
 
 const Bids = () => {
     // Хук для навигации между маршрутами
@@ -99,15 +100,6 @@ const Bids = () => {
     const [showColumnSettings, setShowColumnSettings] = useState(false);
     // Состояние для показа модального окна карты
     const [showMapModal, setShowMapModal] = useState(false);
-    // Состояние для показа окна уведомлений
-    const [showNotifications, setShowNotifications] = useState(false);
-    const [notificationFilter, setNotificationFilter] = useState('all');
-    const [notifications, setNotifications] = useState([
-        { id: 1, title: 'Новая заявка', message: 'Создана новая заявка №123 от клиента ABC', unread: true, status: 'new' },
-        { id: 2, title: 'Заявка к исполнению', message: 'Заявка №124 назначена на исполнение', unread: true, status: 'to_execute' },
-        { id: 3, title: 'Заявка выполнена', message: 'Заявка №125 выполнена успешно', unread: false, status: 'completed' },
-        { id: 4, title: 'Просроченная заявка', message: 'Заявка №126 просрочена', unread: true, status: 'overdue' },
-    ]);
     // Default planned resolution date to 5 days from now
     const getDefaultPlannedResolutionDate = () => {
         const fiveDaysFromNow = new Date();
@@ -403,6 +395,17 @@ const Bids = () => {
         e.preventDefault(); // Предотвращение перезагрузки страницы
         try {
             const response = await createBid(formData); // Отправка данных на сервер
+            
+            // Создаем уведомление о новой заявке
+            const client = clients.find(c => c.id.toString() === formData.clientId);
+            await createNotification({
+                userId: response.data.createdBy, // Уведомление создателю заявки
+                title: 'Создана новая заявка',
+                message: `Создана заявка №${response.data.id} для клиента "${client?.name || 'Клиент'}"`,
+                type: 'bid_created',
+                bidId: response.data.id,
+            });
+            
             navigate(`/dashboard/bids/${response.data.id}`); // Переход на страницу созданной заявки
         } catch (error) {
             console.error('Error saving bid:', error); // Логирование ошибки
@@ -461,175 +464,209 @@ const Bids = () => {
     const uniqueClientObjects = [...new Set(bids.map(bid => bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '').filter(Boolean))].sort();
 
     return (
-        <div>
-            {/* Форма создания новой заявки, показывается только если showForm = true */}
+        <div className="relative">
+            {/* Модальное окно создания новой заявки */}
             {showForm && (
-                <div className="bg-white rounded-lg shadow p-6 mb-6">
-                    <h3 className="text-xl font-bold mb-4">Добавить новую заявку</h3>
-                    <form onSubmit={handleSubmit} className="space-y-4"> {/* Форма с обработчиком отправки */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
-                            <select
-                                value={formData.clientId}
-                                onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            >
-                                <option value="">Выберите клиента</option>
-                                {clients.map((client) => (
-                                    <option key={client.id} value={client.id}>
-                                        {client.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Объект обслуживания</label>
-                            <select
-                                value={formData.clientObjectId}
-                                onChange={(e) => setFormData({ ...formData, clientObjectId: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">
-                                    {formData.clientId ? 'Выберите объект (необязательно)' : 'Сначала выберите клиента'}
-                                </option>
-                                {clientObjects.map((obj) => (
-                                    <option key={obj.id} value={obj.id}>
-                                        {obj.brandModel} {obj.stateNumber ? `(${obj.stateNumber})` : ''}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Тема</label>
-                            <input
-                                type="text"
-                                value={formData.title}
-                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Тип заявки</label>
-                            <select
-                                value={formData.bidTypeId}
-                                onChange={(e) => setFormData({ ...formData, bidTypeId: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            >
-                                <option value="">Выберите тип заявки</option>
-                                {bidTypes.map((bidType) => (
-                                    <option key={bidType.id} value={bidType.id}>
-                                        {bidType.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows="3"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Адрес проведения работ</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={formData.workAddress}
-                                    onChange={(e) => setFormData({ ...formData, workAddress: e.target.value })}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Введите адрес проведения работ"
-                                />
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold">Добавить новую заявку</h3>
                                 <button
-                                    type="button"
-                                    onClick={() => setShowMapModal(true)}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition whitespace-nowrap flex items-center gap-2"
-                                    title="Выбрать на карте"
+                                    onClick={resetForm}
+                                    className="text-gray-500 hover:text-gray-700"
                                 >
-                                    <Map size={16} />
-                                    Карта
+                                    <X size={24} />
                                 </button>
                             </div>
+                            <form onSubmit={handleSubmit}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {/* Тема */}
+                                    <div className="col-span-full">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Тема *</label>
+                                        <input
+                                            type="text"
+                                            value={formData.title}
+                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    {/* Клиент */}
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Клиент *</label>
+                                        <select
+                                            value={formData.clientId}
+                                            onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        >
+                                            <option value="">Выберите</option>
+                                            {clients.map((client) => (
+                                                <option key={client.id} value={client.id}>
+                                                    {client.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {/* Объект обслуживания */}
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Объект обслуживания</label>
+                                        <select
+                                            value={formData.clientObjectId}
+                                            onChange={(e) => setFormData({ ...formData, clientObjectId: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="">
+                                                {formData.clientId ? 'Выберите объект' : 'Сначала клиента'}
+                                            </option>
+                                            {clientObjects.map((obj) => (
+                                                <option key={obj.id} value={obj.id}>
+                                                    {obj.brandModel} {obj.stateNumber ? `(${obj.stateNumber})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {/* Тип заявки */}
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Тип заявки *</label>
+                                        <select
+                                            value={formData.bidTypeId}
+                                            onChange={(e) => setFormData({ ...formData, bidTypeId: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        >
+                                            <option value="">Выберите</option>
+                                            {bidTypes.map((bidType) => (
+                                                <option key={bidType.id} value={bidType.id}>
+                                                    {bidType.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {/* Адрес выполнения работ */}
+                                    <div className="col-span-full lg:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Адрес выполнения работ</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={formData.workAddress}
+                                                onChange={(e) => setFormData({ ...formData, workAddress: e.target.value })}
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Введите адрес"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowMapModal(true)}
+                                                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg transition flex items-center gap-1"
+                                                title="Выбрать на карте"
+                                            >
+                                                <Map size={16} />
+                                                Карта
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {/* Плановая дата решения */}
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">План. дата решения</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={formData.plannedResolutionDate}
+                                            onChange={(e) => setFormData({ ...formData, plannedResolutionDate: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    {/* Описание и дополнительные поля в одной строке */}
+                                    <div className="col-span-full grid grid-cols-2 gap-4">
+                                        {/* Описание - узкое поле */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                                            <textarea
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                rows="3"
+                                            />
+                                        </div>
+                                        {/* Поля справа от описания */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {/* Контактное лицо */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">ФИО контакта</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.contactFullName}
+                                                    onChange={(e) => setFormData({ ...formData, contactFullName: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="ФИО"
+                                                />
+                                            </div>
+                                            {/* Телефон контакта */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.contactPhone}
+                                                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Телефон"
+                                                />
+                                            </div>
+                                            {/* Плановое время реакции */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Время реакции (мин)</label>
+                                                <input
+                                                    type="number"
+                                                    value={formData.plannedReactionTimeMinutes}
+                                                    onChange={(e) => setFormData({ ...formData, plannedReactionTimeMinutes: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    min="0"
+                                                />
+                                            </div>
+                                            {/* Дата назначения */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Дата назначения</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={formData.assignedAt}
+                                                    onChange={(e) => setFormData({ ...formData, assignedAt: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            {/* Плановая продолжительность */}
+                                            <div className="col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">План. длительность (ч)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.5"
+                                                    value={formData.plannedDurationHours}
+                                                    onChange={(e) => setFormData({ ...formData, plannedDurationHours: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    min="0"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Кнопки */}
+                                <div className="flex gap-2 mt-6 pt-4 border-t">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                    >
+                                        Создать
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={resetForm}
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">ФИО и номер телефона</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={formData.contactFullName}
-                                    onChange={(e) => setFormData({ ...formData, contactFullName: e.target.value })}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="ФИО контактного лица"
-                                />
-                                <input
-                                    type="text"
-                                    value={formData.contactPhone}
-                                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Номер телефона"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Плановая дата решения</label>
-                            <input
-                                type="datetime-local"
-                                value={formData.plannedResolutionDate}
-                                onChange={(e) => setFormData({ ...formData, plannedResolutionDate: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Плановое время реакции (мин)</label>
-                            <input
-                                type="number"
-                                value={formData.plannedReactionTimeMinutes}
-                                onChange={(e) => setFormData({ ...formData, plannedReactionTimeMinutes: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                min="0"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Назначена на</label>
-                            <input
-                                type="datetime-local"
-                                value={formData.assignedAt}
-                                onChange={(e) => setFormData({ ...formData, assignedAt: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Плановая продолжительность (ч)</label>
-                            <input
-                                type="number"
-                                step="0.5"
-                                value={formData.plannedDurationHours}
-                                onChange={(e) => setFormData({ ...formData, plannedDurationHours: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                min="0"
-                            />
-                        </div>
-                        <div className="flex gap-2 pt-4">
-                            <button
-                                type="submit"
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                            >
-                                Создать
-                            </button>
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                            >
-                                Отмена
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             )}
 

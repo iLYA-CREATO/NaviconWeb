@@ -30,6 +30,7 @@ const clientEquipmentRoutes = require('./routes/clientEquipment'); // Маршр
 const backupRoutes = require('./routes/backups'); // Маршруты бэкапов
 const clientAttributeRoutes = require('./routes/clientAttributes'); // Маршруты атрибутов клиентов
 const analyticsRoutes = require('./routes/analytics'); // Маршруты аналитики
+const notificationRoutes = require('./routes/notifications'); // Маршруты уведомлений
 
 // Импорт node-cron для автоматических бэкапов
 const cron = require('node-cron');
@@ -68,6 +69,7 @@ app.use('/api/backups', backupRoutes); // /api/backups/*
 
 app.use('/api/client-attributes', clientAttributeRoutes); // /api/client-attributes/*
 app.use('/api/analytics', analyticsRoutes); // /api/analytics/*
+app.use('/api/notifications', notificationRoutes); // /api/notifications/*
 
 // === Health check endpoint ===
 // Проверка работоспособности сервера

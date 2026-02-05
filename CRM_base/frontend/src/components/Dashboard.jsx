@@ -18,6 +18,8 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 // Импорт хука ошибок
 import { useError } from './ErrorModal.jsx';
+// Импорт API функций для уведомлений
+import { getNotifications, markNotificationAsRead } from '../services/api';
 
 const Dashboard = () => {
     // Получение данных пользователя и функции выхода из контекста аутентификации
@@ -34,6 +36,12 @@ const Dashboard = () => {
     const [activeSettingsTab, setActiveSettingsTab] = useState('user');
     // Состояние для свернутой/развернутой боковой панели
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    // Состояние для показа уведомлений
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [notificationFilter, setNotificationFilter] = useState('all');
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [loadingNotifications, setLoadingNotifications] = useState(false);
 
     // Определение доступных вкладок настроек
     const availableSettingsTabs = [
@@ -55,6 +63,38 @@ const Dashboard = () => {
             }
         }
     }, [isSettings, activeSettingsTab]);
+
+    // Закрытие панели уведомлений при клике вне её
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showNotifications && !event.target.closest('.notification-panel') && !event.target.closest('.notification-button')) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showNotifications]);
+
+    // Функция для загрузки уведомлений
+    const fetchNotifications = async () => {
+        try {
+            setLoadingNotifications(true);
+            const response = await getNotifications(notificationFilter);
+            if (response.data.success) {
+                setNotifications(response.data.data);
+                setUnreadCount(response.data.unreadCount);
+            }
+        } catch (error) {
+            console.error('Ошибка при загрузке уведомлений:', error);
+        } finally {
+            setLoadingNotifications(false);
+        }
+    };
+
+    // Загрузка уведомлений при изменении фильтра
+    useEffect(() => {
+        fetchNotifications();
+    }, [notificationFilter]);
 
     // Функция для получения иконки для вкладки настроек
     const getSettingsIcon = useMemo(() => (tabId) => {
@@ -95,11 +135,108 @@ const Dashboard = () => {
                     {user?.fullName}
                 </div>
                 <button
-                    className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                    onClick={() => {
+                        setShowNotifications(!showNotifications);
+                        if (!showNotifications) {
+                            fetchNotifications();
+                        }
+                    }}
+                    className={`notification_button relative flex items-center justify-center w-10 h-10 rounded-lg transition ${
+                        unreadCount > 0 
+                            ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
                     title="Уведомления"
                 >
                     <Bell size={20} />
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            {unreadCount}
+                        </span>
+                    )}
                 </button>
+                {/* Панель уведомлений */}
+                {showNotifications && (
+                    <div className="notification_panel absolute top-16 right-4 w-80 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                        <div className="p-4 border-b border-gray-200">
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-medium">Уведомления</h4>
+                                <select
+                                    value={notificationFilter}
+                                    onChange={(e) => setNotificationFilter(e.target.value)}
+                                    className="text-sm border border-gray-300 rounded px-2 py-1"
+                                >
+                                    <option value="all">Все</option>
+                                    <option value="unread">Непрочитанные</option>
+                                    <option value="bid_created">Создана заявка</option>
+                                    <option value="equipment_added">Добавлено оборудование</option>
+                                    <option value="specification_added">Добавлена спецификация</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                            {loadingNotifications ? (
+                                <div className="p-8 text-center text-gray-500">
+                                    Загрузка...
+                                </div>
+                            ) : notifications.length > 0 ? (
+                                notifications.map(notification => (
+                                    <div
+                                        key={notification.id}
+                                        className={`p-4 hover:bg-gray-50 cursor-pointer transition ${
+                                            !notification.isRead ? 'bg-blue-50' : ''
+                                        }`}
+                                        onClick={async () => {
+                                            if (!notification.isRead) {
+                                                try {
+                                                    await markNotificationAsRead(notification.id);
+                                                    setNotifications(prev =>
+                                                        prev.map(n =>
+                                                            n.id === notification.id ? { ...n, isRead: true } : n
+                                                        )
+                                                    );
+                                                    setUnreadCount(prev => Math.max(0, prev - 1));
+                                                } catch (error) {
+                                                    console.error('Ошибка при отметке уведомления:', error);
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className={`w-2 h-2 rounded-full mt-2 ${
+                                                notification.type === 'overdue' ? 'bg-red-500' :
+                                                notification.type === 'bid_created' ? 'bg-blue-500' :
+                                                notification.type === 'equipment_added' ? 'bg-orange-500' :
+                                                notification.type === 'specification_added' ? 'bg-green-500' :
+                                                'bg-gray-500'
+                                            }`}></div>
+                                            <div className="flex-1">
+                                                <p className={`font-medium text-sm ${
+                                                    !notification.isRead ? 'text-gray-900' : 'text-gray-600'
+                                                }`}>
+                                                    {notification.title}
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {notification.message}
+                                                </p>
+                                                <p className="text-xs text-gray-400 mt-2">
+                                                    {new Date(notification.createdAt).toLocaleString()}
+                                                </p>
+                                            </div>
+                                            {!notification.isRead && (
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center text-gray-500">
+                                    Нет уведомлений
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
                 <button
                     onClick={logout}
                     className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition"

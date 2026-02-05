@@ -226,4 +226,14 @@ export const getAnalytics = (period = 'all', specificDate = '') => {
     return api.get('/analytics', { params: { period, specificDate } });
 }; // Получение статистики аналитики
 
+// === УВЕДОМЛЕНИЯ ===
+export const getNotifications = (filter = 'all', limit = 50) => {
+    return api.get('/notifications', { params: { filter, limit } });
+}; // Получение уведомлений
+export const getUnreadNotificationsCount = () => api.get('/notifications/unread-count'); // Получение количества непрочитанных уведомлений
+export const markNotificationAsRead = (id) => api.put(`/notifications/${id}/read`); // Пометка уведомления как прочитанного
+export const markAllNotificationsAsRead = () => api.put('/notifications/read-all'); // Пометка всех уведомлений как прочитанных
+export const deleteNotification = (id) => api.delete(`/notifications/${id}`); // Удаление уведомления
+export const createNotification = (data) => api.post('/notifications/create', data); // Создание уведомления
+
 export default api;

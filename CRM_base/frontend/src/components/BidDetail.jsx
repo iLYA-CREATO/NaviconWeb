@@ -9,6 +9,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
 import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles } from '../services/api';
+// Импорт функций для уведомлений
+import { createNotification } from '../services/api';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext';
 // Импорт хука для проверки разрешений
@@ -483,6 +485,16 @@ const BidDetail = () => {
                 await updateBidSpecification(id, editingSpec.id, specData);
             } else {
                 await createBidSpecification(id, specData);
+                
+                // Создаем уведомление о добавлении спецификации
+                const spec = specifications.find(s => s.id.toString() === specData.specificationId);
+                await createNotification({
+                    userId: bid.createdBy,
+                    title: 'Добавлена спецификация',
+                    message: `В заявку №${bid.id} добавлена спецификация "${spec?.name || 'Спецификация'}"`,
+                    type: 'specification_added',
+                    bidId: bid.id,
+                });
             }
             setShowAddSpecModal(false);
             setEditingSpec(null);
@@ -513,6 +525,16 @@ const BidDetail = () => {
 
                 // Then create bid equipment
                 await createBidEquipment({ ...equipmentData, bidId: id });
+
+                // Создаем уведомление о добавлении оборудования
+                const equip = equipmentList.find(e => e.id.toString() === equipmentData.equipmentId);
+                await createNotification({
+                    userId: bid.createdBy,
+                    title: 'Добавлено оборудование',
+                    message: `В заявку №${bid.id} добавлено оборудование "${equip?.name || 'Оборудование'}"`,
+                    type: 'equipment_added',
+                    bidId: bid.id,
+                });
             }
             setShowAddEquipmentModal(false);
             setEditingEquipment(null);
@@ -1191,6 +1213,34 @@ const BidDetail = () => {
                 <div className='p-2'>
                     <label className="block text-xs text-gray-500 mb-1">Ответственный</label>
                     <p className="text-gray-900">{getResponsibleDisplayName()}</p>
+                </div>
+                <div className='p-2'>
+                    <label className="block text-xs text-gray-500 mb-1">Плановое время реакции (SLA)</label>
+                    <p className="text-gray-900">{bid.plannedReactionTimeMinutes ? `${bid.plannedReactionTimeMinutes} мин.` : 'Не указано'}</p>
+                </div>
+                <div className='p-2'>
+                    <label className="block text-xs text-gray-500 mb-1">Плановая дата решения</label>
+                    <p className="text-gray-900">{bid.plannedResolutionDate ? new Date(bid.plannedResolutionDate).toLocaleString('ru-RU', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : 'Не указано'}</p>
+                </div>
+                <div className='p-2'>
+                    <label className="block text-xs text-gray-500 mb-1">Плановая продолжительность</label>
+                    <p className="text-gray-900">{bid.plannedDurationHours ? `${bid.plannedDurationHours} ч.` : 'Не указано'}</p>
+                </div>
+                <div className='p-2'>
+                    <label className="block text-xs text-gray-500 mb-1">Назначен</label>
+                    <p className="text-gray-900">{bid.assignedAt ? new Date(bid.assignedAt).toLocaleString('ru-RU', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : 'Не назначен'}</p>
                 </div>
                 <div className='p-2'>
                     <button

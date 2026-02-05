@@ -260,3 +260,14 @@ model ClientAttributeValue {
 
     @@unique([clientId, attributeId])
 }
+
+model Notification {
+    id          Int      @id @default(autoincrement())
+    userId      Int      // User who receives the notification
+    title       String
+    message     String
+    type        String   // 'bid_created', 'equipment_added', 'specification_added', etc.
+    bidId       Int?     // Related bid ID
+    isRead      Boolean  @default(false)
+    createdAt   DateTime @default(now())
+}
