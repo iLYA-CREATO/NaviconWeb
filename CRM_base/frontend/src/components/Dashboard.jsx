@@ -89,7 +89,7 @@ const Dashboard = () => {
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Верхняя панель с кнопкой выхода */}
-            <div className="fixed top-0 bg-white shadow-lg flex justify-end items-center h-16 px-4 gap-4 z-10" style={{ left: `${isSettings ? (isSidebarCollapsed ? 4 : 14) : isSidebarCollapsed ? 4 : 16}rem`, width: `calc(100% - ${isSettings ? (isSidebarCollapsed ? 4 : 14) : isSidebarCollapsed ? 4 : 16}rem)`, transition: 'left 0.3s, width 0.3s' }}>
+            <div className="fixed top-0 bg-sky-50 flex justify-end items-center h-16 px-4 gap-4 z-10" style={{ left: `${isSettings ? (isSidebarCollapsed ? 4 : 14) : isSidebarCollapsed ? 4 : 16}rem`, width: `calc(100% - ${isSettings ? (isSidebarCollapsed ? 4 : 14) : isSidebarCollapsed ? 4 : 16}rem)`, transition: 'left 0.3s, width 0.3s' }}>
                 <div className="flex items-center gap-2 text-gray-700 font-medium mr-4">
                     <User size={20} />
                     {user?.fullName}
@@ -120,7 +120,7 @@ const Dashboard = () => {
                 </button>
             </div>
             {/* Боковая панель: ширина зависит от состояния свернутости и страницы настроек */}
-            <aside className={`${isSettings ? `${isSidebarCollapsed ? 'w-16' : 'w-56'} px-4 py-6 bg-white fixed left-0 top-0 h-screen transition-all duration-300` : `${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg flex flex-col fixed left-0 top-0 h-screen transition-all duration-300`}`}>
+            <aside className={`${isSettings ? `${isSidebarCollapsed ? 'w-16' : 'w-56'} px-4 py-6 bg-sky-50 fixed left-0 top-0 h-screen transition-all duration-300` : `${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-sky-50 flex flex-col fixed left-0 top-0 h-screen transition-all duration-300`}`}>
                 {/* Условный рендеринг: если на странице настроек */}
                 {isSettings ? (
                     <div>

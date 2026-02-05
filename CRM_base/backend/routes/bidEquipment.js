@@ -3,6 +3,29 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const prisma = require('../prisma/client');
 
+// Get all bid equipment for expense history
+router.get('/expense-history', authMiddleware, async (req, res) => {
+    try {
+        const bidEquipments = await prisma.bidEquipment.findMany({
+            include: {
+                equipment: true,
+                bid: {
+                    include: {
+                        client: true,
+                        clientObject: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json(bidEquipments);
+    } catch (error) {
+        console.error('Get expense history error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Get all bid equipment for a bid
 router.get('/bid/:bidId', authMiddleware, async (req, res) => {
     try {

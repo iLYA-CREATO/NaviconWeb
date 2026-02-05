@@ -2263,7 +2263,17 @@ const Settings = () => {
                                 onClick={() => {
                                     setShowBidTypeForm(!showBidTypeForm);
                                     setEditingBidType(null);
-                                    setBidTypeFormData({ name: '', description: '', statuses: [], transitions: [] });
+                                    setBidTypeFormData({
+                                        name: '', 
+                                        description: '', 
+                                        statuses: [
+                                            { name: 'Открыта', position: 1, allowedActions: ['edit', 'assign_executor'], color: '#dcfce7' },
+                                            { name: 'Закрыта', position: 999, allowedActions: [], color: '#f3f4f6' }
+                                        ], 
+                                        transitions: [
+                                            { fromPosition: 1, toPosition: 999 }
+                                        ]
+                                    });
                                 }}
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                             >

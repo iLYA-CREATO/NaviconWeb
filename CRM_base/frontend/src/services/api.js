@@ -119,6 +119,7 @@ export const deleteEquipment = (id) => api.delete(`/equipment/${id}`); // Уда
 // === ОБОРУДОВАНИЕ ЗАЯВОК ===
 // CRUD-операции для оборудования заявок
 export const getBidEquipment = (bidId) => api.get(`/bid-equipment/bid/${bidId}`); // Получение оборудования заявки
+export const getExpenseHistory = () => api.get('/bid-equipment/expense-history'); // Получение истории расхода оборудования
 export const createBidEquipment = (data) => api.post('/bid-equipment', data); // Создание оборудования заявки
 export const updateBidEquipment = (id, data) => api.put(`/bid-equipment/${id}`, data); // Обновление оборудования заявки
 export const deleteBidEquipment = (id) => api.delete(`/bid-equipment/${id}`); // Удаление оборудования заявки

@@ -324,7 +324,7 @@ async function main() {
         create: {
             username: 'CV',
             fullName: 'Стариков Вадим',
-            email: 'manager4@mail.ru',
+            email: 'starikov@mail.ru',
             password: hashedPassword,
             role: 'Менеджер',
         },
@@ -337,9 +337,9 @@ async function main() {
             role: 'Менеджер',
         },
         create: {
-            username: 'CV',
+            username: 'KV',
             fullName: 'Кирилов Владислав',
-            email: 'manager4@mail.ru',
+            email: 'kirilov@mail.ru',
             password: hashedPassword,
             role: 'Менеджер',
         },
@@ -354,7 +354,7 @@ async function main() {
         create: {
             username: 'Baran',
             fullName: 'Баранов Олег',
-            email: 'manager4@mail.ru',
+            email: 'baranov@mail.ru',
             password: hashedPassword,
             role: 'Менеджер',
         },
@@ -683,13 +683,6 @@ async function main() {
         console.log('✅ Created equipment:', equipment.name, 'with product code:', equipment.productCode);
     }
 
-
-
-    // Update all users to Admin role
-    await prisma.user.updateMany({
-        data: { role: 'Админ' }
-    });
-    console.log('✅ Updated all users to Admin role');
 
     console.log('🎉 Seed completed successfully!');
 }

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment } from '../services/api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getExpenseHistory } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 const Equipment = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const [equipment, setEquipment] = useState([]);
+    const [expenseHistory, setExpenseHistory] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState(null);
     const [showForm, setShowForm] = useState(false);
@@ -40,9 +41,52 @@ const Equipment = () => {
     const [customTabs, setCustomTabs] = useState([]);
     const [activeTab, setActiveTab] = useState('nomenclature');
 
+    // Expense History column settings
+    const expenseHistoryAllColumns = ['bidId', 'bidTema', 'clientObject', 'client', 'equipmentName', 'imei', 'quantity'];
+    const savedExpenseHistoryColumns = localStorage.getItem('expenseHistoryVisibleColumns');
+    const defaultExpenseHistoryVisibleColumns = {
+        bidId: true,
+        bidTema: true,
+        clientObject: true,
+        client: true,
+        equipmentName: true,
+        imei: true,
+        quantity: true,
+    };
+    const initialExpenseHistoryVisibleColumns = savedExpenseHistoryColumns 
+        ? { ...defaultExpenseHistoryVisibleColumns, ...JSON.parse(savedExpenseHistoryColumns) } 
+        : defaultExpenseHistoryVisibleColumns;
+    const savedExpenseHistoryOrder = localStorage.getItem('expenseHistoryColumnOrder');
+    const initialExpenseHistoryColumnOrder = savedExpenseHistoryOrder 
+        ? [...new Set([...JSON.parse(savedExpenseHistoryOrder).filter(col => expenseHistoryAllColumns.includes(col)), ...expenseHistoryAllColumns])] 
+        : expenseHistoryAllColumns;
+    const [expenseHistoryColumnOrder, setExpenseHistoryColumnOrder] = useState(initialExpenseHistoryColumnOrder);
+    const [expenseHistoryVisibleColumns, setExpenseHistoryVisibleColumns] = useState(initialExpenseHistoryVisibleColumns);
+    const [showExpenseHistoryColumnSettings, setShowExpenseHistoryColumnSettings] = useState(false);
+    const [returnHistoryLoading, setReturnHistoryLoading] = useState(false);
+
     useEffect(() => {
         fetchEquipment();
     }, []);
+
+    // Fetch expense history when the tab is active
+    useEffect(() => {
+        if (activeTab === 'expense-history') {
+            fetchExpenseHistory();
+        }
+    }, [activeTab]);
+
+    // Refresh expense history when the page becomes visible (user returns from another tab)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (activeTab === 'expense-history' && !document.hidden) {
+                fetchExpenseHistory();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [activeTab]);
 
     // useEffect для сохранения настроек колонок оборудования в localStorage
     useEffect(() => {
@@ -54,16 +98,29 @@ const Equipment = () => {
         localStorage.setItem('equipmentColumnOrder', JSON.stringify(equipmentColumnOrder));
     }, [equipmentColumnOrder]);
 
-    // useEffect для закрытия выпадающего списка оборудования при клике вне его
+    // useEffect для сохранения настроек колонок истории расхода в localStorage
+    useEffect(() => {
+        localStorage.setItem('expenseHistoryVisibleColumns', JSON.stringify(expenseHistoryVisibleColumns));
+    }, [expenseHistoryVisibleColumns]);
+
+    // useEffect для сохранения порядка колонок истории расхода в localStorage
+    useEffect(() => {
+        localStorage.setItem('expenseHistoryColumnOrder', JSON.stringify(expenseHistoryColumnOrder));
+    }, [expenseHistoryColumnOrder]);
+
+    // useEffect для закрытия выпадающего списка настроек колонок истории расхода при клике вне его
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (showEquipmentColumnSettings && !event.target.closest('.equipment-column-settings')) {
                 setShowEquipmentColumnSettings(false);
             }
+            if (showExpenseHistoryColumnSettings && !event.target.closest('.expense-history-column-settings')) {
+                setShowExpenseHistoryColumnSettings(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showEquipmentColumnSettings]);
+    }, [showEquipmentColumnSettings, showExpenseHistoryColumnSettings]);
 
     const fetchEquipment = async () => {
         try {
@@ -71,6 +128,15 @@ const Equipment = () => {
             setEquipment(response.data);
         } catch (error) {
             console.error('Error fetching equipment:', error);
+        }
+    };
+
+    const fetchExpenseHistory = async () => {
+        try {
+            const response = await getExpenseHistory();
+            setExpenseHistory(response.data);
+        } catch (error) {
+            console.error('Error fetching expense history:', error);
         }
     };
 
@@ -195,8 +261,49 @@ const Equipment = () => {
         }
     };
 
+    // Expense History column functions
+    const handleExpenseHistoryColumnToggle = (column) => {
+        setExpenseHistoryVisibleColumns(prev => ({
+            ...prev,
+            [column]: !prev[column]
+        }));
+    };
+
+    const moveExpenseHistoryUp = (index) => {
+        if (index > 0) {
+            const newOrder = [...expenseHistoryColumnOrder];
+            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+            setExpenseHistoryColumnOrder(newOrder);
+        }
+    };
+
+    const moveExpenseHistoryDown = (index) => {
+        if (index < expenseHistoryColumnOrder.length - 1) {
+            const newOrder = [...expenseHistoryColumnOrder];
+            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+            setExpenseHistoryColumnOrder(newOrder);
+        }
+    };
+
+    const getExpenseHistoryColumnLabel = (column) => {
+        const labels = {
+            bidId: 'Номер заявки',
+            bidTema: 'Тема заявки',
+            clientObject: 'Объект обслуживания',
+            client: 'Клиент',
+            equipmentName: 'Название оборудования',
+            imei: 'IMEI',
+            quantity: 'Количество',
+        };
+        return labels[column] || column;
+    };
+
+    const displayExpenseHistoryColumns = expenseHistoryColumnOrder.filter(col => expenseHistoryVisibleColumns[col]);
+
     const baseTabs = [
-        { id: 'nomenclature', label: 'Номенклатура' }
+        { id: 'nomenclature', label: 'Номенклатура' },
+        { id: 'expense-history', label: 'История Расхода' },
+        { id: 'return-history', label: 'История возврата' }
     ];
 
     const allTabs = [...baseTabs, ...customTabs];
@@ -455,6 +562,138 @@ const Equipment = () => {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    )}
+
+                    {activeTab === 'expense-history' && (
+                        <div>
+                            {/* Карточка с элементами управления */}
+                            <div className="bg-gray-200 rounded-lg p-4 mb-6">
+                                <div className="flex justify-end gap-2">
+                                    <div className="relative expense-history-column-settings">
+                                        <button
+                                            onClick={() => setShowExpenseHistoryColumnSettings(!showExpenseHistoryColumnSettings)}
+                                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                                        >
+                                            Настройки столбцов
+                                        </button>
+                                        {showExpenseHistoryColumnSettings && (
+                                            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 expense-history-column-settings" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                                <div className="p-4">
+                                                    <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                                    {expenseHistoryColumnOrder.map((column, index) => (
+                                                        <div key={column} className="flex items-center justify-between mb-2">
+                                                            <label className="flex items-center">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={expenseHistoryVisibleColumns[column]}
+                                                                    onChange={() => handleExpenseHistoryColumnToggle(column)}
+                                                                    className="mr-2"
+                                                                />
+                                                                {getExpenseHistoryColumnLabel(column)}
+                                                            </label>
+                                                            {expenseHistoryVisibleColumns[column] && (
+                                                                <div className="flex gap-1">
+                                                                    <button
+                                                                        onClick={() => moveExpenseHistoryUp(index)}
+                                                                        disabled={index === 0}
+                                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                    >
+                                                                        ↑
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => moveExpenseHistoryDown(index)}
+                                                                        disabled={index === expenseHistoryColumnOrder.length - 1}
+                                                                        className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                                    >
+                                                                        ↓
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={fetchExpenseHistory}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    >
+                                        Обновить
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-lg shadow overflow-hidden">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            {displayExpenseHistoryColumns.map(column => (
+                                                <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    {getExpenseHistoryColumnLabel(column)}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {expenseHistory.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={displayExpenseHistoryColumns.length} className="px-6 py-4 text-center text-gray-500">
+                                                    Нет данных о расходе оборудования
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            expenseHistory.map((item) => (
+                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                    {displayExpenseHistoryColumns.map(column => (
+                                                        <td key={column} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {column === 'bidId' && (
+                                                                <button
+                                                                    onClick={() => navigate(`/dashboard/bids/${item.bid?.id}`)}
+                                                                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer"
+                                                                >
+                                                                    №{item.bid?.id || '-'}
+                                                                </button>
+                                                            )}
+                                                            {column === 'bidTema' && (item.bid?.tema || '-')}
+                                                            {column === 'clientObject' && (
+                                                                item.bid?.clientObject?.address || 
+                                                                item.bid?.clientObject?.name || 
+                                                                item.bid?.clientObject?.brandModel || 
+                                                                '-'
+                                                            )}
+                                                            {column === 'client' && (item.bid?.client?.name || '-')}
+                                                            {column === 'equipmentName' && (item.equipment?.name || '-')}
+                                                            {column === 'imei' && (item.imei || '-')}
+                                                            {column === 'quantity' && (item.quantity || 1)}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'return-history' && (
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <div className="p-6 pb-0 flex justify-between items-center">
+                                <h3 className="text-xl font-bold">История возврата</h3>
+                                <button
+                                    onClick={() => setReturnHistoryLoading(false)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Обновить
+                                </button>
+                            </div>
+                            <div className="overflow-x-auto p-6">
+                                <div className="text-gray-500 text-center py-8">
+                                    <p className="text-lg">Функционал возврата оборудования в разработке.</p>
+                                    <p className="mt-2">Здесь будет отображаться история возврата оборудования с заявок.</p>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

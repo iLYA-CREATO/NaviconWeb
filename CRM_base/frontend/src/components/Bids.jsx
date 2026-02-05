@@ -462,8 +462,6 @@ const Bids = () => {
 
     return (
         <div>
-            <h1 className="text-2xl font-bold mb-4">Заявки</h1>
-
             {/* Форма создания новой заявки, показывается только если showForm = true */}
             {showForm && (
                 <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -639,7 +637,8 @@ const Bids = () => {
             {!showForm && (
                 <div>
                     {/* Карточка с фильтрами и элементами управления */}
-                    <div className="bg-gray-200 rounded-lg p-4 mb-6">
+                    <div className="bg-gray-200 rounded-lg p-4 mb-6 border border-gray-300">
+                        <h2 className="text-xl font-bold mb-4">Заявки</h2>
                         {/* Кнопка создания новой заявки */}
                         <div className="flex justify-end gap-2 mb-4">
                             <button
@@ -829,71 +828,85 @@ const Bids = () => {
 
             {/* Filter Modal */}
             {showFilterModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-96 max-w-full">
-                        <h3 className="text-lg font-medium mb-4">Настройки фильтров</h3>
-                        <div className="space-y-3">
-                            <label className="flex items-center">
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-[500px] max-w-full max-h-[80vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-semibold text-gray-800">Настройки фильтров</h3>
+                            <button
+                                onClick={() => setShowFilterModal(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full transition"
+                            >
+                                <X size={20} className="text-gray-500" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
                                     checked={visibleFilters.creator}
                                     onChange={() => setVisibleFilters({ ...visibleFilters, creator: !visibleFilters.creator })}
-                                    className="mr-2"
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                 />
-                                Фильтр по создателю
+                                <span className="text-gray-700">Фильтр по создателю</span>
                             </label>
-                            <label className="flex items-center">
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
                                     checked={visibleFilters.bidType}
                                     onChange={() => setVisibleFilters({ ...visibleFilters, bidType: !visibleFilters.bidType })}
-                                    className="mr-2"
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                 />
-                                Фильтр по типу заявки
+                                <span className="text-gray-700">Фильтр по типу заявки</span>
                             </label>
-                            <label className="flex items-center">
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
                                     checked={visibleFilters.client}
                                     onChange={() => setVisibleFilters({ ...visibleFilters, client: !visibleFilters.client })}
-                                    className="mr-2"
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                 />
-                                Фильтр по клиенту
+                                <span className="text-gray-700">Фильтр по клиенту</span>
                             </label>
-                            <label className="flex items-center">
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
                                     checked={visibleFilters.status}
                                     onChange={() => setVisibleFilters({ ...visibleFilters, status: !visibleFilters.status })}
-                                    className="mr-2"
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                 />
-                                Фильтр по статусу
+                                <span className="text-gray-700">Фильтр по статусу</span>
                             </label>
-                            <label className="flex items-center">
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
                                     checked={visibleFilters.clientObject}
                                     onChange={() => setVisibleFilters({ ...visibleFilters, clientObject: !visibleFilters.clientObject })}
-                                    className="mr-2"
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                 />
-                                Фильтр по объекту обслуживания
+                                <span className="text-gray-700">Фильтр по объекту обслуживания</span>
                             </label>
-                            <label className="flex items-center">
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
                                     checked={visibleFilters.responsible}
                                     onChange={() => setVisibleFilters({ ...visibleFilters, responsible: !visibleFilters.responsible })}
-                                    className="mr-2"
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                 />
-                                Фильтр по ответственному
+                                <span className="text-gray-700">Фильтр по ответственному</span>
                             </label>
                         </div>
-                        <div className="flex justify-end gap-2 mt-6">
+                        <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
                             <button
                                 onClick={() => setShowFilterModal(false)}
-                                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg"
+                                className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition"
                             >
                                 Закрыть
+                            </button>
+                            <button
+                                onClick={() => setShowFilterModal(false)}
+                                className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition shadow-lg shadow-blue-500/30"
+                            >
+                                Применить
                             </button>
                         </div>
                     </div>
