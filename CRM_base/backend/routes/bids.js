@@ -15,6 +15,84 @@ const prisma = require('../prisma/client');
 // Импорт fs для логирования
 const fs = require('fs');
 const path = require('path');
+// Импорт multer для загрузки файлов
+const multer = require('multer');
+// Импорт sharp для сжатия изображений
+const sharp = require('sharp');
+
+// Функция для восстановления UTF-8 из Mojibake и URL-encoded
+const fixFilename = (filename) => {
+    if (!filename) return filename;
+    let fixed = filename;
+    
+    // Пробуем декодировать URL-encoded несколько раз
+    try {
+        while (fixed.includes('%')) {
+            const decoded = decodeURIComponent(fixed);
+            if (decoded === fixed) break; // Больше нечего декодировать
+            fixed = decoded;
+        }
+    } catch (e) {
+        // Если decodeURIComponent не работает, пробуем latin1 -> utf8
+    }
+    
+    // Если содержит Mojibake символы (Ð, â, Ñ, Ã и т.д.), значит это уже нечитаемая каша
+    // Удаляем все не-ASCII символы и заменяем проблемные последовательности
+    if (fixed.includes('Ð') || fixed.includes('â') || fixed.includes('Ñ') || fixed.includes('Ã')) {
+        // Пробуем декодировать как latin1 для восстановления UTF-8
+        try {
+            const buffer = Buffer.from(fixed, 'latin1');
+            const utf8Version = buffer.to('utf8');
+            // Если после декодирования получили читаемый текст с кириллицей, используем его
+            if (utf8Version.match(/[а-яёА-ЯЁ]/) && !utf8Version.includes('Ð')) {
+                fixed = utf8Version;
+            } else {
+                // Иначе удаляем все не-ASCII символы
+                fixed = fixed.replace(/[^\x00-\x7F]/g, '_');
+            }
+        } catch (e) {
+            // Удаляем все не-ASCII символы
+            fixed = fixed.replace(/[^\x00-\x7F]/g, '_');
+        }
+    }
+    
+    return fixed;
+};
+
+// Функция для сжатия изображений (уменьшение в 5 раз)
+const compressImage = async (inputPath, outputPath) => {
+    try {
+        // Получаем метаданные изображения
+        const metadata = await sharp(inputPath).metadata();
+        
+        // Вычисляем новые размеры (уменьшаем в 5 раз)
+        const newWidth = Math.max(1, Math.round(metadata.width / 5));
+        const newHeight = Math.max(1, Math.round(metadata.height / 5));
+        
+        // Сжимаем изображение
+        await sharp(inputPath)
+            .resize(newWidth, newHeight, {
+                fit: 'inside',
+                withoutEnlargement: true
+            })
+            .jpeg({ quality: 80 })
+            .toFile(outputPath);
+        
+        // Получаем размер сжатого файла
+        const stats = fs.statSync(outputPath);
+        return stats.size;
+    } catch (error) {
+        console.error('Error compressing image:', error);
+        // Если сжатие не удалось, возвращаем null и оригинальный файл будет использован
+        return null;
+    }
+};
+
+// Функция для проверки, является ли файл изображением
+const isImageFile = (mimeType) => {
+    return mimeType.startsWith('image/') && 
+           (mimeType.includes('jpeg') || mimeType.includes('jpg') || mimeType.includes('png') || mimeType.includes('gif') || mimeType.includes('webp'));
+};
 
 // Функция для логирования данных заявки в файл
 const logBidData = (action, data) => {
@@ -1218,6 +1296,215 @@ router.get('/:id/history', authMiddleware, async (req, res) => {
         res.json(history);
     } catch (error) {
         console.error('Get bid history error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// === ФАЙЛЫ ЗАЯВКИ ===
+
+// Настройка хранилища для файлов
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const bidId = req.params.id;
+        const uploadDir = path.join(__dirname, '..', 'uploads', 'bids', bidId);
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        // Генерируем уникальное имя файла с временной меткой
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        
+        // Пытаемся декодировать имя файла из URL-encoded Mojibake
+        let originalName = file.originalname;
+        
+        // Пробуем декодировать URL-encoded символы (может быть закодировано несколько раз)
+        try {
+            while (originalName.includes('%')) {
+                const decoded = decodeURIComponent(originalName);
+                if (decoded === originalName) break;
+                originalName = decoded;
+            }
+        } catch (e) {
+            // Если не удалось, пробуем latin1 -> utf8 буфер (исправление Mojibake)
+            try {
+                originalName = Buffer.from(originalName, 'latin1').to('utf8');
+            } catch (e2) {
+                // Оставляем как есть
+            }
+        }
+        
+        // Очищаем имя файла от проблемных символов, сохраняя кириллицу
+        const safeName = originalName
+            .replace(/[^\w\s\-а-яёА-ЯЁ\.]/g, '_')  // Заменяем спецсимволы на подчеркивание
+            .replace(/\s+/g, '_');                   // Заменяем пробелы на подчеркивание
+        
+        cb(null, uniqueSuffix + '-' + safeName);
+    }
+});
+
+const upload = multer({ storage: storage });
+
+// Получить список файлов заявки
+router.get('/:id/files', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        
+        // Получаем записи о файлах из базы данных
+        const bidFiles = await prisma.bidFile.findMany({
+            where: { bidId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        
+        // Формируем список файлов с путями
+        const fileList = bidFiles.map(bidFile => ({
+            id: bidFile.id,
+            name: bidFile.filename,
+            originalName: bidFile.originalName,
+            path: `/uploads/bids/${bidId}/${bidFile.filename}`,
+            size: bidFile.fileSize,
+            uploadedBy: bidFile.uploadedBy,
+            uploaderName: bidFile.user ? bidFile.user.fullName : 'Неизвестный пользователь',
+            createdAt: bidFile.createdAt,
+        }));
+        
+        res.json(fileList);
+    } catch (error) {
+        console.error('Get bid files error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Загрузить файлы к заявке (один или несколько)
+router.post('/:id/files', authMiddleware, upload.array('files', 10), async (req, res) => {
+    try {
+        // Поддерживаем как один файл, так и массив файлов
+        const files = req.files;
+        
+        if (!files || files.length === 0) {
+            return res.status(400).json({ message: 'Файлы не загружены' });
+        }
+        
+        // Проверяем аутентификацию пользователя
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        
+        const bidId = parseInt(req.params.id);
+        const uploadedFiles = [];
+        
+        // Обрабатываем каждый файл
+        for (const file of files) {
+            // Имя файла уже исправлено в multer storage
+            // Но оригинальное имя могло быть повреждено, исправляем его
+            const fixedOriginalName = fixFilename(file.originalname);
+            
+            let fileSize = file.size;
+            let finalFilename = file.filename;
+            
+            // Если это изображение, сжимаем его
+            if (isImageFile(file.mimetype)) {
+                const inputPath = file.path;
+                const outputPath = inputPath.replace(/(\.[^/.]+)$/, '_compressed$1');
+                
+                const compressedSize = await compressImage(inputPath, outputPath);
+                
+                if (compressedSize !== null && compressedSize < file.size) {
+                    // Удаляем оригинальный файл
+                    fs.unlinkSync(inputPath);
+                    // Переименовываем сжатый файл
+                    fs.renameSync(outputPath, inputPath);
+                    fileSize = compressedSize;
+                    console.log(`Изображение сжато: ${file.size} -> ${compressedSize} байт (в ${(file.size / compressedSize).toFixed(2)} раз меньше)`);
+                } else {
+                    // Если сжатие не удалось или файл стал больше, удаляем сжатую версию
+                    if (fs.existsSync(outputPath)) {
+                        fs.unlinkSync(outputPath);
+                    }
+                }
+            }
+            
+            // Создаем запись о файле в базе данных
+            const bidFile = await prisma.bidFile.create({
+                data: {
+                    bidId: bidId,
+                    filename: finalFilename,
+                    originalName: fixedOriginalName,
+                    fileSize: fileSize,
+                    mimeType: file.mimetype,
+                    uploadedBy: req.user.id,
+                },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                        },
+                    },
+                },
+            });
+            
+            const fileInfo = {
+                id: bidFile.id,
+                name: bidFile.filename,
+                originalName: bidFile.originalName,
+                path: `/uploads/bids/${bidId}/${bidFile.filename}`,
+                size: bidFile.fileSize,
+                uploadedBy: bidFile.uploadedBy,
+                uploaderName: bidFile.user ? bidFile.user.fullName : 'Неизвестный пользователь',
+                createdAt: bidFile.createdAt,
+            };
+            
+            uploadedFiles.push(fileInfo);
+            console.log('Файл загружен к заявке:', bidId, fileInfo);
+            logBidData('Загрузка файла к заявки ID: ' + bidId, fileInfo);
+        }
+        
+        // Возвращаем массив загруженных файлов
+        res.json(uploadedFiles.length === 1 ? uploadedFiles[0] : uploadedFiles);
+    } catch (error) {
+        console.error('Upload bid files error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Удалить файл заявки
+router.delete('/:id/files/:fileName(*)', authMiddleware, async (req, res) => {
+    try {
+        const bidId = parseInt(req.params.id);
+        // Файл уже декодирован на фронтенде, используем как есть
+        const fileName = req.params.fileName;
+        
+        const filePath = path.join(__dirname, '..', 'uploads', 'bids', bidId.toString(), fileName);
+        
+        // Пытаемся удалить файл с диска, если он существует
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+        
+        // Удаляем запись из базы данных
+        await prisma.bidFile.deleteMany({
+            where: {
+                bidId: bidId,
+                filename: fileName,
+            },
+        });
+        
+        console.log('Файл удалён из заявки:', bidId, fileName);
+        logBidData('Удаление файла из заявки ID: ' + bidId, { fileName });
+        
+        res.json({ message: 'Файл успешно удалён' });
+    } catch (error) {
+        console.error('Delete bid file error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

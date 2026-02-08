@@ -89,6 +89,25 @@ export const createComment = (bidId, data) => api.post(`/bids/${bidId}/comments`
 export const updateComment = (bidId, commentId, data) => api.put(`/bids/${bidId}/comments/${commentId}`, data); // Обновление комментария к заявке
 export const deleteComment = (bidId, commentId) => api.delete(`/bids/${bidId}/comments/${commentId}`); // Удаление комментария к заявке
 
+// === ФАЙЛЫ ЗАЯВОК ===
+// Получение списка файлов заявки
+export const getBidFiles = (bidId) => api.get(`/bids/${bidId}/files`);
+// Загрузка файлов к заявке (один или несколько)
+export const uploadBidFiles = async (bidId, files) => {
+    const formData = new FormData();
+    // Добавляем каждый файл в FormData
+    for (const file of files) {
+        formData.append('files', file);
+    }
+    return api.post(`/bids/${bidId}/files`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+};
+// Удаление файла заявки
+export const deleteBidFile = (bidId, fileName) => api.delete(`/bids/${bidId}/files/${encodeURIComponent(fileName)}`);
+
 // === ТИПЫ ЗАЯВОК ===
 // CRUD-операции для типов заявок
 export const getBidTypes = () => api.get('/bid-types'); // Получение всех типов заявок

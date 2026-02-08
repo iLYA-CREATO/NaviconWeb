@@ -4,11 +4,11 @@
  */
 
 // Импорты React хуков для управления состоянием и эффектами
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles } from '../services/api';
+import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles, getBidFiles, uploadBidFiles, deleteBidFile } from '../services/api';
 // Импорт функций для уведомлений
 import { createNotification } from '../services/api';
 // Импорт хука аутентификации
@@ -18,7 +18,7 @@ import { usePermissions } from '../hooks/usePermissions';
 // Импорт компонента карты
 import MapModal from './MapModal';
 // Импорт иконок из Lucide React
-import { Map, Trash2 } from 'lucide-react';
+import { Map, Trash2, Paperclip, Upload, File, Download, X, Image as ImageIcon, ZoomIn, ZoomOut, RotateCw, Maximize2, RefreshCw } from 'lucide-react';
 
 // Основной компонент BidDetail
 const BidDetail = () => {
@@ -73,6 +73,21 @@ const BidDetail = () => {
     const [roles, setRoles] = useState([]);
     const [showMapModalForChild, setShowMapModalForChild] = useState(false);
     const [remainingTime, setRemainingTime] = useState(null);
+    const [bidFiles, setBidFiles] = useState([]);
+    const [missingFiles, setMissingFiles] = useState(new Set());
+    const [uploadingFile, setUploadingFile] = useState(false);
+    const [showDeleteFileModal, setShowDeleteFileModal] = useState(false);
+    const [fileToDelete, setFileToDelete] = useState(null);
+    const [showImageViewer, setShowImageViewer] = useState(false);
+    const [currentImage, setCurrentImage] = useState(null);
+    const [imageZoom, setImageZoom] = useState(100);
+    const [imageRotation, setImageRotation] = useState(0);
+    const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
+    const [isMiddleDragging, setIsMiddleDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [expandedFileGroups, setExpandedFileGroups] = useState(new Set());
+    const imageContainerRef = useRef(null);
     const [childBidFormData, setChildBidFormData] = useState({
         clientId: '',
         title: '',
@@ -104,6 +119,7 @@ const BidDetail = () => {
         fetchChildBids();
         fetchClients();
         fetchBidTypes();
+        fetchBidFiles();
     }, [id]);
 
     useEffect(() => {
@@ -310,6 +326,282 @@ const BidDetail = () => {
             setRoles(response.data);
         } catch (error) {
             console.error('Error fetching roles:', error);
+        }
+    };
+
+    const fetchBidFiles = async () => {
+        try {
+            const response = await getBidFiles(id);
+            // Decode filename to avoid double-encoding issues
+            const decodedFiles = response.data.map(file => ({
+                ...file,
+                path: `/uploads/bids/${id}/${decodeURIComponent(file.name)}`
+            }));
+            setBidFiles(decodedFiles);
+            
+            // Check which files actually exist on the server (silent check)
+            const missing = new Set();
+            
+            // Helper function to check file existence silently
+            const checkFileExists = (url, fileName) => {
+                return new Promise((resolve) => {
+                    // For images, use Image object
+                    if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)) {
+                        const img = new Image();
+                        img.onload = () => resolve(true);
+                        img.onerror = () => {
+                            console.info(`📁 Файл отсутствует: ${fileName}`);
+                            resolve(false);
+                        };
+                        img.src = url;
+                    } else {
+                        // For other files, use XMLHttpRequest
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('HEAD', url, true);
+                        xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 400);
+                        xhr.onerror = () => {
+                            console.info(`📁 Файл отсутствует: ${fileName}`);
+                            resolve(false);
+                        };
+                        xhr.ontimeout = () => {
+                            console.info(`📁 Файл отсутствует (таймаут): ${fileName}`);
+                            resolve(false);
+                        };
+                        xhr.timeout = 5000;
+                        xhr.send();
+                    }
+                });
+            };
+            
+            // Check all files
+            for (const file of decodedFiles) {
+                const exists = await checkFileExists(file.path, file.originalName || file.name);
+                if (!exists) {
+                    missing.add(file.name);
+                }
+            }
+            
+            setMissingFiles(missing);
+        } catch (error) {
+            console.error('Error fetching bid files:', error);
+        }
+    };
+
+    const fileInputRef = useRef(null);
+
+    const handleUploadFile = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+        
+        try {
+            setUploadingFile(true);
+            await uploadBidFiles(id, files);
+            await fetchBidFiles();
+        } catch (error) {
+            console.error('Error uploading files:', error);
+            alert('Ошибка при загрузке файлов: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setUploadingFile(false);
+        }
+    };
+
+    // Группировка файлов по дате загрузки
+    const groupFilesByDate = (files) => {
+        const groups = {};
+        files.forEach(file => {
+            const date = new Date(file.createdAt);
+            const dateKey = date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+            const timeKey = date.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const groupKey = `${dateKey}_${timeKey}`;
+            
+            if (!groups[groupKey]) {
+                groups[groupKey] = {
+                    dateKey,
+                    timeKey,
+                    uploaderName: file.uploaderName,
+                    files: []
+                };
+            }
+            groups[groupKey].files.push(file);
+        });
+        return Object.values(groups).sort((a, b) => {
+            const dateA = new Date(a.dateKey + ' ' + a.timeKey);
+            const dateB = new Date(b.dateKey + ' ' + b.timeKey);
+            return dateB - dateA;
+        });
+    };
+
+    // Переключение состояния группы файлов
+    const toggleFileGroup = (groupKey) => {
+        const newExpanded = new Set(expandedFileGroups);
+        if (newExpanded.has(groupKey)) {
+            newExpanded.delete(groupKey);
+        } else {
+            newExpanded.add(groupKey);
+        }
+        setExpandedFileGroups(newExpanded);
+    };
+
+    const handleDeleteFile = (fileName) => {
+        setFileToDelete(fileName);
+        setShowDeleteFileModal(true);
+    };
+    
+    const confirmDeleteFile = async () => {
+        if (!fileToDelete) return;
+        
+        try {
+            await deleteBidFile(id, fileToDelete);
+            await fetchBidFiles();
+        } catch (error) {
+            console.error('Error deleting file:', error);
+            alert('Ошибка при удалении файла');
+        } finally {
+            setShowDeleteFileModal(false);
+            setFileToDelete(null);
+        }
+    };
+    
+    const deleteAllMissingFiles = async () => {
+        if (missingFiles.size === 0) return;
+        
+        const confirmDelete = window.confirm(`Удалить все отсутствующие файлы (${missingFiles.size} шт.)?`);
+        if (!confirmDelete) return;
+        
+        try {
+            // Delete each missing file
+            const deletePromises = Array.from(missingFiles).map(fileName => 
+                deleteBidFile(id, fileName).catch(error => {
+                    console.error(`Error deleting file ${fileName}:`, error);
+                })
+            );
+            
+            await Promise.all(deletePromises);
+            await fetchBidFiles();
+            alert(`Удалено файлов: ${missingFiles.size}`);
+        } catch (error) {
+            console.error('Error deleting missing files:', error);
+            alert('Ошибка при удалении файлов');
+        }
+    };
+
+    const handleDownloadFile = async (file) => {
+        try {
+            // Для скачивания создаём ссылку с атрибутом download
+            const link = document.createElement('a');
+            link.href = file.path;
+            link.download = file.originalName;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Ошибка при скачивании файла:', error);
+            // Fallback: открываем в новой вкладке
+            window.open(file.path, '_blank');
+        }
+    };
+
+    const openImageViewer = (file) => {
+        setCurrentImage(file);
+        setImageZoom(100);
+        setImageRotation(0);
+        setImagePan({ x: 0, y: 0 });
+        setShowImageViewer(true);
+        document.body.style.overflow = 'hidden';
+    };
+
+    const closeImageViewer = () => {
+        setShowImageViewer(false);
+        setCurrentImage(null);
+        setImagePan({ x: 0, y: 0 });
+        document.body.style.overflow = '';
+    };
+
+    // Non-passive wheel event listener for zoom
+    useEffect(() => {
+        const container = imageContainerRef.current;
+        if (!container) return;
+
+        const handleWheel = (e) => {
+            e.preventDefault();
+            
+            const delta = e.deltaY > 0 ? -10 : 10;
+            const newZoom = Math.min(Math.max(imageZoom + delta, 25), 300);
+            setImageZoom(newZoom);
+        };
+
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        
+        return () => {
+            container.removeEventListener('wheel', handleWheel);
+        };
+    }, [showImageViewer, imageZoom]);
+
+    const handleZoomIn = () => {
+        setImageZoom(prev => Math.min(prev + 25, 300));
+    };
+
+    const handleZoomOut = () => {
+        setImageZoom(prev => Math.max(prev - 25, 25));
+    };
+
+    const handleWheelZoom = (e) => {
+        e.preventDefault();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const delta = e.deltaY > 0 ? -10 : 10;
+        const newZoom = Math.min(Math.max(imageZoom + delta, 25), 300);
+        
+        // Zoom towards cursor position
+        const zoomRatio = newZoom / imageZoom;
+        setImagePan({
+            x: mouseX - (mouseX - imagePan.x) * zoomRatio,
+            y: mouseY - (mouseY - imagePan.y) * zoomRatio
+        });
+        setImageZoom(newZoom);
+    };
+
+    const handleRotate = () => {
+        setImageRotation(prev => (prev + 90) % 360);
+    };
+
+    const handleMouseDown = (e) => {
+        // Middle mouse button (button 1) for panning
+        if (e.button === 1) {
+            e.preventDefault();
+            setIsMiddleDragging(true);
+            setDragStart({ x: e.clientX - imagePan.x, y: e.clientY - imagePan.y });
+        }
+    };
+
+    const handleMouseMove = (e) => {
+        // Track mouse position for zoom-to-cursor
+        const rect = e.currentTarget.getBoundingClientRect();
+        setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        
+        if (isMiddleDragging) {
+            setImagePan({
+                x: e.clientX - dragStart.x,
+                y: e.clientY - dragStart.y
+            });
+        }
+    };
+
+    const handleMouseUp = (e) => {
+        // Middle mouse button release
+        if (e.button === 1) {
+            setIsMiddleDragging(false);
         }
     };
 
@@ -1038,11 +1330,193 @@ const BidDetail = () => {
                             </div>
                         )}
                         {activeTab === 'files' && (
-                            <div className="text-center py-8">
-                                <p className="text-gray-500">Файлы в разработке</p>
+                            <div>
+                                <div className="mb-4 flex items-center space-x-4">
+                                    <label className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition cursor-pointer flex items-center gap-2">
+                                        <Upload size={18} />
+                                        {uploadingFile ? 'Загрузка...' : 'Добавить файлы'}
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            multiple
+                                            onChange={handleUploadFile}
+                                            className="hidden"
+                                            accept="*/*"
+                                            disabled={uploadingFile}
+                                        />
+                                    </label>
+                                    {missingFiles.size > 0 && (
+                                        <button
+                                            onClick={deleteAllMissingFiles}
+                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                                        >
+                                            <Trash2 size={18} />
+                                            Удалить отсутствующие ({missingFiles.size})
+                                        </button>
+                                    )}
+                                </div>
+                                {(() => {
+                                    // Проверяем, является ли файл изображением
+                                    const isImage = (fileName) => {
+                                        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                                        const ext = fileName.split('.').pop().toLowerCase();
+                                        return imageExtensions.includes(ext);
+                                    };
+                                    
+                                    // Группируем файлы по дате и времени загрузки
+                                    const fileGroups = groupFilesByDate(bidFiles);
+                                    
+                                    return fileGroups.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {fileGroups.map((group, groupIndex) => {
+                                                const isExpanded = expandedFileGroups.has(`${group.dateKey}_${group.timeKey}`);
+                                                const allFilesMissing = group.files.every(f => missingFiles.has(f.name));
+                                                
+                                                return (
+                                                    <div key={groupIndex} className={`rounded-lg border overflow-hidden ${allFilesMissing ? 'bg-red-50 border-red-300' : 'bg-gray-50 border-gray-200'}`}>
+                                                        {/* Заголовок группы - сворачиваемый */}
+                                                        <div 
+                                                            className={`p-3 border-b cursor-pointer flex items-center justify-between ${allFilesMissing ? 'bg-red-100 border-red-300' : 'bg-gray-100 border-gray-200'}`}
+                                                            onClick={() => toggleFileGroup(`${group.dateKey}_${group.timeKey}`)}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="text-center">
+                                                                    <p className="text-sm font-medium text-gray-800">{group.dateKey}</p>
+                                                                    <p className="text-xs text-gray-600">{group.timeKey}</p>
+                                                                </div>
+                                                                <div className="border-l border-gray-300 pl-3">
+                                                                    <p className="text-sm font-medium text-gray-800">
+                                                                        {group.files.length} {group.files.length === 1 ? 'файл' : group.files.length <= 4 ? 'файла' : 'файлов'}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-600">
+                                                                        {group.uploaderName || 'Неизвестный пользователь'}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                {allFilesMissing && (
+                                                                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">
+                                                                        {group.files.length} отсутствует
+                                                                    </span>
+                                                                )}
+                                                                <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                                                                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                                    </svg>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Содержимое группы */}
+                                                        {isExpanded && (
+                                                            <div className="p-3 space-y-2">
+                                                                {group.files.map((file, index) => {
+                                                                    const isMissing = missingFiles.has(file.name);
+                                                                    
+                                                                    return (
+                                                                        <div key={index} className={`rounded border overflow-hidden ${isMissing ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                                                                            {isImage(file.originalName) ? (
+                                                                                <div>
+                                                                                    <div className={`p-2 border-b ${isMissing ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                                                                                        <p className="text-sm font-medium text-gray-700 truncate" title={file.originalName}>
+                                                                                            {file.originalName}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    {isMissing ? (
+                                                                                        <div className="w-full h-32 bg-red-100 flex items-center justify-center">
+                                                                                            <div className="text-center">
+                                                                                                <File size={32} className="text-red-400 mx-auto mb-1" />
+                                                                                                <p className="text-red-600 text-sm font-medium">{file.originalName}</p>
+                                                                                                <p className="text-red-500 text-xs">Файл не найден</p>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <img 
+                                                                                            src={file.path} 
+                                                                                            alt={file.originalName}
+                                                                                            className="w-full h-20 object-contain bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                                                                                            onClick={() => openImageViewer(file)}
+                                                                                        />
+                                                                                    )}
+                                                                                    <div className={`p-2 border-t ${isMissing ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                                                                                        <div className="flex items-center justify-between">
+                                                                                            <p className="text-xs text-gray-600">
+                                                                                                {file.size ? (file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(2) + ' МБ' : file.size > 1024 ? (file.size / 1024).toFixed(2) + ' КБ' : file.size + ' Б') : ''}
+                                                                                            </p>
+                                                                                            <div className="flex gap-2">
+                                                                                                {!isMissing && (
+                                                                                                    <button
+                                                                                                        onClick={() => handleDownloadFile(file)}
+                                                                                                        className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                                                                                                    >
+                                                                                                        <Download size={12} />
+                                                                                                        Скачать
+                                                                                                    </button>
+                                                                                                )}
+                                                                                                <button
+                                                                                                    onClick={() => handleDeleteFile(file.name)}
+                                                                                                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                                                                                                >
+                                                                                                    Удалить
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className={`p-2 ${isMissing ? 'bg-red-50' : ''}`}>
+                                                                                    <div className="flex items-center justify-between">
+                                                                                        <div className="flex items-center space-x-2">
+                                                                                            <File size={24} className={isMissing ? 'text-red-400' : 'text-blue-500'} />
+                                                                                            <div>
+                                                                                                <p className="font-medium text-gray-900 text-sm truncate" title={file.originalName}>
+                                                                                                    {file.originalName}
+                                                                                                </p>
+                                                                                                <p className="text-xs text-gray-500">
+                                                                                                    {file.size ? (file.size > 1024 * 1024 
+                                                                                                        ? `${(file.size / (1024 * 1024)).toFixed(2)} МБ`
+                                                                                                        : file.size > 1024 
+                                                                                                            ? `${(file.size / 1024).toFixed(2)} КБ`
+                                                                                                            : `${file.size} Б`) : 'Размер неизвестен'}
+                                                                                                </p>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <div className="flex gap-2">
+                                                                                            {!isMissing && (
+                                                                                                <button
+                                                                                                    onClick={() => handleDownloadFile(file)}
+                                                                                                    className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                                                                                                >
+                                                                                                    <Download size={12} />
+                                                                                                    Скачать
+                                                                                                </button>
+                                                                                            )}
+                                                                                            <button
+                                                                                                onClick={() => handleDeleteFile(file.name)}
+                                                                                                className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                                                                                            >
+                                                                                                Удалить
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500 text-center py-8">Файлов пока нет</p>
+                                    );
+                                })()}
                             </div>
                         )}
-                        {activeTab === 'nested' && (
+                         {activeTab === 'nested' && (
                             <div>
                                 {childBids.length > 0 ? (
                                     <div className="overflow-x-auto">
@@ -1408,6 +1882,83 @@ const BidDetail = () => {
                     editingEquipment={editingEquipment}
                     equipment={equipment}
                 />
+            )}
+
+            {/* Delete File Confirmation Modal */}
+            <DeleteFileModal
+                isOpen={showDeleteFileModal}
+                onClose={() => {
+                    setShowDeleteFileModal(false);
+                    setFileToDelete(null);
+                }}
+                onConfirm={confirmDeleteFile}
+                fileName={bidFiles.find(f => f.name === fileToDelete)?.originalName || fileToDelete}
+            />
+
+            {/* Image Viewer Modal */}
+            {showImageViewer && currentImage && (
+                <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 overflow-hidden">
+                    {/* Header with controls */}
+                    <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-white z-10">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{currentImage.originalName}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleZoomOut}
+                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                                title="Уменьшить"
+                            >
+                                <ZoomOut size={20} />
+                            </button>
+                            <span className="text-sm w-12 text-center">{imageZoom}%</span>
+                            <button
+                                onClick={handleZoomIn}
+                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                                title="Увеличить"
+                            >
+                                <ZoomIn size={20} />
+                            </button>
+                            <button
+                                onClick={handleRotate}
+                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors ml-2"
+                                title="Повернуть"
+                            >
+                                <RotateCw size={20} />
+                            </button>
+                            <button
+                                onClick={closeImageViewer}
+                                className="p-2 bg-red-600 hover:bg-red-500 rounded-lg transition-colors ml-4"
+                                title="Закрыть"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Image container */}
+                    <div 
+                        ref={imageContainerRef}
+                        className="w-full h-full flex items-center justify-center p-4"
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                        style={{ cursor: isMiddleDragging ? 'move' : 'default' }}
+                    >
+                        <img
+                            src={currentImage.path}
+                            alt={currentImage.originalName}
+                            style={{
+                                transform: `rotate(${imageRotation}deg) scale(${imageZoom / 100}) translate(${imagePan.x}px, ${imagePan.y}px)`,
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                objectFit: 'contain',
+                                transition: isMiddleDragging ? 'none' : 'transform 0.3s ease'
+                            }}
+                        />
+                    </div>
+                </div>
             )}
 
             {/* View Specification Modal */}
@@ -1999,6 +2550,47 @@ const EquipmentModal = ({
                         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
                     >
                         {editingEquipment ? 'Сохранить' : 'Добавить'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Компонент модального окна подтверждения удаления файла
+const DeleteFileModal = ({ isOpen, onClose, onConfirm, fileName }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-red-100 p-3 rounded-full">
+                        <Trash2 size={24} className="text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        Подтверждение удаления
+                    </h3>
+                </div>
+                
+                <p className="text-gray-600 mb-6">
+                    Вы уверены, что хотите удалить файл <span className="font-medium text-gray-900">{fileName}</span>?
+                    <br />
+                    <span className="text-sm text-gray-500">Это действие нельзя отменить.</span>
+                </p>
+
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                    >
+                        Отмена
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
+                    >
+                        Удалить
                     </button>
                 </div>
             </div>

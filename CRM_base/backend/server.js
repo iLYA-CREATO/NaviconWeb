@@ -77,6 +77,10 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Navicon API работает с Prisma + PostgreSQL' });
 });
 
+// === Статические файлы ===
+// Обслуживание загруженных файлов
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Функция для создания автоматического бэкапа
 function createScheduledBackup() {
     const dbConfig = parseDatabaseUrl(process.env.DATABASE_URL);
