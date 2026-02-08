@@ -59,7 +59,7 @@ const Bids = () => {
     // Состояние для показа модального окна выбора фильтров
     const [showFilterModal, setShowFilterModal] = useState(false);
     // Определение всех возможных колонок
-    const allColumns = ['id', 'clientName', 'clientObject', 'tema', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationHours', 'spentTimeHours', 'remainingTime'];
+    const allColumns = ['id', 'clientName', 'clientObject', 'tema', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationMinutes', 'spentTimeHours', 'remainingTime'];
     // Загрузка начальных состояний из localStorage
     const savedColumns = localStorage.getItem('bidsVisibleColumns');
     const defaultVisibleColumns = {
@@ -73,7 +73,7 @@ const Bids = () => {
         plannedResolutionDate: false,
         plannedReactionTimeMinutes: false,
         assignedAt: false,
-        plannedDurationHours: false,
+        plannedDurationMinutes: false,
         spentTimeHours: false,
         remainingTime: false,
     };
@@ -121,8 +121,11 @@ const Bids = () => {
         plannedResolutionDate: getDefaultPlannedResolutionDate(), // Planned resolution date (+5 days)
         plannedReactionTimeMinutes: '', // Planned reaction time in minutes
         assignedAt: '',      // Assigned date/time
-        plannedDurationHours: '', // Planned duration in hours
+        plannedDurationMinutes: '', // Planned duration in minutes
     });
+    
+    // Состояние для отслеживания режима ручного редактирования SLA
+    const [manualEdit, setManualEdit] = useState(false);
 
     // useEffect для загрузки начальных данных при монтировании компонента
     useEffect(() => {
@@ -191,6 +194,20 @@ const Bids = () => {
         // Reset selected client object when client changes to avoid invalid selections
         setFormData(prev => ({ ...prev, clientObjectId: '' }));
     }, [formData.clientId]); // Runs when clientId changes
+
+    // useEffect to auto-fill SLA fields when bidTypeId changes
+    useEffect(() => {
+        if (formData.bidTypeId) {
+            const selectedBidType = bidTypes.find(bt => bt.id.toString() === formData.bidTypeId);
+            if (selectedBidType) {
+                setFormData(prev => ({
+                    ...prev,
+                    plannedReactionTimeMinutes: selectedBidType.plannedReactionTimeMinutes?.toString() || '',
+                    plannedDurationMinutes: selectedBidType.plannedDurationMinutes?.toString() || '',
+                }));
+            }
+        }
+    }, [formData.bidTypeId, bidTypes]);
 
     // Функция для загрузки списка заявок с сервера
     const fetchBids = async () => {
@@ -316,7 +333,7 @@ const Bids = () => {
             case 'plannedResolutionDate': return 'Плановая дата решения';
             case 'plannedReactionTimeMinutes': return 'Плановое время реакции (мин)';
             case 'assignedAt': return 'Назначена на';
-            case 'plannedDurationHours': return 'Плановая продолжительность (ч)';
+            case 'plannedDurationMinutes': return 'Плановая продолжительность (мин)';
             case 'spentTimeHours': return 'Затраченное время (ч)';
             case 'remainingTime': return 'Остаток времени';
             default: return column;
@@ -368,7 +385,7 @@ const Bids = () => {
             case 'plannedResolutionDate': return bid.plannedResolutionDate ? new Date(bid.plannedResolutionDate).toLocaleString() : '';
             case 'plannedReactionTimeMinutes': return bid.plannedReactionTimeMinutes || '';
             case 'assignedAt': return bid.assignedAt ? new Date(bid.assignedAt).toLocaleString() : '';
-            case 'plannedDurationHours': return bid.plannedDurationHours || '';
+            case 'plannedDurationMinutes': return bid.plannedDurationMinutes || '';
             case 'spentTimeHours': return bid.spentTimeHours || '';
             case 'remainingTime': {
                 if (bid.plannedResolutionDate) {
@@ -429,7 +446,12 @@ const Bids = () => {
             contactFullName: '',
             contactPhone: '',
             parentId: '',
+            plannedResolutionDate: getDefaultPlannedResolutionDate(),
+            plannedReactionTimeMinutes: '',
+            assignedAt: '',
+            plannedDurationMinutes: '',
         });
+        setManualEdit(false); // Сброс режима ручного редактирования
         setClientObjects([]); // Очистка списка объектов
         setShowForm(false); // Скрытие формы
     };
@@ -566,16 +588,7 @@ const Bids = () => {
                                             </button>
                                         </div>
                                     </div>
-                                    {/* Плановая дата решения */}
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">План. дата решения</label>
-                                        <input
-                                            type="datetime-local"
-                                            value={formData.plannedResolutionDate}
-                                            onChange={(e) => setFormData({ ...formData, plannedResolutionDate: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
+
                                     {/* Описание и дополнительные поля в одной строке */}
                                     <div className="col-span-full grid grid-cols-2 gap-4">
                                         {/* Описание - узкое поле */}
@@ -612,38 +625,57 @@ const Bids = () => {
                                                     placeholder="Телефон"
                                                 />
                                             </div>
+                                            {/* Заголовок раздела SLA */}
+                                            <div className="col-span-2 mt-2">
+                                                <h4 className="text-sm font-semibold text-gray-700 border-b border-gray-300 pb-1">SLA</h4>
+                                            </div>
                                             {/* Плановое время реакции */}
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Время реакции (мин)</label>
-                                                <input
-                                                    type="number"
-                                                    value={formData.plannedReactionTimeMinutes}
-                                                    onChange={(e) => setFormData({ ...formData, plannedReactionTimeMinutes: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    min="0"
-                                                />
-                                            </div>
-                                            {/* Дата назначения */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Дата назначения</label>
-                                                <input
-                                                    type="datetime-local"
-                                                    value={formData.assignedAt}
-                                                    onChange={(e) => setFormData({ ...formData, assignedAt: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                />
+                                                <div className="relative">
+                                                    <input
+                                                        type="number"
+                                                        value={formData.plannedReactionTimeMinutes}
+                                                        onChange={(e) => setFormData({ ...formData, plannedReactionTimeMinutes: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        min="0"
+                                                        readOnly={!manualEdit}
+                                                        disabled={!manualEdit}
+                                                    />
+                                                    {!manualEdit && formData.plannedReactionTimeMinutes && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setManualEdit(true)}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-500 hover:text-blue-700"
+                                                        >
+                                                            Изменить
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                             {/* Плановая продолжительность */}
-                                            <div className="col-span-2">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">План. длительность (ч)</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.5"
-                                                    value={formData.plannedDurationHours}
-                                                    onChange={(e) => setFormData({ ...formData, plannedDurationHours: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    min="0"
-                                                />
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">План. длительность (мин)</label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="number"
+                                                        value={formData.plannedDurationMinutes}
+                                                        onChange={(e) => setFormData({ ...formData, plannedDurationMinutes: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        min="0"
+                                                        readOnly={!manualEdit}
+                                                        disabled={!manualEdit}
+                                                    />
+                                                    {!manualEdit && formData.plannedDurationMinutes && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setManualEdit(true)}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-500 hover:text-blue-700"
+                                                        >
+                                                            Изменить
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -962,3 +994,7 @@ const Bids = () => {
 };
 
 export default Bids;
+
+
+
+

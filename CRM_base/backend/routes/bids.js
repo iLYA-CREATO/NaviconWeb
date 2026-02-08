@@ -96,11 +96,11 @@ router.get('/', authMiddleware, async (req, res) => {
                     bidTypeResponsibleName = 'Ошибка получения данных';
                 }
             }
-            // Если нет пользователя, проверяем роль
+            // Если нет пользователя, проверяем роль (responsibleRoleId содержит название роли, не ID)
             else if (currentStatus?.responsibleRoleId) {
                 try {
                     const role = await prisma.role.findUnique({
-                        where: { id: parseInt(currentStatus.responsibleRoleId) },
+                        where: { name: currentStatus.responsibleRoleId },
                         select: { name: true },
                     });
                     bidTypeResponsibleName = role ? `Роль: ${role.name}` : 'Не указан';
@@ -129,7 +129,7 @@ router.get('/', authMiddleware, async (req, res) => {
                 plannedResolutionDate: bid.plannedResolutionDate,
                 plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes,
                 assignedAt: bid.assignedAt,
-                plannedDurationHours: bid.plannedDurationHours,
+                plannedDurationMinutes: bid.plannedDurationMinutes,
                 spentTimeHours: bid.spentTimeHours ? parseFloat(bid.spentTimeHours) : null,
                 parentId: bid.parentId,
                 bidType: bid.bidType,
@@ -266,11 +266,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
                 bidTypeResponsibleName = 'Ошибка получения данных';
             }
         }
-        // Если нет пользователя, проверяем роль
+        // Если нет пользователя, проверяем роль (responsibleRoleId содержит название роли, не ID)
         else if (currentStatus?.responsibleRoleId) {
             try {
                 const role = await prisma.role.findUnique({
-                    where: { id: parseInt(currentStatus.responsibleRoleId) },
+                    where: { name: currentStatus.responsibleRoleId },
                     select: { name: true },
                 });
                 bidTypeResponsibleName = role ? `Роль: ${role.name}` : 'Не указан';
@@ -401,7 +401,7 @@ router.post('/', authMiddleware, async (req, res) => {
         }
 
         // Извлекаем данные из тела запроса
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, parentId, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, parentId, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours } = req.body;
 
         // Логируем данные, отправленные в заявку
         const bidInputData = {
@@ -422,8 +422,7 @@ router.post('/', authMiddleware, async (req, res) => {
             createdBy: req.user.id,
             plannedResolutionDate,
             plannedReactionTimeMinutes,
-            assignedAt,
-            plannedDurationHours,
+            assignedAt, plannedDurationMinutes,
             spentTimeHours
         };
         console.log('Создание новой заявки. Данные, отправленные в заявку:', bidInputData);
@@ -455,6 +454,25 @@ router.post('/', authMiddleware, async (req, res) => {
             }
         }
 
+        // Проверяем существование типа заявки и получаем SLA параметры
+        let bidType = null;
+        let slaReactionTimeMinutes = plannedReactionTimeMinutes;
+        let slaDurationMinutes = plannedDurationMinutes;
+        
+        if (bidTypeId && bidTypeId.trim()) {
+            bidType = await prisma.bidType.findUnique({
+                where: { id: parseInt(bidTypeId) },
+            });
+            
+            // Если SLA параметры не переданы, берем из типа заявки
+            if (!plannedReactionTimeMinutes || !plannedReactionTimeMinutes.trim()) {
+                slaReactionTimeMinutes = bidType?.plannedReactionTimeMinutes ? bidType.plannedReactionTimeMinutes.toString() : null;
+            }
+            if (!plannedDurationMinutes || !plannedDurationMinutes.trim()) {
+                slaDurationMinutes = bidType?.plannedDurationMinutes ? bidType.plannedDurationMinutes.toString() : null;
+            }
+        }
+
         // Создаем новую заявку в базе данных
         const newBid = await prisma.bid.create({
             data: {
@@ -474,9 +492,9 @@ router.post('/', authMiddleware, async (req, res) => {
                 contactFullName,
                 contactPhone,
                 plannedResolutionDate: plannedResolutionDate && plannedResolutionDate.trim() ? new Date(plannedResolutionDate.length === 16 ? plannedResolutionDate + ':00' : plannedResolutionDate) : null,
-                plannedReactionTimeMinutes: plannedReactionTimeMinutes && plannedReactionTimeMinutes.trim() ? parseInt(plannedReactionTimeMinutes) : null,
+                plannedReactionTimeMinutes: slaReactionTimeMinutes && slaReactionTimeMinutes.trim() ? parseInt(slaReactionTimeMinutes) : null,
                 assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt.length === 16 ? assignedAt + ':00' : assignedAt) : null,
-                plannedDurationHours: plannedDurationHours && plannedDurationHours.trim() ? parseInt(plannedDurationHours) : null,
+                plannedDurationMinutes: slaDurationMinutes && slaDurationMinutes.trim() ? parseInt(slaDurationMinutes) : null,
                 spentTimeHours: spentTimeHours && spentTimeHours.trim() ? parseFloat(spentTimeHours) : null,
             },
             include: { // Включаем связанные данные в ответ
@@ -507,10 +525,10 @@ router.post('/', authMiddleware, async (req, res) => {
 // Обновить заявку
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours, currentResponsibleUserId } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours, currentResponsibleUserId } = req.body;
 
         // Логируем данные обновления заявки
-        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationHours, spentTimeHours, currentResponsibleUserId };
+        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours, currentResponsibleUserId };
         console.log('Обновление заявки ID:', req.params.id, 'Данные:', updateData);
         logBidData('Обновление заявки ID: ' + req.params.id, updateData);
 
@@ -578,7 +596,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 ...(plannedResolutionDate !== undefined && { plannedResolutionDate: plannedResolutionDate && plannedResolutionDate.trim() ? new Date(plannedResolutionDate.length === 16 ? plannedResolutionDate + ':00' : plannedResolutionDate) : null }),
                 ...(plannedReactionTimeMinutes !== undefined && { plannedReactionTimeMinutes: plannedReactionTimeMinutes && plannedReactionTimeMinutes.trim() ? parseInt(plannedReactionTimeMinutes) : null }),
                 ...(assignedAt !== undefined && { assignedAt: assignedAt && assignedAt.trim() ? new Date(assignedAt.length === 16 ? assignedAt + ':00' : assignedAt) : null }),
-                ...(plannedDurationHours !== undefined && { plannedDurationHours: plannedDurationHours && plannedDurationHours.trim() ? parseInt(plannedDurationHours) : null }),
+                ...(plannedDurationMinutes !== undefined && { plannedDurationMinutes: plannedDurationMinutes && plannedDurationMinutes.trim() ? parseInt(plannedDurationMinutes) : null }),
                 ...(spentTimeHours !== undefined && { spentTimeHours: spentTimeHours && spentTimeHours.trim() ? parseFloat(spentTimeHours) : null }),
                 ...(currentResponsibleUserId !== undefined && { currentResponsibleUserId: currentResponsibleUserId ? parseInt(currentResponsibleUserId) : null }),
             },

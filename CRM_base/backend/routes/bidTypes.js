@@ -28,13 +28,15 @@ router.get('/', auth, async (req, res) => {
 // Создание нового типа заявки
 router.post('/', auth, async (req, res) => {
     try {
-        const { name, description, statuses, transitions } = req.body;
+        const { name, description, statuses, transitions, plannedReactionTimeMinutes, plannedDurationMinutes } = req.body;
         const bidType = await prisma.bidType.create({
             data: {
                 name,
                 description,
                 statuses: statuses || [],
-                transitions: transitions || []
+                transitions: transitions || [],
+                plannedReactionTimeMinutes: plannedReactionTimeMinutes ? parseInt(plannedReactionTimeMinutes) : null,
+                plannedDurationMinutes: plannedDurationMinutes ? parseFloat(plannedDurationMinutes) : null
             }
         });
 
@@ -53,14 +55,16 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, statuses, transitions } = req.body;
+        const { name, description, statuses, transitions, plannedReactionTimeMinutes, plannedDurationMinutes } = req.body;
         const bidType = await prisma.bidType.update({
             where: { id: parseInt(id) },
             data: {
                 name,
                 description,
                 statuses: statuses || [],
-                transitions: transitions || []
+                transitions: transitions || [],
+                plannedReactionTimeMinutes: plannedReactionTimeMinutes ? parseInt(plannedReactionTimeMinutes) : null,
+                plannedDurationMinutes: plannedDurationMinutes ? parseFloat(plannedDurationMinutes) : null
             }
         });
         res.json(bidType);

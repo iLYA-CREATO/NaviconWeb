@@ -126,6 +126,8 @@ const Settings = () => {
         description: '',
         statuses: [],
         transitions: [],
+        plannedReactionTimeMinutes: '',
+        plannedDurationMinutes: '',
     });
     const [showBidStatusFormInEdit, setShowBidStatusFormInEdit] = useState(false);
     const [editingBidStatusInEdit, setEditingBidStatusInEdit] = useState(null);
@@ -670,7 +672,7 @@ const Settings = () => {
                 await createBidType(bidTypeFormData);
                 setNotification({ type: 'success', message: 'Тип заявки создан успешно' });
             }
-            setBidTypeFormData({ name: '', description: '', statuses: [], transitions: [] });
+            setBidTypeFormData({ name: '', description: '', statuses: [], transitions: [], plannedReactionTimeMinutes: '', plannedDurationMinutes: '' });
             setEditingBidType(null);
             setShowBidTypeForm(false);
             setShowBidStatusFormInEdit(false);
@@ -694,6 +696,8 @@ const Settings = () => {
                 color: status.color || (status.position === 1 ? '#c75a5a' : status.position === 999 ? '#7a7777' : '#ffffff')
             })),
             transitions: bidType.transitions || [],
+            plannedReactionTimeMinutes: bidType.plannedReactionTimeMinutes ? bidType.plannedReactionTimeMinutes.toString() : '',
+            plannedDurationMinutes: bidType.plannedDurationMinutes ? bidType.plannedDurationMinutes.toString() : '',
         });
         setShowBidTypeForm(true);
         setShowBidStatusFormInEdit(false);
@@ -2343,6 +2347,38 @@ const Settings = () => {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         rows="3"
                                     />
+                                </div>
+                                
+                                {/* SLA настройки */}
+                                <div className="border-t pt-4 mt-4">
+                                    <h4 className="text-md font-semibold mb-3">Параметры SLA</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Плановое время реакции (минуты)</label>
+                                            <input
+                                                type="number"
+                                                value={bidTypeFormData.plannedReactionTimeMinutes}
+                                                onChange={(e) => setBidTypeFormData({ ...bidTypeFormData, plannedReactionTimeMinutes: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Например: 60"
+                                                min="0"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">Время на первичную реакцию по заявке</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Плановая продолжительность (минуты)</label>
+                                            <input
+                                                type="number"
+                                                value={bidTypeFormData.plannedDurationMinutes}
+                                                onChange={(e) => setBidTypeFormData({ ...bidTypeFormData, plannedDurationMinutes: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Например: 8"
+                                                min="0"
+                                                step="0.5"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">Плановое время выполнения заявки (в минутах)</p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="mt-6">

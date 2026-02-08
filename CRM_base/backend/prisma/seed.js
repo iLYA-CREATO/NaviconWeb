@@ -198,20 +198,56 @@ async function main() {
             description: 'Монтажник',
         },
     });
+    console.log('✅ Created role:', installerRole);
 
-    // Создание типа заявки по умолчанию
-    const defaultBidType = await prisma.bidType.upsert({
-        where: { name: 'Стандартная заявка' },
+    // Склад роль
+    const warehouseRole = await prisma.role.upsert({
+        where: { name: 'Склад' },
         update: {},
         create: {
-            name: 'Стандартная заявка',
-            description: 'Стандартный тип заявки',
+            name: 'Склад',
+            description: 'Склад',
+        },
+    });
+    console.log('✅ Created role:', warehouseRole);
+
+    // Создание типа заявки "Выдача оборудования без преднастройки и монтажа"
+    const defaultBidType = await prisma.bidType.upsert({
+        where: { name: 'Стандартная заявка' },
+        update: {
+            name: 'Выдача оборудования без преднастройки и монтажа',
+            description: 'Выдача оборудования без преднастройки и монтажа',
+            plannedReactionTimeMinutes: 60,
+            plannedDurationMinutes: 1440,
             statuses: [
-                { name: 'Открыта', position: 1, allowedActions: ["edit", "assign_executor"] },
-                { name: 'Закрыта', position: 999, allowedActions: [] }
+                { name: 'Открыта', position: 1, allowedActions: ["edit"], color: null, responsibleRoleId: 'Склад' },
+                { name: 'Собрать', position: 2, allowedActions: ["edit", "close"], color: '#3b82f6', responsibleUserId: null },
+                { name: 'Отложить', position: 3, allowedActions: [], color: '#eab308', responsibleUserId: null },
+                { name: 'Закрыта', position: 999, allowedActions: [], color: null }
             ],
             transitions: [
-                { fromPosition: 1, toPosition: 999 }
+                { fromPosition: 1, toPosition: 2 },
+                { fromPosition: 1, toPosition: 3 },
+                { fromPosition: 2, toPosition: 3 },
+                { fromPosition: 2, toPosition: 999 }
+            ]
+        },
+        create: {
+            name: 'Выдача оборудования без преднастройки и монтажа',
+            description: 'Выдача оборудования без преднастройки и монтажа',
+            plannedReactionTimeMinutes: 60,
+            plannedDurationMinutes: 1440,
+            statuses: [
+                { name: 'Открыта', position: 1, allowedActions: ["edit"], color: null, responsibleRoleId: 'Склад' },
+                { name: 'Собрать', position: 2, allowedActions: ["edit", "close"], color: '#3b82f6', responsibleUserId: null },
+                { name: 'Отложить', position: 3, allowedActions: [], color: '#eab308', responsibleUserId: null },
+                { name: 'Закрыта', position: 999, allowedActions: [], color: null }
+            ],
+            transitions: [
+                { fromPosition: 1, toPosition: 2 },
+                { fromPosition: 1, toPosition: 3 },
+                { fromPosition: 2, toPosition: 3 },
+                { fromPosition: 2, toPosition: 999 }
             ]
         },
     });

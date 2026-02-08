@@ -72,6 +72,7 @@ const BidDetail = () => {
     const [bidTypes, setBidTypes] = useState([]);
     const [roles, setRoles] = useState([]);
     const [showMapModalForChild, setShowMapModalForChild] = useState(false);
+    const [remainingTime, setRemainingTime] = useState(null);
     const [childBidFormData, setChildBidFormData] = useState({
         clientId: '',
         title: '',
@@ -85,7 +86,7 @@ const BidDetail = () => {
         plannedResolutionDate: '',
         plannedReactionTimeMinutes: '',
         assignedAt: '',
-        plannedDurationHours: '',
+        plannedDurationMinutes: '',
         amount: 0,
     });
 
@@ -116,6 +117,20 @@ const BidDetail = () => {
         fetchClientObjects(childBidFormData.clientId);
         setChildBidFormData(prev => ({ ...prev, clientObjectId: '' }));
     }, [childBidFormData.clientId]);
+    
+    // Обновление оставшегося времени каждую минуту
+    useEffect(() => {
+        const updateRemainingTime = () => {
+            if (bid?.statusMetadata?.deadlines?.deadline) {
+                setRemainingTime(formatRemainingTime(bid.statusMetadata.deadlines.deadline));
+            }
+        };
+        
+        updateRemainingTime();
+        const interval = setInterval(updateRemainingTime, 60000); // Обновлять каждую минуту
+        
+        return () => clearInterval(interval);
+    }, [bid]);
     useEffect(() => {
         if (bid) {
             setUpdNumber(bid.updNumber || '');
@@ -527,7 +542,7 @@ const BidDetail = () => {
                 await createBidEquipment({ ...equipmentData, bidId: id });
 
                 // Создаем уведомление о добавлении оборудования
-                const equip = equipmentList.find(e => e.id.toString() === equipmentData.equipmentId);
+                const equip = clientEquipmentResponse.data.find(e => e.equipment && e.equipment.id.toString() === equipmentData.equipmentId);
                 await createNotification({
                     userId: bid.createdBy,
                     title: 'Добавлено оборудование',
@@ -582,7 +597,7 @@ const BidDetail = () => {
                 plannedResolutionDate: childBidFormData.plannedResolutionDate,
                 plannedReactionTimeMinutes: childBidFormData.plannedReactionTimeMinutes,
                 assignedAt: childBidFormData.assignedAt,
-                plannedDurationHours: childBidFormData.plannedDurationHours,
+                plannedDurationMinutes: childBidFormData.plannedDurationMinutes,
                 status: 'Открыта',
             };
 
@@ -602,7 +617,7 @@ const BidDetail = () => {
                 plannedResolutionDate: getDefaultPlannedResolutionDate(),
                 plannedReactionTimeMinutes: '',
                 assignedAt: '',
-                plannedDurationHours: '',
+                plannedDurationMinutes: '',
                 amount: 0,
             });
             if (!isCloneMode) {
@@ -612,6 +627,43 @@ const BidDetail = () => {
             console.error('Error creating bid:', error);
             alert('Ошибка при создании дочерней заявки.');
         }
+    };
+
+    // Функция для форматирования оставшегося времени
+    const formatRemainingTime = (deadline) => {
+        if (!deadline) return null;
+        
+        const now = new Date();
+        const deadlineDate = new Date(deadline);
+        const diff = deadlineDate - now;
+        
+        if (diff <= 0) {
+            return { text: 'Превышено', color: 'text-red-600', bgColor: 'bg-red-100' };
+        }
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        
+        if (days > 0) {
+            return { 
+                text: `${days}д ${hours}ч ${minutes}м`, 
+                color: days > 2 ? 'text-green-600' : 'text-yellow-600',
+                bgColor: days > 2 ? 'bg-green-100' : 'bg-yellow-100'
+            };
+        }
+        if (hours > 0) {
+            return { 
+                text: `${hours}ч ${minutes}м`, 
+                color: hours > 5 ? 'text-green-600' : 'text-orange-600',
+                bgColor: hours > 5 ? 'bg-green-100' : 'bg-orange-100'
+            };
+        }
+        return { 
+            text: `${minutes}м`, 
+            color: 'text-red-600',
+            bgColor: 'bg-red-100'
+        };
     };
 
     if (loading) {
@@ -1203,44 +1255,43 @@ const BidDetail = () => {
                 </div>
 
                 <div className='p-2'>
-                    <label className="block text-xs text-gray-500 mb-1">Дата и время создания</label>
-                    <p className="text-gray-900">{formattedCreatedAt}</p>
-                </div>
-                <div className='p-2'>
                     <label className="block text-xs text-gray-500 mb-1">Тип заявки</label>
                     <p className="text-gray-900">{bid.bidType ? bid.bidType.name : 'Не указан'}</p>
+                </div>
+                <div className='p-2'>
+                    <label className="block text-xs text-gray-500 mb-1">Дата и время создания</label>
+                    <p className="text-gray-900">{formattedCreatedAt}</p>
                 </div>
                 <div className='p-2'>
                     <label className="block text-xs text-gray-500 mb-1">Ответственный</label>
                     <p className="text-gray-900">{getResponsibleDisplayName()}</p>
                 </div>
+                
+                {/* SLA Section */}
+                <div className='border-t border-gray-200 my-2'></div>
+                
+                {/* Оставшееся время */}
+                {remainingTime && bid.status !== 'Закрыта' && (
+                    <div className='p-2'>
+                        <label className="block text-xs text-gray-500 mb-1">Осталось времени</label>
+                        <div className={`px-3 py-2 rounded-lg text-sm font-medium ${remainingTime.bgColor} ${remainingTime.color}`}>
+                            ⏱️ {remainingTime.text}
+                        </div>
+                    </div>
+                )}
+                
                 <div className='p-2'>
                     <label className="block text-xs text-gray-500 mb-1">Плановое время реакции (SLA)</label>
-                    <p className="text-gray-900">{bid.plannedReactionTimeMinutes ? `${bid.plannedReactionTimeMinutes} мин.` : 'Не указано'}</p>
+                    <p className="text-gray-900">
+                        {bid.plannedReactionTimeMinutes ? `${bid.plannedReactionTimeMinutes} мин.` : (bid.bidType?.plannedReactionTimeMinutes ? `${bid.bidType.plannedReactionTimeMinutes} мин.` : 'Не указано')}
+                    </p>
                 </div>
+
                 <div className='p-2'>
-                    <label className="block text-xs text-gray-500 mb-1">Плановая дата решения</label>
-                    <p className="text-gray-900">{bid.plannedResolutionDate ? new Date(bid.plannedResolutionDate).toLocaleString('ru-RU', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) : 'Не указано'}</p>
-                </div>
-                <div className='p-2'>
-                    <label className="block text-xs text-gray-500 mb-1">Плановая продолжительность</label>
-                    <p className="text-gray-900">{bid.plannedDurationHours ? `${bid.plannedDurationHours} ч.` : 'Не указано'}</p>
-                </div>
-                <div className='p-2'>
-                    <label className="block text-xs text-gray-500 mb-1">Назначен</label>
-                    <p className="text-gray-900">{bid.assignedAt ? new Date(bid.assignedAt).toLocaleString('ru-RU', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) : 'Не назначен'}</p>
+                    <label className="block text-xs text-gray-500 mb-1">Плановая продолжительность (минуты)</label>
+                    <p className="text-gray-900">
+                        {bid.plannedDurationMinutes ? `${bid.plannedDurationMinutes} мин.` : (bid.bidType?.plannedDurationMinutes ? `${bid.bidType.plannedDurationMinutes} мин.` : 'Не указано')}
+                    </p>
                 </div>
                 <div className='p-2'>
                     <button
@@ -1269,7 +1320,7 @@ const BidDetail = () => {
                                         plannedResolutionDate: getDefaultPlannedResolutionDate(),
                                         plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes ? bid.plannedReactionTimeMinutes.toString() : '',
                                         assignedAt: bid.assignedAt ? new Date(bid.assignedAt).toISOString().slice(0, 16) : '',
-                                        plannedDurationHours: bid.plannedDurationHours ? bid.plannedDurationHours.toString() : '',
+                                        plannedDurationMinutes: bid.plannedDurationMinutes ? bid.plannedDurationMinutes.toString() : '',
                                         amount: bid.amount || 0,
                                     });
                                     // Load client objects for the selected client
@@ -1301,7 +1352,7 @@ const BidDetail = () => {
                                         plannedResolutionDate: getDefaultPlannedResolutionDate(),
                                         plannedReactionTimeMinutes: bid.plannedReactionTimeMinutes ? bid.plannedReactionTimeMinutes.toString() : '',
                                         assignedAt: bid.assignedAt ? new Date(bid.assignedAt).toISOString().slice(0, 16) : '',
-                                        plannedDurationHours: bid.plannedDurationHours ? bid.plannedDurationHours.toString() : '',
+                                        plannedDurationMinutes: bid.plannedDurationMinutes ? bid.plannedDurationMinutes.toString() : '',
                                         amount: bid.amount || 0,
                                     });
                                     // Load client objects for the selected client
@@ -1596,15 +1647,7 @@ const BidDetail = () => {
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Плановая дата решения</label>
-                                <input
-                                    type="datetime-local"
-                                    value={childBidFormData.plannedResolutionDate}
-                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, plannedResolutionDate: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
+
                             <div className="flex justify-end space-x-2 mt-6">
                                 <button
                                     type="button"
@@ -1964,3 +2007,4 @@ const EquipmentModal = ({
 };
 
 export default BidDetail;
+
