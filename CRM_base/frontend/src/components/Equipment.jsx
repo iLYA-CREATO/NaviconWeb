@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getExpenseHistory } from '../services/api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getExpenseHistory, getReturnHistory } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 const Equipment = () => {
@@ -64,6 +64,7 @@ const Equipment = () => {
     const [expenseHistoryVisibleColumns, setExpenseHistoryVisibleColumns] = useState(initialExpenseHistoryVisibleColumns);
     const [showExpenseHistoryColumnSettings, setShowExpenseHistoryColumnSettings] = useState(false);
     const [returnHistoryLoading, setReturnHistoryLoading] = useState(false);
+    const [returnHistory, setReturnHistory] = useState([]);
 
     useEffect(() => {
         fetchEquipment();
@@ -81,6 +82,25 @@ const Equipment = () => {
         const handleVisibilityChange = () => {
             if (activeTab === 'expense-history' && !document.hidden) {
                 fetchExpenseHistory();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [activeTab]);
+
+    // Fetch return history when the tab is active
+    useEffect(() => {
+        if (activeTab === 'return-history') {
+            fetchReturnHistory();
+        }
+    }, [activeTab]);
+
+    // Refresh return history when the page becomes visible
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (activeTab === 'return-history' && !document.hidden) {
+                fetchReturnHistory();
             }
         };
 
@@ -137,6 +157,18 @@ const Equipment = () => {
             setExpenseHistory(response.data);
         } catch (error) {
             console.error('Error fetching expense history:', error);
+        }
+    };
+
+    const fetchReturnHistory = async () => {
+        try {
+            setReturnHistoryLoading(true);
+            const response = await getReturnHistory();
+            setReturnHistory(response.data);
+        } catch (error) {
+            console.error('Error fetching return history:', error);
+        } finally {
+            setReturnHistoryLoading(false);
         }
     };
 
@@ -682,17 +714,82 @@ const Equipment = () => {
                             <div className="p-6 pb-0 flex justify-between items-center">
                                 <h3 className="text-xl font-bold">История возврата</h3>
                                 <button
-                                    onClick={() => setReturnHistoryLoading(false)}
+                                    onClick={fetchReturnHistory}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                 >
                                     Обновить
                                 </button>
                             </div>
                             <div className="overflow-x-auto p-6">
-                                <div className="text-gray-500 text-center py-8">
-                                    <p className="text-lg">Функционал возврата оборудования в разработке.</p>
-                                    <p className="mt-2">Здесь будет отображаться история возврата оборудования с заявок.</p>
-                                </div>
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Номер заявки</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тема заявки</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Клиент</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Объект</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Оборудование</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IMEI</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Кол-во</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Причина возврата</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Кто вернул</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Кто составил заявку</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата возврата</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {returnHistory.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={11} className="px-6 py-8 text-center text-gray-500">
+                                                    Нет записей о возврате оборудования
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            returnHistory.map((item) => (
+                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                        <button
+                                                            onClick={() => navigate(`/dashboard/bids/${item.bidId}`)}
+                                                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer"
+                                                        >
+                                                            №{item.bidId}
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.bidTema}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.client}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.clientObject}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.equipmentName}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.imei}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.quantity}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.returnReason}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.returnedBy}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {item.createdBy}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {new Date(item.createdAt).toLocaleString('ru-RU')}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     )}

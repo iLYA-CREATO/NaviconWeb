@@ -14,7 +14,6 @@ const Objects = () => {
         clientId: '',
         brandModel: '',
         stateNumber: '',
-        equipment: '',
     });
 
     useEffect(() => {
@@ -60,7 +59,6 @@ const Objects = () => {
             clientId: '',
             brandModel: '',
             stateNumber: '',
-            equipment: '',
         });
         setShowForm(false);
     };
@@ -115,16 +113,6 @@ const Objects = () => {
                                 required
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Оборудование</label>
-                            <textarea
-                                value={formData.equipment}
-                                onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows="3"
-                                placeholder="Необязательно"
-                            />
-                        </div>
                         <div className="flex gap-2 pt-4">
                             <button
                                 type="submit"
@@ -175,7 +163,6 @@ const Objects = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Клиент</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Марка/Модель</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Гос. Номер</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Оборудование</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Заявки</th>
                                 </tr>
                             </thead>
@@ -185,7 +172,6 @@ const Objects = () => {
                                         <td className="px-6 py-4 whitespace-nowrap">{obj.client.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">{obj.brandModel}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">{obj.stateNumber}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{obj.equipment || 'Не указано'}</td>
                                         <td className="px-6 py-4">
                                             {obj.bids && obj.bids.length > 0 ? (
                                                 <div className="flex flex-wrap gap-1">

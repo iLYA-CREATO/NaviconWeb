@@ -11,14 +11,15 @@ import { useState, useEffect } from 'react';
 // Импорт хука навигации из React Router для программной навигации
 import { useNavigate, useLocation } from 'react-router-dom';
 // Импорт функций API для взаимодействия с серверными сервисами
-import { getBids, getBid, createBid, getClients, getClientObjects, getBidTypes, getUsers, getRoles } from '../services/api';
+import { getBids, getBid, createBid, getClients, getClientObjects, getBidTypes, getUsers, getRoles, createClient, createClientObject } from '../services/api';
 import { createNotification } from '../services/api';
 // Импорт хука для проверки разрешений
 import { usePermissions } from '../hooks/usePermissions';
-// Импорт компонента карты
-import MapModal from './MapModal';
 // Импорт иконок из Lucide React
-import { Map, X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Bold, Italic, Underline, Strikethrough, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo, RotateCcw } from 'lucide-react';
+
+// Компонент редактора Rich Text
+import RichTextEditor from './RichTextEditor';
 
 const Bids = () => {
     // Хук для навигации между маршрутами
@@ -30,6 +31,13 @@ const Bids = () => {
 
     // Состояние для хранения списка заявок, полученных из API
     const [bids, setBids] = useState([]);
+    // Состояние для пагинации
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+    });
     // Состояние для хранения списка клиентов для выпадающего списка в форме
     const [clients, setClients] = useState([]);
     // Состояние для хранения объектов клиентов (ТС), доступных для выбора
@@ -98,8 +106,6 @@ const Bids = () => {
     const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
     // Состояние для показа выпадающего списка настроек колонок
     const [showColumnSettings, setShowColumnSettings] = useState(false);
-    // Состояние для показа модального окна карты
-    const [showMapModal, setShowMapModal] = useState(false);
     // Default planned resolution date to 5 days from now
     const getDefaultPlannedResolutionDate = () => {
         const fiveDaysFromNow = new Date();
@@ -126,6 +132,34 @@ const Bids = () => {
     
     // Состояние для отслеживания режима ручного редактирования SLA
     const [manualEdit, setManualEdit] = useState(false);
+    
+    // История изменений описания для undo/redo
+    const [descHistory, setDescHistory] = useState([]);
+    const [descHistoryIndex, setDescHistoryIndex] = useState(-1);
+
+    // Функция добавления в историю описания
+    const addToDescHistory = (newValue) => {
+        setDescHistory(prev => {
+            const newHistory = prev.slice(0, descHistoryIndex + 1);
+            return [...newHistory, newValue];
+        });
+        setDescHistoryIndex(prev => prev + 1);
+    };
+
+    // Состояния для модальных окон быстрого создания
+    const [showClientModal, setShowClientModal] = useState(false);
+    const [showObjectModal, setShowObjectModal] = useState(false);
+    // Форма быстрого создания клиента
+    const [quickClientForm, setQuickClientForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+    });
+    // Форма быстрого создания объекта
+    const [quickObjectForm, setQuickObjectForm] = useState({
+        brandModel: '',
+        stateNumber: '',
+    });
 
     // useEffect для загрузки начальных данных при монтировании компонента
     useEffect(() => {
@@ -161,6 +195,11 @@ const Bids = () => {
     useEffect(() => {
         localStorage.setItem('bidsVisibleFilters', JSON.stringify(visibleFilters));
     }, [visibleFilters]);
+
+    // useEffect to reload bids when pagination changes
+    useEffect(() => {
+        fetchBids();
+    }, [pagination.page, pagination.limit]);
 
     // useEffect to close dropdown on outside click
     useEffect(() => {
@@ -212,8 +251,13 @@ const Bids = () => {
     // Функция для загрузки списка заявок с сервера
     const fetchBids = async () => {
         try {
-            const response = await getBids(); // Вызов API для получения заявок
-            setBids(response.data); // Сохранение данных в состояние
+            const response = await getBids(pagination.page, pagination.limit); // Вызов API для получения заявок с пагинацией
+            setBids(response.data.data); // Сохранение данных в состояние
+            setPagination(prev => ({
+                ...prev,
+                total: response.data.pagination.total,
+                totalPages: response.data.pagination.totalPages,
+            }));
         } catch (error) {
             console.error('Error fetching bids:', error); // Логирование ошибки
         }
@@ -402,10 +446,7 @@ const Bids = () => {
         }
     };
 
-    // Обработчик выбора адреса с карты
-    const handleAddressSelect = (address) => {
-        setFormData({ ...formData, workAddress: address });
-    };
+
 
     // Обработчик отправки формы для создания новой заявки
     const handleSubmit = async (e) => {
@@ -454,6 +495,145 @@ const Bids = () => {
         setManualEdit(false); // Сброс режима ручного редактирования
         setClientObjects([]); // Очистка списка объектов
         setShowForm(false); // Скрытие формы
+        setDescHistory([]); // Сброс истории описания
+        setDescHistoryIndex(-1);
+    };
+
+    // Функция форматирования текста описания
+    const formatDescription = (action) => {
+        const textarea = document.getElementById('description-textarea');
+        if (!textarea) return;
+        
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = formData.description;
+        const selectedText = text.substring(start, end);
+        
+        let newText;
+        let cursorPosition = end;
+        
+        switch (action) {
+            case 'bold':
+                newText = text.substring(0, start) + '**' + selectedText + '**' + text.substring(end);
+                cursorPosition = end + 4;
+                break;
+            case 'italic':
+                newText = text.substring(0, start) + '_' + selectedText + '_' + text.substring(end);
+                cursorPosition = end + 2;
+                break;
+            case 'underline':
+                newText = text.substring(0, start) + '__' + selectedText + '__' + text.substring(end);
+                cursorPosition = end + 4;
+                break;
+            case 'strikeThrough':
+                newText = text.substring(0, start) + '~~' + selectedText + '~~' + text.substring(end);
+                cursorPosition = end + 4;
+                break;
+            case 'unorderedList':
+                newText = text.substring(0, start) + '• ' + selectedText.replace(/\n/g, '\n• ') + text.substring(end);
+                break;
+            case 'orderedList':
+                newText = text.substring(0, start) + '1. ' + selectedText.replace(/\n/g, (match, offset) => offset > 0 ? '\n' + (selectedText.substring(0, offset).split('\n').length) + '. ' : '1. ') + text.substring(end);
+                break;
+            case 'alignLeft':
+            case 'alignCenter':
+            case 'alignRight':
+                // Для простого текстового поля выравнивание не применяется
+                return;
+            default:
+                return;
+        }
+        
+        addToDescHistory(newText);
+        setFormData(prev => ({ ...prev, description: newText }));
+        
+        // Восстановление позиции курсора
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(cursorPosition, cursorPosition);
+        }, 0);
+    };
+
+    // Функция undo для описания
+    const undoDescription = () => {
+        if (descHistoryIndex > 0) {
+            const newIndex = descHistoryIndex - 1;
+            setDescHistoryIndex(newIndex);
+            setFormData(prev => ({ ...prev, description: descHistory[newIndex] }));
+        }
+    };
+
+    // Функция redo для описания
+    const redoDescription = () => {
+        if (descHistoryIndex < descHistory.length - 1) {
+            const newIndex = descHistoryIndex + 1;
+            setDescHistoryIndex(newIndex);
+            setFormData(prev => ({ ...prev, description: descHistory[newIndex] }));
+        }
+    };
+
+    // Функция очистки форматирования описания
+    const clearDescriptionFormatting = () => {
+        const text = formData.description;
+        // Удаляем markdown-символы форматирования
+        const cleanText = text
+            .replace(/\*\*/g, '')
+            .replace(/__/g, '')
+            .replace(/~~/g, '')
+            .replace(/_/g, '')
+            .replace(/• /g, '')
+            .replace(/\d+\. /g, '');
+        
+        addToDescHistory(cleanText);
+        setFormData(prev => ({ ...prev, description: cleanText }));
+    };
+
+    // Обновление истории при изменении описания
+    const handleDescriptionChange = (e) => {
+        const newValue = e.target.value;
+        addToDescHistory(newValue);
+        setFormData(prev => ({ ...prev, description: newValue }));
+    };
+
+    // Обработчик быстрого создания клиента
+    const handleQuickClientSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await createClient(quickClientForm);
+            const newClient = response.data;
+            // Добавляем нового клиента в список
+            setClients(prev => [...prev, newClient]);
+            // Выбираем созданного клиента в форме
+            setFormData(prev => ({ ...prev, clientId: newClient.id.toString() }));
+            // Закрываем модальное окно и сбрасываем форму
+            setShowClientModal(false);
+            setQuickClientForm({ name: '', email: '', phone: '' });
+        } catch (error) {
+            console.error('Error creating client:', error);
+        }
+    };
+
+    // Обработчик быстрого создания объекта
+    const handleQuickObjectSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const objectData = {
+                clientId: parseInt(formData.clientId),
+                brandModel: quickObjectForm.brandModel,
+                stateNumber: quickObjectForm.stateNumber,
+            };
+            const response = await createClientObject(objectData);
+            const newObject = response.data;
+            // Добавляем новый объект в список
+            setClientObjects(prev => [...prev, newObject]);
+            // Выбираем созданный объект в форме
+            setFormData(prev => ({ ...prev, clientObjectId: newObject.id.toString() }));
+            // Закрываем модальное окно и сбрасываем форму
+            setShowObjectModal(false);
+            setQuickObjectForm({ brandModel: '', stateNumber: '' });
+        } catch (error) {
+            console.error('Error creating object:', error);
+        }
     };
 
     // Фильтрация заявок на основе поискового запроса и фильтров
@@ -490,19 +670,24 @@ const Bids = () => {
             {/* Модальное окно создания новой заявки */}
             {showForm && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[95vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-xl font-bold">Добавить новую заявку</h3>
                                 <button
-                                    onClick={resetForm}
+                                    onClick={() => {
+                                        if (showForm) {
+                                            resetForm(); // Сброс формы перед закрытием
+                                        }
+                                        setShowForm(!showForm);
+                                    }}
                                     className="text-gray-500 hover:text-gray-700"
                                 >
                                     <X size={24} />
                                 </button>
                             </div>
                             <form onSubmit={handleSubmit}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {/* Тема */}
                                     <div className="col-span-full">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Тема *</label>
@@ -517,37 +702,59 @@ const Bids = () => {
                                     {/* Клиент */}
                                     <div className="col-span-1">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Клиент *</label>
-                                        <select
-                                            value={formData.clientId}
-                                            onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required
-                                        >
-                                            <option value="">Выберите</option>
-                                            {clients.map((client) => (
-                                                <option key={client.id} value={client.id}>
-                                                    {client.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={formData.clientId}
+                                                onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            >
+                                                <option value="">Выберите</option>
+                                                {clients.map((client) => (
+                                                    <option key={client.id} value={client.id}>
+                                                        {client.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowClientModal(true)}
+                                                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg transition flex items-center gap-1"
+                                                title="Создать клиента"
+                                            >
+                                                <Plus size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                     {/* Объект обслуживания */}
                                     <div className="col-span-1">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Объект обслуживания</label>
-                                        <select
-                                            value={formData.clientObjectId}
-                                            onChange={(e) => setFormData({ ...formData, clientObjectId: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="">
-                                                {formData.clientId ? 'Выберите объект' : 'Сначала клиента'}
-                                            </option>
-                                            {clientObjects.map((obj) => (
-                                                <option key={obj.id} value={obj.id}>
-                                                    {obj.brandModel} {obj.stateNumber ? `(${obj.stateNumber})` : ''}
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={formData.clientObjectId}
+                                                onChange={(e) => setFormData({ ...formData, clientObjectId: e.target.value })}
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                disabled={!formData.clientId}
+                                            >
+                                                <option value="">
+                                                    {formData.clientId ? 'Выберите объект' : 'Сначала клиента'}
                                                 </option>
-                                            ))}
-                                        </select>
+                                                {clientObjects.map((obj) => (
+                                                    <option key={obj.id} value={obj.id}>
+                                                        {obj.brandModel} {obj.stateNumber ? `(${obj.stateNumber})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowObjectModal(true)}
+                                                className={`px-3 py-2 rounded-lg transition flex items-center gap-1 ${formData.clientId ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                                title="Создать объект"
+                                                disabled={!formData.clientId}
+                                            >
+                                                <Plus size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                     {/* Тип заявки */}
                                     <div className="col-span-1">
@@ -569,23 +776,17 @@ const Bids = () => {
                                     {/* Адрес выполнения работ */}
                                     <div className="col-span-full lg:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Адрес выполнения работ</label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                value={formData.workAddress}
-                                                onChange={(e) => setFormData({ ...formData, workAddress: e.target.value })}
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                placeholder="Введите адрес"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowMapModal(true)}
-                                                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg transition flex items-center gap-1"
-                                                title="Выбрать на карте"
-                                            >
-                                                <Map size={16} />
-                                                Карта
-                                            </button>
+                                        <div className="relative">
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={formData.workAddress}
+                                                    onChange={(e) => setFormData({ ...formData, workAddress: e.target.value })}
+                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Введите адрес..."
+                                                />
+                                            </div>
+
                                         </div>
                                     </div>
 
@@ -594,11 +795,10 @@ const Bids = () => {
                                         {/* Описание - узкое поле */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                                            <textarea
-                                                value={formData.description}
-                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                rows="3"
+                                            <RichTextEditor
+                                                value={formData.description || ''}
+                                                onChange={(html) => handleDescriptionChange({ target: { value: html } })}
+                                                placeholder="Введите описание заявки..."
                                             />
                                         </div>
                                         {/* Поля справа от описания */}
@@ -702,7 +902,145 @@ const Bids = () => {
                 </div>
             )}
 
-            {/* Список заявок, показывается только если форма скрыта */}
+            {/* Модальное окно быстрого создания клиента */}
+            {showClientModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold">Создать клиента</h3>
+                                <button
+                                    onClick={() => {
+                                        setShowClientModal(false);
+                                        setQuickClientForm({ name: '', email: '', phone: '' });
+                                    }}
+                                    className="text-gray-500 hover:text-gray-700"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <form onSubmit={handleQuickClientSubmit}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
+                                        <input
+                                            type="text"
+                                            value={quickClientForm.name}
+                                            onChange={(e) => setQuickClientForm({ ...quickClientForm, name: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                            placeholder="Название клиента"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                        <input
+                                            type="email"
+                                            value={quickClientForm.email}
+                                            onChange={(e) => setQuickClientForm({ ...quickClientForm, email: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="email@example.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+                                        <input
+                                            type="text"
+                                            value={quickClientForm.phone}
+                                            onChange={(e) => setQuickClientForm({ ...quickClientForm, phone: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="+7 (999) 123-45-67"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 mt-6 pt-4 border-t">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
+                                    >
+                                        Создать
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowClientModal(false);
+                                            setQuickClientForm({ name: '', email: '', phone: '' });
+                                        }}
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Модальное окно быстрого создания объекта */}
+            {showObjectModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold">Создать объект</h3>
+                                <button
+                                    onClick={() => {
+                                        setShowObjectModal(false);
+                                        setQuickObjectForm({ brandModel: '', stateNumber: '' });
+                                    }}
+                                    className="text-gray-500 hover:text-gray-700"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <form onSubmit={handleQuickObjectSubmit}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Марка/Модель *</label>
+                                        <input
+                                            type="text"
+                                            value={quickObjectForm.brandModel}
+                                            onChange={(e) => setQuickObjectForm({ ...quickObjectForm, brandModel: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                            placeholder="Например: КАМАЗ 65115"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Гос. номер</label>
+                                        <input
+                                            type="text"
+                                            value={quickObjectForm.stateNumber}
+                                            onChange={(e) => setQuickObjectForm({ ...quickObjectForm, stateNumber: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Например: А123АА 777"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 mt-6 pt-4 border-t">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
+                                    >
+                                        Создать
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowObjectModal(false);
+                                            setQuickObjectForm({ brandModel: '', stateNumber: '' });
+                                        }}
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
             {!showForm && (
                 <div className="flex flex-col h-full">
                     {/* Карточка с фильтрами и элементами управления */}
@@ -764,10 +1102,15 @@ const Bids = () => {
                             </div>
                             {hasPermission('bid_create') && (
                                 <button
-                                    onClick={() => setShowForm(!showForm)} // Переключение видимости формы
+                                    onClick={() => {
+                                        if (showForm) {
+                                            resetForm(); // Сброс формы перед закрытием
+                                        }
+                                        setShowForm(!showForm);
+                                    }}
                                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
-                                    {showForm ? 'Отмена' : '+ Новая заявка'} {/* Текст кнопки зависит от состояния формы */}
+                                    {showForm ? 'Отмена' : '+ Новая заявка'}
                                 </button>
                             )}
                         </div>
@@ -892,6 +1235,45 @@ const Bids = () => {
                         </tbody>
                     </table>
                     </div>
+                    
+                    {/* Пагинация */}
+                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200 flex-none">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Записей на странице:</span>
+                            <select
+                                value={pagination.limit}
+                                onChange={(e) => setPagination(prev => ({ ...prev, limit: parseInt(e.target.value), page: 1 }))}
+                                className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">
+                                Страница {pagination.page} из {pagination.totalPages || 1} ({pagination.total} записей)
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                                disabled={pagination.page === 1}
+                                className="p-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition"
+                            >
+                                <ChevronLeft size={20} className="text-white" />
+                            </button>
+                            <button
+                                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                                disabled={pagination.page >= pagination.totalPages}
+                                className="p-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition"
+                            >
+                                <ChevronRight size={20} className="text-white" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -983,12 +1365,7 @@ const Bids = () => {
             )}
 
             {/* Map Modal */}
-            <MapModal
-                isOpen={showMapModal}
-                onClose={() => setShowMapModal(false)}
-                onAddressSelect={handleAddressSelect}
-                initialAddress={formData.workAddress}
-            />
+
         </div>
     );
 };

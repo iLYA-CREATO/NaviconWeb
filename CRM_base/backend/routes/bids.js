@@ -110,17 +110,29 @@ const logBidData = (action, data) => {
 router.get('/', authMiddleware, async (req, res) => {
     try {
         console.log('Getting all bids');
-        // Получаем все заявки из базы данных, сортируем по дате создания (новые сначала)
+        
+        // Параметры пагинации
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+        const take = limit;
+        
+        // Получаем общее количество заявок для расчета пагинации
+        const totalCount = await prisma.bid.count();
+        
+        // Получаем заявки с пагинацией
         const bids = await prisma.bid.findMany({
-            orderBy: { createdAt: 'desc' }, // Сортировка по убыванию даты
-            include: { // Включаем связанные данные
-                client: { // Данные клиента
+            orderBy: { createdAt: 'desc' },
+            skip: skip,
+            take: take,
+            include: {
+                client: {
                     select: {
                         id: true,
                         name: true,
                     },
                 },
-                clientObject: { // Данные объекта клиента (автомобиль)
+                clientObject: {
                     include: {
                         equipment: {
                             select: {
@@ -130,19 +142,19 @@ router.get('/', authMiddleware, async (req, res) => {
                         },
                     },
                 },
-                creator: { // Данные создателя
+                creator: {
                     select: {
                         id: true,
                         fullName: true,
                     },
                 },
-                currentResponsible: { // Текущий ответственный
+                currentResponsible: {
                     select: {
                         id: true,
                         fullName: true,
                     },
                 },
-                bidType: true, // Включаем тип заявки для получения статусов
+                bidType: true,
             },
         });
 
@@ -214,7 +226,15 @@ router.get('/', authMiddleware, async (req, res) => {
             };
         }));
 
-        res.json(formattedBids); // Отправляем отформатированные данные
+        res.json({
+            data: formattedBids,
+            pagination: {
+                total: totalCount,
+                page: page,
+                limit: limit,
+                totalPages: Math.ceil(totalCount / limit),
+            }
+        });
     } catch (error) {
         console.error('Get bids error:', error);
         res.status(500).json({ message: 'Server error' });

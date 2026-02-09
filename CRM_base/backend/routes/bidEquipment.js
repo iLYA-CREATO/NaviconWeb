@@ -26,6 +26,63 @@ router.get('/expense-history', authMiddleware, async (req, res) => {
     }
 });
 
+// Get return history for equipment
+router.get('/return-history', authMiddleware, async (req, res) => {
+    try {
+        const returnHistory = await prisma.auditLog.findMany({
+            where: {
+                action: 'equipment_removed'
+            },
+            include: {
+                bid: {
+                    include: {
+                        client: true,
+                        clientObject: true,
+                        creator: {
+                            select: {
+                                id: true,
+                                fullName: true
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Parse the details JSON for each entry
+        const formattedReturnHistory = returnHistory.map(log => {
+            const details = JSON.parse(log.details || '{}');
+            return {
+                id: log.id,
+                bidId: log.bidId,
+                bidTema: log.bid?.tema || '-',
+                client: log.bid?.client?.name || '-',
+                clientObject: log.bid?.clientObject ? 
+                    (log.bid.clientObject.brandModel + ' ' + log.bid.clientObject.stateNumber) : '-',
+                equipmentName: details.equipmentName || '-',
+                imei: details.imei || '-',
+                quantity: details.quantity || 1,
+                returnReason: details.returnReason || '-',
+                returnedBy: log.user?.fullName || '-',
+                createdBy: log.bid?.creator?.fullName || '-',
+                createdAt: log.createdAt
+            };
+        });
+
+        res.json(formattedReturnHistory);
+    } catch (error) {
+        console.error('Get return history error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Get all bid equipment for a bid
 router.get('/bid/:bidId', authMiddleware, async (req, res) => {
     try {
@@ -181,6 +238,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // Delete bid equipment
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
+        const { returnReason } = req.body;
         const deletedBidEquipment = await prisma.bidEquipment.delete({
             where: { id: parseInt(req.params.id) },
             include: {
@@ -188,9 +246,26 @@ router.delete('/:id', authMiddleware, async (req, res) => {
             }
         });
 
+        // Create audit log for equipment deletion with return reason
+        await prisma.auditLog.create({
+            data: {
+                bidId: deletedBidEquipment.bidId,
+                userId: req.user.id,
+                action: 'equipment_removed',
+                details: JSON.stringify({
+                    equipmentId: deletedBidEquipment.equipmentId,
+                    equipmentName: deletedBidEquipment.equipment.name,
+                    imei: deletedBidEquipment.imei || '',
+                    quantity: deletedBidEquipment.quantity || 1,
+                    returnReason: returnReason || 'Причина не указана'
+                })
+            }
+        });
+
         res.json({
             message: 'Bid equipment deleted',
             bidEquipment: deletedBidEquipment,
+            returnReason
         });
     } catch (error) {
         if (error.code === 'P2025') {

@@ -77,7 +77,7 @@ export const deleteClientAttribute = (id) => api.delete(`/client-attributes/${id
 
 // === ЗАЯВКИ ===
 // CRUD-операции для заявок
-export const getBids = () => api.get('/bids'); // Получение всех заявок
+export const getBids = (page = 1, limit = 20) => api.get(`/bids?page=${page}&limit=${limit}`); // Получение всех заявок с пагинацией
 export const getBid = (id) => api.get(`/bids/${id}`); // Получение заявки по ID
 export const createBid = (data) => api.post('/bids', data); // Создание новой заявки
 export const updateBid = (id, data) => api.put(`/bids/${id}`, data); // Обновление заявки
@@ -139,9 +139,10 @@ export const deleteEquipment = (id) => api.delete(`/equipment/${id}`); // Уда
 // CRUD-операции для оборудования заявок
 export const getBidEquipment = (bidId) => api.get(`/bid-equipment/bid/${bidId}`); // Получение оборудования заявки
 export const getExpenseHistory = () => api.get('/bid-equipment/expense-history'); // Получение истории расхода оборудования
+export const getReturnHistory = () => api.get('/bid-equipment/return-history'); // Получение истории возврата оборудования
 export const createBidEquipment = (data) => api.post('/bid-equipment', data); // Создание оборудования заявки
 export const updateBidEquipment = (id, data) => api.put(`/bid-equipment/${id}`, data); // Обновление оборудования заявки
-export const deleteBidEquipment = (id) => api.delete(`/bid-equipment/${id}`); // Удаление оборудования заявки
+export const deleteBidEquipment = (id, returnReason) => api.delete(`/bid-equipment/${id}`, { data: { returnReason } }); // Удаление оборудования заявки
 
 // CRUD-операции для оборудования клиентов
 export const getClientEquipment = () => api.get('/client-equipment'); // Получение всего оборудования клиентов

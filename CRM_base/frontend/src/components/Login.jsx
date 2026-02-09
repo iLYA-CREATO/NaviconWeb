@@ -85,9 +85,7 @@ const Login = () => {
                     </button>
                 </form>
 
-                <p className="mt-4 text-center text-sm text-gray-600">
-                    Демо учетные данные: <span className="font-semibold">admin / admin123</span>
-                </p>
+
             </div>
         </div>
     );

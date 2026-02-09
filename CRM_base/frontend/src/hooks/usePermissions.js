@@ -14,10 +14,13 @@ export const usePermissions = () => {
      * @returns {boolean} true если право есть, false если нет
      */
     const hasPermission = useCallback((permission) => {
+        // Админы имеют все права автоматически
+        if (user?.role === 'Админ') {
+            return true;
+        }
         // Проверяем наличие права в permissions пользователя
-        // Админы тоже подчиняются правам, установленным в базе данных
         return user?.permissions?.[permission] === true;
-    }, [user?.permissions]);
+    }, [user?.permissions, user?.role]);
 
     /**
      * Проверяет, имеет ли пользователь хотя бы одно из указанных прав

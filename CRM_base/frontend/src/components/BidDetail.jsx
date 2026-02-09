@@ -15,10 +15,11 @@ import { createNotification } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 // Импорт хука для проверки разрешений
 import { usePermissions } from '../hooks/usePermissions';
-// Импорт компонента карты
-import MapModal from './MapModal';
 // Импорт иконок из Lucide React
-import { Map, Trash2, Paperclip, Upload, File, Download, X, Image as ImageIcon, ZoomIn, ZoomOut, RotateCw, Maximize2, RefreshCw } from 'lucide-react';
+import { Trash2, Paperclip, Upload, File, Download, X, Image as ImageIcon, ZoomIn, ZoomOut, RotateCw, Maximize2, RefreshCw, Bold, Italic, Underline, Strikethrough, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo, RotateCcw } from 'lucide-react';
+
+// Компонент редактора Rich Text
+import RichTextEditor from './RichTextEditor';
 
 // Основной компонент BidDetail
 const BidDetail = () => {
@@ -63,7 +64,10 @@ const BidDetail = () => {
     const [equipment, setEquipment] = useState([]);
     const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
     const [editingEquipment, setEditingEquipment] = useState(null);
-    const [showMapModal, setShowMapModal] = useState(false);
+    const [showDeleteEquipmentModal, setShowDeleteEquipmentModal] = useState(false);
+    const [equipmentToDelete, setEquipmentToDelete] = useState(null);
+    const [deletionReason, setDeletionReason] = useState('');
+
     const [childBids, setChildBids] = useState([]);
     const [showCreateChildBidModal, setShowCreateChildBidModal] = useState(false);
     const [isCloneMode, setIsCloneMode] = useState(false);
@@ -71,7 +75,7 @@ const BidDetail = () => {
     const [clientObjects, setClientObjects] = useState([]);
     const [bidTypes, setBidTypes] = useState([]);
     const [roles, setRoles] = useState([]);
-    const [showMapModalForChild, setShowMapModalForChild] = useState(false);
+
     const [remainingTime, setRemainingTime] = useState(null);
     const [bidFiles, setBidFiles] = useState([]);
     const [missingFiles, setMissingFiles] = useState(new Set());
@@ -88,6 +92,7 @@ const BidDetail = () => {
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [expandedFileGroups, setExpandedFileGroups] = useState(new Set());
     const imageContainerRef = useRef(null);
+    
     const [childBidFormData, setChildBidFormData] = useState({
         clientId: '',
         title: '',
@@ -104,6 +109,133 @@ const BidDetail = () => {
         plannedDurationMinutes: '',
         amount: 0,
     });
+
+    // Функция сброса формы дочерней заявки
+    const resetChildBidForm = () => {
+        setChildBidFormData({
+            clientId: '',
+            title: '',
+            bidTypeId: '',
+            description: '',
+            clientObjectId: '',
+            workAddress: '',
+            contactFullName: '',
+            contactPhone: '',
+            parentId: '',
+            plannedResolutionDate: '',
+            plannedReactionTimeMinutes: '',
+            assignedAt: '',
+            plannedDurationMinutes: '',
+            amount: 0,
+        });
+        setClientObjects([]);
+    };
+
+    // История изменений описания для undo/redo
+    const [childDescHistory, setChildDescHistory] = useState([]);
+    const [childDescHistoryIndex, setChildDescHistoryIndex] = useState(-1);
+
+    // Функция добавления в историю описания
+    const addToChildDescHistory = (newValue) => {
+        setChildDescHistory(prev => {
+            const newHistory = prev.slice(0, childDescHistoryIndex + 1);
+            return [...newHistory, newValue];
+        });
+        setChildDescHistoryIndex(prev => prev + 1);
+    };
+
+    // Функция форматирования текста описания
+    const formatChildDescription = (action) => {
+        const textarea = document.getElementById('child-description-textarea');
+        if (!textarea) return;
+        
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = childBidFormData.description;
+        const selectedText = text.substring(start, end);
+        
+        let newText;
+        let cursorPosition = end;
+        
+        switch (action) {
+            case 'bold':
+                newText = text.substring(0, start) + '**' + selectedText + '**' + text.substring(end);
+                cursorPosition = end + 4;
+                break;
+            case 'italic':
+                newText = text.substring(0, start) + '_' + selectedText + '_' + text.substring(end);
+                cursorPosition = end + 2;
+                break;
+            case 'underline':
+                newText = text.substring(0, start) + '__' + selectedText + '__' + text.substring(end);
+                cursorPosition = end + 4;
+                break;
+            case 'strikeThrough':
+                newText = text.substring(0, start) + '~~' + selectedText + '~~' + text.substring(end);
+                cursorPosition = end + 4;
+                break;
+            case 'unorderedList':
+                newText = text.substring(0, start) + '• ' + selectedText.replace(/\n/g, '\n• ') + text.substring(end);
+                break;
+            case 'orderedList':
+                newText = text.substring(0, start) + '1. ' + selectedText.replace(/\n/g, (match, offset) => offset > 0 ? '\n' + (selectedText.substring(0, offset).split('\n').length) + '. ' : '1. ') + text.substring(end);
+                break;
+            case 'alignLeft':
+            case 'alignCenter':
+            case 'alignRight':
+                return;
+            default:
+                return;
+        }
+        
+        addToChildDescHistory(newText);
+        setChildBidFormData(prev => ({ ...prev, description: newText }));
+        
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(cursorPosition, cursorPosition);
+        }, 0);
+    };
+
+    // Функция undo для описания
+    const undoChildDescription = () => {
+        if (childDescHistoryIndex > 0) {
+            const newIndex = childDescHistoryIndex - 1;
+            setChildDescHistoryIndex(newIndex);
+            setChildBidFormData(prev => ({ ...prev, description: childDescHistory[newIndex] }));
+        }
+    };
+
+    // Функция redo для описания
+    const redoChildDescription = () => {
+        if (childDescHistoryIndex < childDescHistory.length - 1) {
+            const newIndex = childDescHistoryIndex + 1;
+            setChildDescHistoryIndex(newIndex);
+            setChildBidFormData(prev => ({ ...prev, description: childDescHistory[newIndex] }));
+        }
+    };
+
+    // Функция очистки форматирования описания
+    const clearChildDescriptionFormatting = () => {
+        const text = childBidFormData.description;
+        const cleanText = text
+            .replace(/\*\*/g, '')
+            .replace(/__/g, '')
+            .replace(/~~/g, '')
+            .replace(/_/g, '')
+            .replace(/• /g, '')
+            .replace(/\d+\. /g, '');
+        
+        addToChildDescHistory(cleanText);
+        setChildBidFormData(prev => ({ ...prev, description: cleanText }));
+    };
+
+    // Обновление истории при изменении описания
+    const handleChildDescriptionChange = (e) => {
+        const newValue = e.target.value;
+        addToChildDescHistory(newValue);
+        setChildBidFormData(prev => ({ ...prev, description: newValue }));
+    };
 
     useEffect(() => {
         fetchBid();
@@ -781,10 +913,19 @@ const BidDetail = () => {
         }
     };
 
-    const handleDeleteEquipment = async (equipmentId) => {
-        if (!confirm('Вы уверены, что хотите удалить это оборудование?')) return;
+    const handleDeleteEquipment = (equipment) => {
+        setEquipmentToDelete(equipment);
+        setDeletionReason('');
+        setShowDeleteEquipmentModal(true);
+    };
+
+    const confirmDeleteEquipment = async () => {
+        if (!equipmentToDelete) return;
         try {
-            await deleteBidEquipment(equipmentId);
+            await deleteBidEquipment(equipmentToDelete.id, deletionReason);
+            setShowDeleteEquipmentModal(false);
+            setEquipmentToDelete(null);
+            setDeletionReason('');
             fetchBidEquipment();
             fetchHistory();
         } catch (error) {
@@ -871,12 +1012,6 @@ const BidDetail = () => {
         }
     };
 
-    // Обработчик выбора адреса с карты
-    const handleAddressSelect = (address) => {
-        setWorkAddress(address);
-        handleUpdateBid({ workAddress: address });
-        setEditingWorkAddress(false);
-    };
 
     const getDefaultPlannedResolutionDate = () => {
         const fiveDaysFromNow = new Date();
@@ -884,9 +1019,6 @@ const BidDetail = () => {
         return fiveDaysFromNow.toISOString().slice(0, 16);
     };
 
-    const handleAddressSelectForChild = (address) => {
-        setChildBidFormData({ ...childBidFormData, workAddress: address });
-    };
 
     const handleCreateChildBid = async (e) => {
         e.preventDefault();
@@ -1112,7 +1244,7 @@ const BidDetail = () => {
                                 </div>
                             )}
                         </div>
-                        <div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Адрес проведения работ</label>
                             {editingWorkAddress ? (
                                 <div className="flex flex-wrap gap-2">
@@ -1121,17 +1253,10 @@ const BidDetail = () => {
                                         value={workAddress}
                                         onChange={(e) => setWorkAddress(e.target.value)}
                                         className="flex-1 min-w-[200px] max-w-[400px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Введите адрес проведения работ"
+                                        placeholder="Введите адрес..."
                                     />
+                                    {/* Quick city buttons */}
                                     <div className="flex flex-wrap gap-1 sm:gap-2 flex-shrink-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowMapModal(true)}
-                                            className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
-                                            title="Выбрать на карте"
-                                        >
-                                            <Map size={16} />
-                                        </button>
                                         <button
                                             onClick={() => {
                                                 handleUpdateBid({ workAddress });
@@ -1215,7 +1340,7 @@ const BidDetail = () => {
                                                     Редактировать
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteEquipment(eq.id)}
+                                                    onClick={() => handleDeleteEquipment(eq)}
                                                     className="text-red-500 hover:text-red-700"
                                                 >
                                                     Удалить
@@ -1913,6 +2038,20 @@ const BidDetail = () => {
                 fileName={bidFiles.find(f => f.name === fileToDelete)?.originalName || fileToDelete}
             />
 
+            {/* Delete Equipment Confirmation Modal */}
+            <DeleteEquipmentModal
+                isOpen={showDeleteEquipmentModal}
+                onClose={() => {
+                    setShowDeleteEquipmentModal(false);
+                    setEquipmentToDelete(null);
+                    setDeletionReason('');
+                }}
+                onConfirm={confirmDeleteEquipment}
+                equipment={equipmentToDelete}
+                reason={deletionReason}
+                setReason={setDeletionReason}
+            />
+
             {/* Image Viewer Modal */}
             {showImageViewer && currentImage && (
                 <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 overflow-hidden">
@@ -2095,21 +2234,14 @@ const BidDetail = () => {
                 </div>
             )}
 
-            {/* Map Modal */}
-            <MapModal
-                isOpen={showMapModal}
-                onClose={() => setShowMapModal(false)}
-                onAddressSelect={handleAddressSelect}
-                initialAddress={workAddress}
-            />
 
             {/* Create Child Bid Modal */}
             {showCreateChildBidModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[95vh] overflow-y-auto">
                         <h3 className="text-xl font-bold mb-4">{isCloneMode ? 'Клонировать заявку' : 'Создать дочернюю заявку'}</h3>
                         <form onSubmit={handleCreateChildBid} className="space-y-4">
-                            <div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
                                 <select
                                     value={childBidFormData.clientId}
@@ -2170,11 +2302,10 @@ const BidDetail = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                                <textarea
-                                    value={childBidFormData.description}
-                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, description: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    rows="3"
+                                <RichTextEditor
+                                    value={childBidFormData.description || ''}
+                                    onChange={(html) => setChildBidFormData({ ...childBidFormData, description: html })}
+                                    placeholder="Введите описание заявки..."
                                 />
                             </div>
                             <div>
@@ -2187,14 +2318,6 @@ const BidDetail = () => {
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="Введите адрес проведения работ"
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowMapModalForChild(true)}
-                                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition whitespace-nowrap"
-                                        title="Выбрать на карте"
-                                    >
-                                        <Map size={16} /> Карта
-                                    </button>
                                 </div>
                             </div>
                             <div>
@@ -2220,7 +2343,10 @@ const BidDetail = () => {
                             <div className="flex justify-end space-x-2 mt-6">
                                 <button
                                     type="button"
-                                    onClick={() => setShowCreateChildBidModal(false)}
+                                    onClick={() => {
+                                        resetChildBidForm();
+                                        setShowCreateChildBidModal(false);
+                                    }}
                                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                                 >
                                     Отмена
@@ -2237,13 +2363,7 @@ const BidDetail = () => {
                 </div>
             )}
 
-            {/* Map Modal for Child Bid */}
-            <MapModal
-                isOpen={showMapModalForChild}
-                onClose={() => setShowMapModalForChild(false)}
-                onAddressSelect={handleAddressSelectForChild}
-                initialAddress={childBidFormData.workAddress}
-            />
+
         </div>
     );
 };
@@ -2607,6 +2727,77 @@ const DeleteFileModal = ({ isOpen, onClose, onConfirm, fileName }) => {
                     <button
                         onClick={onConfirm}
                         className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
+                    >
+                        Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Component for equipment deletion modal with reason
+const DeleteEquipmentModal = ({ isOpen, onClose, onConfirm, equipment, reason, setReason }) => {
+    if (!isOpen || !equipment) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-red-100 p-3 rounded-full">
+                        <Trash2 size={24} className="text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        Удаление оборудования
+                    </h3>
+                </div>
+                
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Оборудование для удаления:
+                    </label>
+                    <p className="text-gray-900 font-medium">{equipment.equipment?.name || 'Оборудование'}</p>
+                    {equipment.imei && (
+                        <p className="text-sm text-gray-600">IMEI: {equipment.imei}</p>
+                    )}
+                    {equipment.quantity > 1 && (
+                        <p className="text-sm text-gray-600">Количество: {equipment.quantity}</p>
+                    )}
+                </div>
+
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Причина удаления <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="Укажите причину удаления оборудования..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={3}
+                        required
+                    />
+                </div>
+
+                <p className="text-sm text-gray-500 mb-6">
+                    Причина будет сохранена в истории возврата оборудования.
+                </p>
+
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                    >
+                        Отмена
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={!reason.trim()}
+                        className={`px-4 py-2 rounded-lg transition ${
+                            reason.trim() 
+                                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                                : 'bg-red-300 text-white cursor-not-allowed'
+                        }`}
                     >
                         Удалить
                     </button>
