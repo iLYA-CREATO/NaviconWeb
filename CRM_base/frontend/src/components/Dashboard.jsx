@@ -438,8 +438,8 @@ const Dashboard = () => {
             </aside>
 
             {/* Основная область для отображения дочерних компонентов */}
-            <main className={`mt-16 ${isSettings ? (isSidebarCollapsed ? 'ml-16' : 'ml-48') : isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
-                <div className="p-8">
+            <main className={`mt-16 h-[calc(100vh-4rem)] ${isSettings ? (isSidebarCollapsed ? 'ml-16' : 'ml-48') : isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
+                <div className="p-8 h-full overflow-auto">
                     <Outlet key={activeSettingsTab} context={{ activeSettingsTab }} /> {/* Передача контекста дочерним маршрутам */}
                 </div>
             </main>

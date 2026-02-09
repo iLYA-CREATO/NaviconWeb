@@ -704,9 +704,9 @@ const Bids = () => {
 
             {/* Список заявок, показывается только если форма скрыта */}
             {!showForm && (
-                <div>
+                <div className="flex flex-col h-full">
                     {/* Карточка с фильтрами и элементами управления */}
-                    <div className="bg-gray-200 rounded-lg p-4 mb-6 border border-gray-300">
+                    <div className="bg-gray-200 rounded-lg p-4 mb-6 border border-gray-300 flex-none">
                         <h2 className="text-xl font-bold mb-4">Заявки</h2>
                         {/* Кнопка создания новой заявки */}
                         <div className="flex justify-end gap-2 mb-4">
@@ -867,7 +867,7 @@ const Bids = () => {
                         </div>
                     </div>
                     {/* Таблица с заявками */}
-                    <div className="overflow-x-auto table-container">
+                    <div className="overflow-x-auto table-container flex-1 min-h-0">
                     <table className="divide-y divide-gray-200" style={{ minWidth: `${displayColumns.length * 120}px` }}>
                         <thead className="bg-gray-50">
                         <tr>

@@ -1346,6 +1346,53 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// Скачать файл заявки с аудитом
+router.get('/:id/files/:fileName(*)', authMiddleware, async (req, res) => {
+    try {
+        // Проверяем аутентификацию пользователя
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        
+        const bidId = parseInt(req.params.id);
+        const fileName = req.params.fileName;
+        
+        const filePath = path.join(__dirname, '..', 'uploads', 'bids', bidId.toString(), fileName);
+        
+        // Проверяем существование файла
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ message: 'Файл не найден' });
+        }
+        
+        // Получаем информацию о файле из базы
+        const bidFile = await prisma.bidFile.findFirst({
+            where: {
+                bidId: bidId,
+                filename: fileName,
+            },
+        });
+        
+        // Создаём запись в аудит-логе о скачивании файла
+        if (bidFile) {
+            await prisma.auditLog.create({
+                data: {
+                    bidId: bidId,
+                    userId: req.user.id,
+                    action: 'Файл скачан',
+                    details: bidFile.originalName,
+                },
+            });
+        }
+        
+        // Отправляем файл
+        const displayName = bidFile ? bidFile.originalName : fileName;
+        res.download(filePath, displayName);
+    } catch (error) {
+        console.error('Download bid file error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Получить список файлов заявки
 router.get('/:id/files', authMiddleware, async (req, res) => {
     try {
@@ -1467,6 +1514,16 @@ router.post('/:id/files', authMiddleware, upload.array('files', 10), async (req,
             uploadedFiles.push(fileInfo);
             console.log('Файл загружен к заявке:', bidId, fileInfo);
             logBidData('Загрузка файла к заявки ID: ' + bidId, fileInfo);
+            
+            // Создаём запись в аудит-логе
+            await prisma.auditLog.create({
+                data: {
+                    bidId: bidId,
+                    userId: req.user.id,
+                    action: 'Файл добавлен',
+                    details: fileInfo.originalName,
+                },
+            });
         }
         
         // Возвращаем массив загруженных файлов
@@ -1480,9 +1537,22 @@ router.post('/:id/files', authMiddleware, upload.array('files', 10), async (req,
 // Удалить файл заявки
 router.delete('/:id/files/:fileName(*)', authMiddleware, async (req, res) => {
     try {
+        // Проверяем аутентификацию пользователя
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        
         const bidId = parseInt(req.params.id);
         // Файл уже декодирован на фронтенде, используем как есть
         const fileName = req.params.fileName;
+        
+        // Получаем информацию о файле перед удалением
+        const bidFile = await prisma.bidFile.findFirst({
+            where: {
+                bidId: bidId,
+                filename: fileName,
+            },
+        });
         
         const filePath = path.join(__dirname, '..', 'uploads', 'bids', bidId.toString(), fileName);
         
@@ -1501,6 +1571,18 @@ router.delete('/:id/files/:fileName(*)', authMiddleware, async (req, res) => {
         
         console.log('Файл удалён из заявки:', bidId, fileName);
         logBidData('Удаление файла из заявки ID: ' + bidId, { fileName });
+        
+        // Создаём запись в аудит-логе о удалении файла
+        if (bidFile) {
+            await prisma.auditLog.create({
+                data: {
+                    bidId: bidId,
+                    userId: req.user.id,
+                    action: 'Файл удалён',
+                    details: bidFile.originalName,
+                },
+            });
+        }
         
         res.json({ message: 'Файл успешно удалён' });
     } catch (error) {

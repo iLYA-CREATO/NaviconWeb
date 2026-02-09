@@ -494,19 +494,37 @@ const BidDetail = () => {
 
     const handleDownloadFile = async (file) => {
         try {
-            // Для скачивания создаём ссылку с атрибутом download
+            // Используем новый аутентифицированный endpoint для скачивания
+            const response = await fetch(`/api/bids/${id}/files/${encodeURIComponent(file.name)}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = file.originalName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            } else {
+                throw new Error('Failed to download file');
+            }
+        } catch (error) {
+            console.error('Ошибка при скачивании файла:', error);
+            // Fallback: открываем в новой вкладке с аутентификацией
             const link = document.createElement('a');
-            link.href = file.path;
-            link.download = file.originalName;
+            link.href = `/api/bids/${id}/files/${encodeURIComponent(file.name)}`;
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        } catch (error) {
-            console.error('Ошибка при скачивании файла:', error);
-            // Fallback: открываем в новой вкладке
-            window.open(file.path, '_blank');
         }
     };
 

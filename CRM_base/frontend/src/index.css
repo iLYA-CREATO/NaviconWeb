@@ -7,6 +7,24 @@ body {
     font-family: 'Inter', 'sans-serif';
 }
 
+/* Table container styles */
+.table-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.table-container table {
+    flex: 1;
+    overflow: auto;
+    font-size: 0.875rem;
+}
+
+.table-container th,
+.table-container td {
+    padding: 0.5rem 0.75rem;
+}
+
 ::-webkit-scrollbar {
     width: 0;
 }
