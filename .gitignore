@@ -33,3 +33,33 @@ dist
 stats.html
 
 .eslintcache
+
+# Generators and test data generation scripts
+**/generate-*.js
+**/generate-*.bat
+**/generate-*.sh
+**/fix_*.sql
+**/fix_*.ps1
+
+# Backup files
+**/*.backup
+**/backups/
+**/*.sql
+
+# Environment files (keep only .env.example if exists)
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Uploads and temporary files
+**/uploads/
+**/logs/
+**/*.log
+
+# Build outputs
+**/build/
+**/dist/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,1 +1,0 @@
-(Get-Content 'CRM_base/frontend/src/components/BidDetail.jsx') -replace 'bg-white border-gray-200\"}>', 'bg-white border-gray-200 w-32 flex-shrink-0"}>' | Set-Content 'CRM_base/frontend/src/components/BidDetail.jsx'
