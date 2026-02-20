@@ -8,6 +8,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -165,6 +166,7 @@ model Supplier {
        email     String?
        createdAt DateTime @default(now())
        updatedAt DateTime @updatedAt
+       equipment Equipment[]
    }
 
 model BidType {
@@ -205,6 +207,11 @@ model Equipment {
        productCode  Int?     @unique
        purchasePrice Decimal? @db.Decimal(10, 2)
        sellingPrice  Decimal? @db.Decimal(10, 2)
+       description  String?
+       category     String?
+       supplierId   Int?
+       supplier     Supplier? @relation(fields: [supplierId], references: [id])
+       images       String[]
        createdAt    DateTime @default(now())
        updatedAt    DateTime @updatedAt
        clientObjects ClientObject[]
