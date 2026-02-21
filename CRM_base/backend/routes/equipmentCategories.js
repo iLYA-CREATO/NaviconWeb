@@ -7,7 +7,15 @@ const prisma = new PrismaClient();
 router.get('/', async (req, res) => {
     try {
         const categories = await prisma.equipmentCategory.findMany({
-            orderBy: { name: 'asc' }
+            orderBy: { name: 'asc' },
+            include: {
+                parent: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
+            }
         });
         res.json(categories);
     } catch (error) {
@@ -21,7 +29,21 @@ router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const category = await prisma.equipmentCategory.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(id) },
+            include: {
+                parent: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
+                children: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
+            }
         });
         if (!category) {
             return res.status(404).json({ message: 'Категория оборудования не найдена' });
@@ -36,20 +58,34 @@ router.get('/:id', async (req, res) => {
 // Создание новой категории оборудования
 router.post('/', async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name, description, parentId } = req.body;
         
-        // Проверка на уникальность имени
-        const existing = await prisma.equipmentCategory.findUnique({
-            where: { name }
+        // Проверка на уникальность имени в рамках одной родительской категории
+        const existing = await prisma.equipmentCategory.findFirst({
+            where: { 
+                name,
+                parentId: parentId ? parseInt(parentId) : null
+            }
         });
         if (existing) {
-            return res.status(400).json({ message: 'Категория оборудования с таким названием уже существует' });
+            return res.status(400).json({ message: 'Категория оборудования с таким названием уже существует в данной категории' });
+        }
+        
+        // Проверка что parentId существует если указан
+        if (parentId) {
+            const parentCategory = await prisma.equipmentCategory.findUnique({
+                where: { id: parseInt(parentId) }
+            });
+            if (!parentCategory) {
+                return res.status(400).json({ message: 'Родительская категория не найдена' });
+            }
         }
         
         const category = await prisma.equipmentCategory.create({
             data: {
                 name,
                 description: description || null,
+                parentId: parentId ? parseInt(parentId) : null,
                 updatedAt: new Date()
             }
         });
@@ -64,18 +100,33 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description } = req.body;
+        const { name, description, parentId } = req.body;
         
         // Проверка на уникальность имени (если изменяется)
         if (name) {
             const existing = await prisma.equipmentCategory.findFirst({
                 where: { 
                     name,
+                    parentId: parentId ? parseInt(parentId) : null,
                     NOT: { id: parseInt(id) }
                 }
             });
             if (existing) {
-                return res.status(400).json({ message: 'Категория оборудования с таким названием уже существует' });
+                return res.status(400).json({ message: 'Категория оборудования с таким названием уже существует в данной категории' });
+            }
+        }
+        
+        // Проверка что parentId существует если указан
+        if (parentId) {
+            const parentCategory = await prisma.equipmentCategory.findUnique({
+                where: { id: parseInt(parentId) }
+            });
+            if (!parentCategory) {
+                return res.status(400).json({ message: 'Родительская категория не найдена' });
+            }
+            // Проверка на зацикливание (нельзя сделать категорию родителем самой себя или её потомка)
+            if (parseInt(parentId) === parseInt(id)) {
+                return res.status(400).json({ message: 'Категория не может быть родителем самой себя' });
             }
         }
         
@@ -84,6 +135,7 @@ router.put('/:id', async (req, res) => {
             data: {
                 name,
                 description,
+                parentId: parentId ? parseInt(parentId) : null,
                 updatedAt: new Date()
             }
         });
@@ -105,6 +157,14 @@ router.delete('/:id', async (req, res) => {
         });
         if (equipmentWithCategory) {
             return res.status(400).json({ message: 'Нельзя удалить категорию, используемую в оборудовании' });
+        }
+        
+        // Проверка на наличие дочерних категорий
+        const childCategories = await prisma.equipmentCategory.findMany({
+            where: { parentId: parseInt(id) }
+        });
+        if (childCategories.length > 0) {
+            return res.status(400).json({ message: 'Нельзя удалить категорию, содержащую вложенные категории. Сначала удалите или переместите дочерние категории.' });
         }
         
         await prisma.equipmentCategory.delete({

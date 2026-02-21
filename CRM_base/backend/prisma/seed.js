@@ -705,6 +705,31 @@ async function main() {
         { name: 'Микас', productCode: 10 }, // НПП ИТЭЛМА
     ];
 
+    // Создание категорий оборудования
+    const equipmentCategoriesList = [
+        { name: 'Терминалы' },
+        { name: 'Датчики уровня топлива' },
+        { name: 'Тахографы' },
+        { name: 'Допог' },
+        { name: 'Блоки СКЗИ' },
+        { name: 'Carvis' },
+        { name: 'Оборудование подрядчиков' },
+        { name: 'Система мониторинга осевых нагрузок' },
+    ];
+
+    for (const category of equipmentCategoriesList) {
+        await prisma.equipmentCategory.upsert({
+            where: { name: category.name },
+            update: {},
+            create: {
+                name: category.name,
+                description: null,
+                updatedAt: new Date(),
+            },
+        });
+        console.log('✅ Created equipment category:', category.name);
+    }
+
     const createdEquipment = [];
     for (const equipment of equipmentList) {
         const eq = await prisma.equipment.upsert({

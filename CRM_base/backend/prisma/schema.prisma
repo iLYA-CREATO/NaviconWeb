@@ -343,6 +343,9 @@ model EquipmentCategory {
   id          Int      @id @default(autoincrement())
   name        String   @unique
   description String?
+  parentId    Int?
+  parent      EquipmentCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    EquipmentCategory[] @relation("CategoryHierarchy")
   createdAt   DateTime @default(now())
   updatedAt   DateTime
 }

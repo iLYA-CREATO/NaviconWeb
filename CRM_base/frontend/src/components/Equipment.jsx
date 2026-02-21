@@ -53,7 +53,7 @@ const Equipment = () => {
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     
     // Состояния для форм категорий оборудования
-    const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
+    const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '', parentId: '' });
     const [editingCategory, setEditingCategory] = useState(null);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [customTabs, setCustomTabs] = useState([]);
@@ -289,6 +289,7 @@ const Equipment = () => {
             fetchSuppliers();
             setSupplierFormData({ name: '', entityType: '', inn: '', phone: '', email: '' });
             setEditingSupplier(null);
+            setShowSupplierModal(false);
         } catch (error) {
             console.error('Error saving supplier:', error);
             setError(error.response?.data?.message || 'Ошибка при сохранении поставщика');
@@ -322,14 +323,20 @@ const Equipment = () => {
     const handleCreateCategory = async (e) => {
         e.preventDefault();
         try {
+            const dataToSend = {
+                name: categoryFormData.name,
+                description: categoryFormData.description,
+                parentId: categoryFormData.parentId ? parseInt(categoryFormData.parentId) : null
+            };
             if (editingCategory) {
-                await updateEquipmentCategory(editingCategory.id, categoryFormData);
+                await updateEquipmentCategory(editingCategory.id, dataToSend);
             } else {
-                await createEquipmentCategory(categoryFormData);
+                await createEquipmentCategory(dataToSend);
             }
             fetchEquipmentCategories();
-            setCategoryFormData({ name: '', description: '' });
+            setCategoryFormData({ name: '', description: '', parentId: '' });
             setEditingCategory(null);
+            setShowCategoryModal(false);
         } catch (error) {
             console.error('Error saving category:', error);
             setError(error.response?.data?.message || 'Ошибка при сохранении категории');
@@ -340,7 +347,8 @@ const Equipment = () => {
         setEditingCategory(category);
         setCategoryFormData({
             name: category.name || '',
-            description: category.description || ''
+            description: category.description || '',
+            parentId: category.parentId || ''
         });
     };
 
@@ -694,7 +702,9 @@ const Equipment = () => {
                                     >
                                         <option value="">Выберите категорию</option>
                                         {equipmentCategories.map(cat => (
-                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.parentId ? '→ ' : ''}{cat.name}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -1103,7 +1113,7 @@ const Equipment = () => {
                                     <button
                                         onClick={() => {
                                             setEditingCategory(null);
-                                            setCategoryFormData({ name: '', description: '' });
+                                            setCategoryFormData({ name: '', description: '', parentId: '' });
                                             setShowCategoryModal(true);
                                         }}
                                         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
@@ -1115,7 +1125,7 @@ const Equipment = () => {
                                 {/* Форма добавления/редактирования категории */}
                                 {(editingCategory || categoryFormData.name) && (
                                     <form onSubmit={handleCreateCategory} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <input
                                                 type="text"
                                                 placeholder="Название *"
@@ -1131,6 +1141,18 @@ const Equipment = () => {
                                                 onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
                                                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             />
+                                            <select
+                                                value={categoryFormData.parentId}
+                                                onChange={(e) => setCategoryFormData({ ...categoryFormData, parentId: e.target.value ? parseInt(e.target.value) : '' })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="">Без родителя</option>
+                                                {equipmentCategories.filter(c => c.id !== editingCategory?.id).map(cat => (
+                                                    <option key={cat.id} value={cat.id}>
+                                                        {cat.parentId ? '→ ' : ''}{cat.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div className="mt-4 flex gap-2">
                                             <button
@@ -1143,7 +1165,7 @@ const Equipment = () => {
                                                 type="button"
                                                 onClick={() => {
                                                     setEditingCategory(null);
-                                                    setCategoryFormData({ name: '', description: '' });
+                                                    setCategoryFormData({ name: '', description: '', parentId: '' });
                                                 }}
                                                 className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition"
                                             >
@@ -1160,6 +1182,7 @@ const Equipment = () => {
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Родительская категория</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
                                             </tr>
@@ -1167,7 +1190,7 @@ const Equipment = () => {
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {equipmentCategories.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                                                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                                                         Нет категорий оборудования
                                                     </td>
                                                 </tr>
@@ -1175,7 +1198,12 @@ const Equipment = () => {
                                                 equipmentCategories.map((category) => (
                                                     <tr key={category.id} className="hover:bg-gray-50">
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.id}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{category.name}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            {category.parentId ? '→ ' : ''}{category.name}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            {category.parent?.name || '-'}
+                                                        </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.description || '-'}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                             <button
@@ -1306,7 +1334,7 @@ const Equipment = () => {
                                     onClick={() => {
                                         setShowCategoryModal(false);
                                         setEditingCategory(null);
-                                        setCategoryFormData({ name: '', description: '' });
+                                        setCategoryFormData({ name: '', description: '', parentId: '' });
                                     }}
                                     className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
                                 >
@@ -1327,6 +1355,21 @@ const Equipment = () => {
                                         />
                                     </div>
                                     <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Родительская категория</label>
+                                        <select
+                                            value={categoryFormData.parentId}
+                                            onChange={(e) => setCategoryFormData({ ...categoryFormData, parentId: e.target.value ? parseInt(e.target.value) : '' })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="">Без родителя (корневая категория)</option>
+                                            {equipmentCategories.filter(c => c.id !== editingCategory?.id).map(cat => (
+                                                <option key={cat.id} value={cat.id}>
+                                                    {cat.parentId ? '→ ' : ''}{cat.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
                                         <textarea
                                             placeholder="Описание категории"
@@ -1343,7 +1386,7 @@ const Equipment = () => {
                                         onClick={() => {
                                             setShowCategoryModal(false);
                                             setEditingCategory(null);
-                                            setCategoryFormData({ name: '', description: '' });
+                                            setCategoryFormData({ name: '', description: '', parentId: '' });
                                         }}
                                         className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition"
                                     >

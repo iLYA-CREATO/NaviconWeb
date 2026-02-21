@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles, getBidFiles, uploadBidFiles, deleteBidFile, getEnabledBidAttributes } from '../services/api';
+import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getEquipmentCategories, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles, getBidFiles, uploadBidFiles, deleteBidFile, getEnabledBidAttributes } from '../services/api';
 // Импорт функций для уведомлений
 import { createNotification } from '../services/api';
 // Импорт хука аутентификации
@@ -62,6 +62,7 @@ const BidDetail = () => {
     const [bidStatusTransitions, setBidStatusTransitions] = useState([]);
     const [bidEquipment, setBidEquipment] = useState([]);
     const [equipment, setEquipment] = useState([]);
+    const [equipmentCategories, setEquipmentCategories] = useState([]);
     const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
     const [editingEquipment, setEditingEquipment] = useState(null);
     const [showDeleteEquipmentModal, setShowDeleteEquipmentModal] = useState(false);
@@ -244,6 +245,7 @@ const BidDetail = () => {
         fetchBidSpecifications();
         fetchBidEquipment();
         fetchEquipment();
+        fetchEquipmentCategories();
         fetchUsers();
         fetchRoles();
         fetchSpecifications();
@@ -399,6 +401,15 @@ const BidDetail = () => {
             setEquipment(response.data);
         } catch (error) {
             console.error('Error fetching equipment:', error);
+        }
+    };
+
+    const fetchEquipmentCategories = async () => {
+        try {
+            const response = await getEquipmentCategories();
+            setEquipmentCategories(response.data);
+        } catch (error) {
+            console.error('Error fetching equipment categories:', error);
         }
     };
 
@@ -2055,6 +2066,7 @@ const BidDetail = () => {
                     onSave={handleSaveEquipment}
                     editingEquipment={editingEquipment}
                     equipment={equipment}
+                    equipmentCategories={equipmentCategories}
                 />
             )}
 
@@ -2634,13 +2646,93 @@ const EquipmentModal = ({
     onClose,
     onSave,
     editingEquipment,
-    equipment
+    equipment,
+    equipmentCategories
 }) => {
     const [selectedEquipmentId, setSelectedEquipmentId] = useState(editingEquipment?.equipmentId || '');
     const [imei, setImei] = useState(editingEquipment?.imei || '');
     const [quantity, setQuantity] = useState(editingEquipment?.quantity || 1);
+    const [expandedCategories, setExpandedCategories] = useState(new Set());
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    // Disable body scroll when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
 
     const selectedEquipment = equipment.find(e => e.id === parseInt(selectedEquipmentId));
+
+    // Group equipment by category - use equipmentCategories to map ID to name
+    const getEquipmentByCategory = () => {
+        const grouped = {};
+        equipment.forEach(eq => {
+            // Try to find category name from equipmentCategories by ID
+            let categoryName = 'Без категории';
+            if (eq.category) {
+                // Check if category is a number (ID) and look up the name
+                const categoryId = parseInt(eq.category);
+                if (!isNaN(categoryId)) {
+                    const foundCategory = equipmentCategories.find(cat => cat.id === categoryId);
+                    if (foundCategory) {
+                        categoryName = foundCategory.name;
+                    }
+                } else {
+                    // It's already a name (string)
+                    categoryName = eq.category;
+                }
+            }
+            
+            if (!grouped[categoryName]) {
+                grouped[categoryName] = [];
+            }
+            grouped[categoryName].push(eq);
+        });
+        return grouped;
+    };
+
+    const equipmentByCategory = getEquipmentByCategory();
+
+    // Get sorted unique category names from equipment
+    const getSortedCategories = () => {
+        const categoryNames = Object.keys(equipmentByCategory)
+            .filter(catName => catName !== 'Без категории')
+            .sort((a, b) => a.localeCompare(b));
+        
+        // Return as objects with name property to match expected interface
+        return categoryNames.map(name => ({ name }));
+    };
+
+    const categoriesWithEquipment = getSortedCategories();
+    const hasUncategorized = equipmentByCategory['Без категории'] && equipmentByCategory['Без категории'].length > 0;
+
+    // Toggle category expansion
+    const toggleCategory = (categoryName) => {
+        const newExpanded = new Set(expandedCategories);
+        if (newExpanded.has(categoryName)) {
+            newExpanded.delete(categoryName);
+        } else {
+            newExpanded.add(categoryName);
+        }
+        setExpandedCategories(newExpanded);
+    };
+
+    // Expand all categories by default when dropdown opens
+    useEffect(() => {
+        if (isDropdownOpen) {
+            const allCategoryNames = new Set(categoriesWithEquipment.map(c => c.name));
+            if (hasUncategorized) {
+                allCategoryNames.add('Без категории');
+            }
+            setExpandedCategories(allCategoryNames);
+        }
+    }, [isDropdownOpen]);
 
     const handleSave = () => {
         if (!selectedEquipmentId) {
@@ -2657,28 +2749,131 @@ const EquipmentModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                <h3 className="text-lg font-semibold mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[85vh] overflow-y-auto custom-scrollbar">
+                <h3 className="text-lg font-semibold mb-4 pb-2 border-b">
                     {editingEquipment ? 'Редактировать оборудование' : 'Добавить оборудование'}
                 </h3>
 
-                {/* Equipment Selection */}
-                <div className="mb-4">
+                {/* Custom Dropdown with Categories */}
+                <div className="mb-4 relative">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Оборудование</label>
-                    <select
-                        value={selectedEquipmentId}
-                        onChange={(e) => setSelectedEquipmentId(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
+                    
+                    {/* Dropdown trigger */}
+                    <div
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer min-h-[42px] flex items-center justify-between"
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     >
-                        <option value="">Выберите оборудование</option>
-                        {equipment.map(eq => (
-                            <option key={eq.id} value={eq.id}>
-                                {eq.name}
-                            </option>
-                        ))}
-                    </select>
+                        <span className={selectedEquipmentId ? 'text-gray-900' : 'text-gray-500'}>
+                            {selectedEquipmentId 
+                                ? equipment.find(e => e.id === parseInt(selectedEquipmentId))?.name || 'Выберите оборудование'
+                                : 'Выберите оборудование'}
+                        </span>
+                        <svg 
+                            className={`w-5 h-5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+
+                    {/* Dropdown panel with scroll */}
+                    {isDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-[500px] overflow-y-auto" 
+                             style={{ top: '100%', left: 0, right: 0 }}>
+                            {/* Categories with equipment */}
+                            {categoriesWithEquipment.map(cat => (
+                                <div key={cat.name} className="border-b border-gray-100 last:border-b-0">
+                                    {/* Category header */}
+                                    <div
+                                        className="px-3 py-2 bg-gray-50 cursor-pointer flex items-center justify-between hover:bg-gray-100"
+                                        onClick={() => toggleCategory(cat.name)}
+                                    >
+                                        <span className="font-medium text-gray-700">{cat.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500">
+                                                ({equipmentByCategory[cat.name].length})
+                                            </span>
+                                            <svg 
+                                                className={`w-4 h-4 text-gray-400 transition-transform ${expandedCategories.has(cat.name) ? 'rotate-180' : ''}`} 
+                                                fill="none" 
+                                                stroke="currentColor" 
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Equipment items in category */}
+                                    {expandedCategories.has(cat.name) && (
+                                        <div className="py-1">
+                                            {equipmentByCategory[cat.name].map(eq => (
+                                                <div
+                                                    key={eq.id}
+                                                    className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+                                                        selectedEquipmentId === eq.id.toString() ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
+                                                    }`}
+                                                    onClick={() => {
+                                                        setSelectedEquipmentId(eq.id.toString());
+                                                        setIsDropdownOpen(false);
+                                                    }}
+                                                >
+                                                    {eq.name}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
+                            {/* Uncategorized equipment */}
+                            {hasUncategorized && (
+                                <div className="border-b border-gray-100">
+                                    <div
+                                        className="px-3 py-2 bg-gray-50 cursor-pointer flex items-center justify-between hover:bg-gray-100"
+                                        onClick={() => toggleCategory('Без категории')}
+                                    >
+                                        <span className="font-medium text-gray-700">Без категории</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500">
+                                                ({equipmentByCategory['Без категории'].length})
+                                            </span>
+                                            <svg 
+                                                className={`w-4 h-4 text-gray-400 transition-transform ${expandedCategories.has('Без категории') ? 'rotate-180' : ''}`} 
+                                                fill="none" 
+                                                stroke="currentColor" 
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    
+                                    {expandedCategories.has('Без категории') && (
+                                        <div className="py-1">
+                                            {equipmentByCategory['Без категории'].map(eq => (
+                                                <div
+                                                    key={eq.id}
+                                                    className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+                                                        selectedEquipmentId === eq.id.toString() ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
+                                                    }`}
+                                                    onClick={() => {
+                                                        setSelectedEquipmentId(eq.id.toString());
+                                                        setIsDropdownOpen(false);
+                                                    }}
+                                                >
+                                                    {eq.name}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* IMEI */}
@@ -2707,7 +2902,7 @@ const EquipmentModal = ({
                 </div>
 
                 {/* Buttons */}
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-2 mt-4 pt-4 border-t flex-shrink-0">
                     <button
                         onClick={onClose}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
