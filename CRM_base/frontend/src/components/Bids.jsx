@@ -16,7 +16,7 @@ import { createNotification } from '../services/api';
 // Импорт хука для проверки разрешений
 import { usePermissions } from '../hooks/usePermissions';
 // Импорт иконок из Lucide React
-import { X, ChevronLeft, ChevronRight, Plus, Bold, Italic, Underline, Strikethrough, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo, RotateCcw } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Bold, Italic, Underline, Strikethrough, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo, RotateCcw, ChevronUp, ChevronDown, Search } from 'lucide-react';
 
 // Компонент редактора Rich Text
 import RichTextEditor from './RichTextEditor';
@@ -59,6 +59,15 @@ const Bids = () => {
         clientObject: '',
         responsible: '',
     });
+    // Состояние для режима "Кроме" (исключить) для каждого фильтра
+    const [filterExceptMode, setFilterExceptMode] = useState({
+        creator: false,
+        bidType: false,
+        client: false,
+        status: false,
+        clientObject: false,
+        responsible: false,
+    });
     // Состояние для видимых фильтров (сохранение в localStorage)
     const [visibleFilters, setVisibleFilters] = useState(() => {
         const saved = localStorage.getItem('bidsVisibleFilters');
@@ -66,6 +75,17 @@ const Bids = () => {
     });
     // Состояние для показа модального окна выбора фильтров
     const [showFilterModal, setShowFilterModal] = useState(false);
+    // Состояние для поиска в фильтрах
+    const [filterSearchTerms, setFilterSearchTerms] = useState({
+        creator: '',
+        bidType: '',
+        client: '',
+        status: '',
+        clientObject: '',
+        responsible: '',
+    });
+    // Состояние для поиска в настройках фильтров
+    const [filterSettingsSearch, setFilterSettingsSearch] = useState('');
     // Определение всех возможных колонок
     const allColumns = ['id', 'clientName', 'clientObject', 'tema', 'creatorName', 'status', 'description', 'plannedResolutionDate', 'plannedReactionTimeMinutes', 'assignedAt', 'plannedDurationMinutes', 'spentTimeHours', 'remainingTime'];
     // Загрузка начальных состояний из localStorage
@@ -644,13 +664,25 @@ const Bids = () => {
             bid.creatorName.toLowerCase().includes(searchTerm.toLowerCase()) || // Поиск по ФИО создателя (регистронезависимо)
             (bid.status && bid.status.toLowerCase().includes(searchTerm.toLowerCase())); // Поиск по статусу (регистронезависимо)
 
-        const matchesCreator = filters.creator === '' || bid.creatorName === filters.creator;
-        const matchesBidType = filters.bidType === '' || bid.bidTypeId === parseInt(filters.bidType);
-        const matchesClient = filters.client === '' || bid.clientName === filters.client;
-        const matchesStatus = filters.status === '' || bid.status === filters.status;
-        const matchesClientObject = filters.clientObject === '' || (bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '') === filters.clientObject;
+        // Логика фильтрации с учетом режима "Кроме"
+        const matchesCreator = filters.creator === '' || 
+            (filterExceptMode.creator ? bid.creatorName !== filters.creator : bid.creatorName === filters.creator);
+        const matchesBidType = filters.bidType === '' || 
+            (filterExceptMode.bidType ? bid.bidTypeId !== parseInt(filters.bidType) : bid.bidTypeId === parseInt(filters.bidType));
+        const matchesClient = filters.client === '' || 
+            (filterExceptMode.client ? bid.clientName !== filters.client : bid.clientName === filters.client);
+        const matchesStatus = filters.status === '' || 
+            (filterExceptMode.status ? bid.status !== filters.status : bid.status === filters.status);
+        const matchesClientObject = filters.clientObject === '' || 
+            (filterExceptMode.clientObject ? 
+                (bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '') !== filters.clientObject :
+                (bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '') === filters.clientObject
+            );
         const matchesResponsible = filters.responsible === '' || 
-            (filters.responsible.startsWith('Роль: ') ? bid.bidTypeResponsibleName === filters.responsible : bid.currentResponsibleUserName === filters.responsible);
+            (filterExceptMode.responsible ? 
+                (filters.responsible.startsWith('Роль: ') ? bid.bidTypeResponsibleName !== filters.responsible : bid.currentResponsibleUserName !== filters.responsible) :
+                (filters.responsible.startsWith('Роль: ') ? bid.bidTypeResponsibleName === filters.responsible : bid.currentResponsibleUserName === filters.responsible)
+            );
 
         return matchesSearch && matchesCreator && matchesBidType && matchesClient && matchesStatus && matchesClientObject && matchesResponsible;
     });
@@ -1117,85 +1149,151 @@ const Bids = () => {
                         {/* Фильтры */}
                         <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
                             {visibleFilters.creator && (
-                                <select
-                                    value={filters.creator}
-                                    onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Все создатели</option>
-                                    {uniqueCreators.map(creator => (
-                                        <option key={creator} value={creator}>{creator}</option>
-                                    ))}
-                                </select>
+                                <div className="flex items-center gap-1">
+                                    <select
+                                        value={filters.creator}
+                                        onChange={(e) => { setFilters({ ...filters, creator: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, creator: false }); }}
+                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.creator ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                                    >
+                                        <option value="">{filterExceptMode.creator ? 'Все (кроме)' : 'Все создатели'}</option>
+                                        {uniqueCreators.map(creator => (
+                                            <option key={creator} value={creator}>{creator}</option>
+                                        ))}
+                                    </select>
+                                    {filters.creator && (
+                                        <button
+                                            onClick={() => setFilterExceptMode({ ...filterExceptMode, creator: !filterExceptMode.creator })}
+                                            className={`px-2 py-1 text-xs rounded border ${filterExceptMode.creator ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
+                                            title={filterExceptMode.creator ? 'Показать все, кроме выбранного' : 'Исключить выбранное'}
+                                        >
+                                            {filterExceptMode.creator ? '≠' : '='}
+                                        </button>
+                                    )}
+                                </div>
                             )}
                             {visibleFilters.bidType && (
-                                <select
-                                    value={filters.bidType}
-                                    onChange={(e) => setFilters({ ...filters, bidType: e.target.value })}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Все типы заявок</option>
-                                    {bidTypes.map(bidType => (
-                                        <option key={bidType.id} value={bidType.id}>
-                                            {bidType.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="flex items-center gap-1">
+                                    <select
+                                        value={filters.bidType}
+                                        onChange={(e) => { setFilters({ ...filters, bidType: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, bidType: false }); }}
+                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.bidType ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                                    >
+                                        <option value="">{filterExceptMode.bidType ? 'Все (кроме)' : 'Все типы заявок'}</option>
+                                        {bidTypes.map(bidType => (
+                                            <option key={bidType.id} value={bidType.id}>
+                                                {bidType.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {filters.bidType && (
+                                        <button
+                                            onClick={() => setFilterExceptMode({ ...filterExceptMode, bidType: !filterExceptMode.bidType })}
+                                            className={`px-2 py-1 text-xs rounded border ${filterExceptMode.bidType ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
+                                            title={filterExceptMode.bidType ? 'Показать все, кроме выбранного' : 'Исключить выбранное'}
+                                        >
+                                            {filterExceptMode.bidType ? '≠' : '='}
+                                        </button>
+                                    )}
+                                </div>
                             )}
                             {visibleFilters.client && (
-                                <select
-                                    value={filters.client}
-                                    onChange={(e) => setFilters({ ...filters, client: e.target.value })}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Все клиенты</option>
-                                    {uniqueClients.map(client => (
-                                        <option key={client} value={client}>{client}</option>
-                                    ))}
-                                </select>
+                                <div className="flex items-center gap-1">
+                                    <select
+                                        value={filters.client}
+                                        onChange={(e) => { setFilters({ ...filters, client: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, client: false }); }}
+                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.client ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                                    >
+                                        <option value="">{filterExceptMode.client ? 'Все (кроме)' : 'Все клиенты'}</option>
+                                        {uniqueClients.map(client => (
+                                            <option key={client} value={client}>{client}</option>
+                                        ))}
+                                    </select>
+                                    {filters.client && (
+                                        <button
+                                            onClick={() => setFilterExceptMode({ ...filterExceptMode, client: !filterExceptMode.client })}
+                                            className={`px-2 py-1 text-xs rounded border ${filterExceptMode.client ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
+                                            title={filterExceptMode.client ? 'Показать все, кроме выбранного' : 'Исключить выбранное'}
+                                        >
+                                            {filterExceptMode.client ? '≠' : '='}
+                                        </button>
+                                    )}
+                                </div>
                             )}
                             {visibleFilters.status && (
-                                <select
-                                    value={filters.status}
-                                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Все статусы</option>
-                                    {uniqueStatuses.map(status => (
-                                        <option key={status} value={status}>{status}</option>
-                                    ))}
-                                </select>
+                                <div className="flex items-center gap-1">
+                                    <select
+                                        value={filters.status}
+                                        onChange={(e) => { setFilters({ ...filters, status: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, status: false }); }}
+                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.status ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                                    >
+                                        <option value="">{filterExceptMode.status ? 'Все (кроме)' : 'Все статусы'}</option>
+                                        {uniqueStatuses.map(status => (
+                                            <option key={status} value={status}>{status}</option>
+                                        ))}
+                                    </select>
+                                    {filters.status && (
+                                        <button
+                                            onClick={() => setFilterExceptMode({ ...filterExceptMode, status: !filterExceptMode.status })}
+                                            className={`px-2 py-1 text-xs rounded border ${filterExceptMode.status ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
+                                            title={filterExceptMode.status ? 'Показать все, кроме выбранного' : 'Исключить выбранное'}
+                                        >
+                                            {filterExceptMode.status ? '≠' : '='}
+                                        </button>
+                                    )}
+                                </div>
                             )}
                             {visibleFilters.clientObject && (
-                                <select
-                                    value={filters.clientObject}
-                                    onChange={(e) => setFilters({ ...filters, clientObject: e.target.value })}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Все объекты обслуживания</option>
-                                    {uniqueClientObjects.map(obj => (
-                                        <option key={obj} value={obj}>{obj}</option>
-                                    ))}
-                                </select>
+                                <div className="flex items-center gap-1">
+                                    <select
+                                        value={filters.clientObject}
+                                        onChange={(e) => { setFilters({ ...filters, clientObject: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, clientObject: false }); }}
+                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.clientObject ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                                    >
+                                        <option value="">{filterExceptMode.clientObject ? 'Все (кроме)' : 'Все объекты обслуживания'}</option>
+                                        {uniqueClientObjects.map(obj => (
+                                            <option key={obj} value={obj}>{obj}</option>
+                                        ))}
+                                    </select>
+                                    {filters.clientObject && (
+                                        <button
+                                            onClick={() => setFilterExceptMode({ ...filterExceptMode, clientObject: !filterExceptMode.clientObject })}
+                                            className={`px-2 py-1 text-xs rounded border ${filterExceptMode.clientObject ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
+                                            title={filterExceptMode.clientObject ? 'Показать все, кроме выбранного' : 'Исключить выбранное'}
+                                        >
+                                            {filterExceptMode.clientObject ? '≠' : '='}
+                                        </button>
+                                    )}
+                                </div>
                             )}
                             {visibleFilters.responsible && (
-                                <select
-                                    value={filters.responsible}
-                                    onChange={(e) => setFilters({ ...filters, responsible: e.target.value })}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Все ответственные</option>
-                                    <optgroup label="Пользователи">
-                                        {users.map(user => (
-                                            <option key={user.id} value={user.fullName}>{user.fullName}</option>
-                                        ))}
-                                    </optgroup>
-                                    <optgroup label="Роли">
-                                        {roles.map(role => (
-                                            <option key={role.id} value={`Роль: ${role.name}`}>{role.name}</option>
-                                        ))}
-                                    </optgroup>
-                                </select>
+                                <div className="flex items-center gap-1">
+                                    <select
+                                        value={filters.responsible}
+                                        onChange={(e) => { setFilters({ ...filters, responsible: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, responsible: false }); }}
+                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.responsible ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                                    >
+                                        <option value="">{filterExceptMode.responsible ? 'Все (кроме)' : 'Все ответственные'}</option>
+                                        <optgroup label="Пользователи">
+                                            {users.map(user => (
+                                                <option key={user.id} value={user.fullName}>{user.fullName}</option>
+                                            ))}
+                                        </optgroup>
+                                        <optgroup label="Роли">
+                                            {roles.map(role => (
+                                                <option key={role.id} value={`Роль: ${role.name}`}>{role.name}</option>
+                                            ))}
+                                        </optgroup>
+                                    </select>
+                                    {filters.responsible && (
+                                        <button
+                                            onClick={() => setFilterExceptMode({ ...filterExceptMode, responsible: !filterExceptMode.responsible })}
+                                            className={`px-2 py-1 text-xs rounded border ${filterExceptMode.responsible ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
+                                            title={filterExceptMode.responsible ? 'Показать все, кроме выбранного' : 'Исключить выбранное'}
+                                        >
+                                            {filterExceptMode.responsible ? '≠' : '='}
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
                         {/* Поле поиска */}
@@ -1290,7 +1388,20 @@ const Bids = () => {
                                 <X size={20} className="text-gray-500" />
                             </button>
                         </div>
+                        <div className="mb-4">
+                            <div className="relative">
+                                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Поиск фильтров..."
+                                    value={filterSettingsSearch}
+                                    onChange={(e) => setFilterSettingsSearch(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
                         <div className="space-y-4">
+                            {(!filterSettingsSearch || 'создатель'.includes(filterSettingsSearch.toLowerCase())) && (
                             <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
@@ -1300,6 +1411,8 @@ const Bids = () => {
                                 />
                                 <span className="text-gray-700">Фильтр по создателю</span>
                             </label>
+                            )}
+                            {(!filterSettingsSearch || 'тип'.includes(filterSettingsSearch.toLowerCase())) && (
                             <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
@@ -1309,6 +1422,8 @@ const Bids = () => {
                                 />
                                 <span className="text-gray-700">Фильтр по типу заявки</span>
                             </label>
+                            )}
+                            {(!filterSettingsSearch || 'клиент'.includes(filterSettingsSearch.toLowerCase())) && (
                             <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
@@ -1318,6 +1433,8 @@ const Bids = () => {
                                 />
                                 <span className="text-gray-700">Фильтр по клиенту</span>
                             </label>
+                            )}
+                            {(!filterSettingsSearch || 'статус'.includes(filterSettingsSearch.toLowerCase())) && (
                             <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
@@ -1327,6 +1444,8 @@ const Bids = () => {
                                 />
                                 <span className="text-gray-700">Фильтр по статусу</span>
                             </label>
+                            )}
+                            {(!filterSettingsSearch || 'объект'.includes(filterSettingsSearch.toLowerCase())) && (
                             <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
@@ -1336,6 +1455,8 @@ const Bids = () => {
                                 />
                                 <span className="text-gray-700">Фильтр по объекту обслуживания</span>
                             </label>
+                            )}
+                            {(!filterSettingsSearch || 'ответствен'.includes(filterSettingsSearch.toLowerCase())) && (
                             <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
                                 <input
                                     type="checkbox"
@@ -1345,6 +1466,7 @@ const Bids = () => {
                                 />
                                 <span className="text-gray-700">Фильтр по ответственному</span>
                             </label>
+                            )}
                         </div>
                         <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
                             <button

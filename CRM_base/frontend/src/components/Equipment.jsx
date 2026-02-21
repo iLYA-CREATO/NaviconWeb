@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getExpenseHistory, getReturnHistory } from '../services/api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getExpenseHistory, getReturnHistory, getSuppliers } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 const Equipment = () => {
@@ -36,7 +36,11 @@ const Equipment = () => {
         productCode: '',
         sellingPrice: '',
         purchasePrice: '',
+        description: '',
+        category: '',
+        supplierId: '',
     });
+    const [suppliers, setSuppliers] = useState([]);
     const [error, setError] = useState('');
     const [customTabs, setCustomTabs] = useState([]);
     const [activeTab, setActiveTab] = useState('nomenclature');
@@ -68,6 +72,7 @@ const Equipment = () => {
 
     useEffect(() => {
         fetchEquipment();
+        fetchSuppliers();
     }, []);
 
     // Fetch expense history when the tab is active
@@ -148,6 +153,15 @@ const Equipment = () => {
             setEquipment(response.data);
         } catch (error) {
             console.error('Error fetching equipment:', error);
+        }
+    };
+
+    const fetchSuppliers = async () => {
+        try {
+            const response = await getSuppliers();
+            setSuppliers(response.data);
+        } catch (error) {
+            console.error('Error fetching suppliers:', error);
         }
     };
 

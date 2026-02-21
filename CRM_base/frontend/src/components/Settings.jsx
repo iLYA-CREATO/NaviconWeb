@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
-import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients, getBids, getClientObjects, bulkUploadClientObjects, getClientAttributes, getEnabledClientAttributes, createClientAttribute, updateClientAttribute, deleteClientAttribute } from '../services/api';
+import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients, getBids, getClientObjects, bulkUploadClientObjects, getClientAttributes, getEnabledClientAttributes, createClientAttribute, updateClientAttribute, deleteClientAttribute, getBidAttributes, createBidAttribute, updateBidAttribute, deleteBidAttribute } from '../services/api';
 import * as XLSX from 'xlsx';
 import BackupManagement from './BackupManagement.jsx';
 
@@ -107,6 +107,16 @@ const Settings = () => {
         options: [],
         isEnabled: true,
     });
+    const [bidAttributes, setBidAttributes] = useState([]);
+    const [showBidAttributeForm, setShowBidAttributeForm] = useState(false);
+    const [editingBidAttribute, setEditingBidAttribute] = useState(null);
+    const [bidAttributeFormData, setBidAttributeFormData] = useState({
+        name: '',
+        type: 'string',
+        options: [],
+        isEnabled: true,
+    });
+    const [activeAttributeTab, setActiveAttributeTab] = useState('client-attributes');
     const [specificationCategories, setSpecificationCategories] = useState([]);
     const [allSpecificationCategories, setAllSpecificationCategories] = useState([]);
     const [expandedCategories, setExpandedCategories] = useState(new Set());
@@ -157,7 +167,7 @@ const Settings = () => {
             { id: 'user', permission: 'settings_user_button' },
             { id: 'roles', permission: 'settings_role_button' },
             { id: 'client-attributes', permission: 'settings_client_attributes_button' },
-            { id: 'specification-categories', permission: 'settings_spec_category_button' },
+            { id: 'bid-attributes', permission: 'settings_bid_attributes_button' },
             { id: 'specifications', permission: 'settings_spec_button' },
             { id: 'bid-types', permission: 'settings_bid_type_button' },
             { id: 'administration', permission: 'settings_administration_button' },
@@ -174,9 +184,6 @@ const Settings = () => {
                     break;
                 case 'roles':
                     fetchRoles();
-                    break;
-                case 'specification-categories':
-                    fetchSpecificationCategories();
                     break;
                 case 'specifications':
                     fetchSpecifications();
@@ -215,11 +222,6 @@ const Settings = () => {
                     fetchRoles();
                 }
                 break;
-            case 'specification-categories':
-                if (allSpecificationCategories.length === 0 && hasPermission('spec_category_create')) {
-                    fetchSpecificationCategories();
-                }
-                break;
             case 'specifications':
                 if (specifications.length === 0 && hasPermission('settings_spec_button')) {
                     fetchSpecifications();
@@ -233,8 +235,9 @@ const Settings = () => {
                     fetchBidTypes();
                 }
                 break;
-            case 'client-attributes':
+            case 'attributes':
                 fetchClientAttributes();
+                fetchBidAttributes();
                 break;
             case 'administration':
                 // Административные функции - данные не требуются
@@ -242,7 +245,7 @@ const Settings = () => {
             default:
                 break;
         }
-    }, [activeSettingsTab, hasPermission, users.length, roles.length, clientAttributes.length, allSpecificationCategories.length, specifications.length, bidTypes.length]);
+    }, [activeSettingsTab, hasPermission, users.length, roles.length, clientAttributes.length, bidAttributes.length, allSpecificationCategories.length, specifications.length, bidTypes.length]);
 
     const fetchUsers = async () => {
         try {
@@ -530,6 +533,46 @@ const Settings = () => {
                 fetchClientAttributes();
             } catch (error) {
                 console.error('Error deleting client attribute:', error);
+                setNotification({ type: 'error', message: 'Ошибка при удалении атрибута' });
+            }
+        }
+    };
+
+    const fetchBidAttributes = async () => {
+        try {
+            const response = await getBidAttributes();
+            setBidAttributes(response.data);
+        } catch (error) {
+            console.error('Error fetching bid attributes:', error);
+        }
+    };
+
+    const handleBidAttributeSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingBidAttribute) {
+                await updateBidAttribute(editingBidAttribute.id, bidAttributeFormData);
+                setNotification({ type: 'success', message: 'Атрибут заявки обновлен успешно' });
+            } else {
+                await createBidAttribute(bidAttributeFormData);
+                setNotification({ type: 'success', message: 'Атрибут заявки создан успешно' });
+            }
+            setShowBidAttributeForm(false);
+            fetchBidAttributes();
+        } catch (error) {
+            console.error('Error saving bid attribute:', error);
+            setNotification({ type: 'error', message: 'Ошибка при сохранении атрибута' });
+        }
+    };
+
+    const handleDeleteBidAttribute = async (id) => {
+        if (window.confirm('Вы уверены, что хотите удалить этот атрибут?')) {
+            try {
+                await deleteBidAttribute(id);
+                setNotification({ type: 'success', message: 'Атрибут заявки удален успешно' });
+                fetchBidAttributes();
+            } catch (error) {
+                console.error('Error deleting bid attribute:', error);
                 setNotification({ type: 'error', message: 'Ошибка при удалении атрибута' });
             }
         }
@@ -1147,17 +1190,60 @@ const Settings = () => {
                     {(hasChildren || hasSpecs) && (
                         <button
                             onClick={() => toggleSpecCategoryExpansion(category.id)}
-                            className="mr-2 text-gray-500 hover:text-gray-700"
+                            className="mr-2 text-gray-500 hover:text-gray-700 transition-transform transform"
                         >
                             {isExpanded ? '▼' : '▶'}
                         </button>
                     )}
                     {!(hasChildren || hasSpecs) && <span className="mr-2 w-4"></span>}
-                    <div className="flex-1">
-                        <span className="font-medium">{category.name}</span>
-                        {category.description && (
-                            <span className="text-gray-500 ml-2">({category.description})</span>
-                        )}
+                    <div className="flex items-center flex-1">
+                        <span className="text-lg mr-2">📁</span>
+                        <div>
+                            <span className="font-semibold text-gray-800">{category.name}</span>
+                            {category.description && (
+                                <span className="text-gray-500 ml-2 text-sm">({category.description})</span>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        <button
+                            onClick={() => {
+                                setShowSpecificationForm(true);
+                                setShowSpecificationCategoryForm(false);
+                                setEditingSpecification(null);
+                                setSpecificationFormData({ categoryId: category.id, name: '', discount: '', cost: '' });
+                            }}
+                            className="p-1.5 text-green-600 hover:bg-green-100 rounded transition"
+                            title="Добавить спецификацию"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowSpecificationCategoryForm(true);
+                                setShowSpecificationForm(false);
+                                setEditingSpecificationCategory(null);
+                                setSpecificationCategoryFormData({ name: '', description: '', parentId: category.id });
+                            }}
+                            className="p-1.5 text-yellow-600 hover:bg-yellow-100 rounded transition"
+                            title="Добавить вложенную папку"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+                        </button>
+                        <button
+                            onClick={() => handleEditSpecificationCategory(category)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition"
+                            title="Редактировать папку"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </button>
+                        <button
+                            onClick={() => handleDeleteSpecificationCategory(category.id)}
+                            className="p-1.5 text-red-600 hover:bg-red-100 rounded transition"
+                            title="Удалить папку"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
                     </div>
                 </div>
                 {isExpanded && (
@@ -1165,26 +1251,27 @@ const Settings = () => {
                         {category.specifications.map((spec) => (
                             <div
                                 key={spec.id}
-                                className="flex items-center py-1 px-4 hover:bg-gray-50"
+                                className="flex items-center py-2 px-4 hover:bg-blue-50 border-l-2 border-transparent hover:border-blue-300 transition-colors"
                                 style={{ paddingLeft: `${40 + category.level * 24}px` }}
                             >
+                                <span className="text-gray-400 mr-2">📄</span>
                                 <div className="flex-1 grid grid-cols-3 gap-4">
-                                    <span>{spec.name}</span>
-                                    <span>{spec.discount}%</span>
-                                    <span>{spec.cost} ₽</span>
+                                    <span className="font-medium text-gray-700">{spec.name}</span>
+                                    <span className="text-orange-600 font-medium">{spec.discount}%</span>
+                                    <span className="text-green-600 font-bold">{spec.cost} ₽</span>
                                 </div>
-                                <div className="flex space-x-2">
+                                <div className="flex space-x-1">
                                     <button
                                         onClick={() => handleEditSpecification(spec)}
-                                        className="text-blue-600 hover:text-blue-900 text-sm"
+                                        className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition"
                                     >
-                                        Редактировать
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                     </button>
                                     <button
                                         onClick={() => handleDeleteSpecification(spec.id)}
-                                        className="text-red-600 hover:text-red-900 text-sm"
+                                        className="p-1.5 text-red-600 hover:bg-red-100 rounded transition"
                                     >
-                                        Удалить
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                     </button>
                                 </div>
                             </div>
@@ -1525,6 +1612,7 @@ const Settings = () => {
                                             settings_user_button: false,
                                             settings_role_button: false,
                                             settings_client_attributes_button: false,
+                                            settings_bid_attributes_button: false,
                                             settings_spec_category_button: false,
                                             settings_spec_button: false,
                                             settings_bid_type_button: false,
@@ -1986,7 +2074,16 @@ const Settings = () => {
                                                         onChange={(e) => handlePermissionChange('settings_client_attributes_button', e.target.checked)}
                                                         className="mr-2"
                                                     />
-                                                    Видеть кнопку "Атрибуты клиентов"
+                                                    Видеть кнопку "Атрибуты"
+                                                </label>
+                                                <label className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={roleFormData.permissions.settings_bid_attributes_button}
+                                                        onChange={(e) => handlePermissionChange('settings_bid_attributes_button', e.target.checked)}
+                                                        className="mr-2"
+                                                    />
+                                                    Видеть кнопку "Атрибуты заявок"
                                                 </label>
                                                 <label className="flex items-center">
                                                     <input
@@ -2158,95 +2255,6 @@ const Settings = () => {
                                                 }
                                             });
                                         }}
-                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                                    >
-                                        Отмена
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeSettingsTab === 'specification-categories' && (
-                <div>
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-800">Управление категориями спецификаций</h2>
-                        {hasPermission('settings_spec_category_button') && (
-                            <button
-                                onClick={() => {
-                                    setShowSpecificationCategoryForm(!showSpecificationCategoryForm);
-                                    setEditingSpecificationCategory(null);
-                                    setSpecificationCategoryFormData({ name: '', description: '', parentId: '' });
-                                }}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                {showSpecificationCategoryForm ? 'Отмена' : '+ Добавить категорию'}
-                            </button>
-                        )}
-                    </div>
-
-                    {!showSpecificationCategoryForm && (
-                        <div className="bg-white rounded-lg shadow overflow-hidden">
-                            <div className="divide-y divide-gray-200">
-                                {specificationCategories.map((category) => (
-                                    <CategoryTreeItem key={category.id} category={category} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {showSpecificationCategoryForm && (
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-lg font-semibold mb-4">
-                                {editingSpecificationCategory ? 'Редактировать категорию' : 'Добавить новую категорию'}
-                            </h3>
-                            <form onSubmit={handleSpecificationCategorySubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
-                                    <input
-                                        type="text"
-                                        value={specificationCategoryFormData.name}
-                                        onChange={(e) => setSpecificationCategoryFormData({ ...specificationCategoryFormData, name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Родительская категория</label>
-                                    <select
-                                        value={specificationCategoryFormData.parentId}
-                                        onChange={(e) => setSpecificationCategoryFormData({ ...specificationCategoryFormData, parentId: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">Нет родителя (корневая категория)</option>
-                                        {buildCategoryOptions(specificationCategories, 0, editingSpecificationCategory?.id).map((option) => (
-                                            <option key={option.id} value={option.id}>
-                                                {option.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                                    <textarea
-                                        value={specificationCategoryFormData.description}
-                                        onChange={(e) => setSpecificationCategoryFormData({ ...specificationCategoryFormData, description: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        rows="3"
-                                    />
-                                </div>
-                                <div className="flex gap-2 pt-4">
-                                    <button
-                                        type="submit"
-                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                                    >
-                                        {editingSpecificationCategory ? 'Обновить' : 'Создать'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowSpecificationCategoryForm(false)}
                                         className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
                                     >
                                         Отмена
@@ -2587,21 +2595,89 @@ const Settings = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">Управление спецификациями</h2>
-                        {hasPermission('settings_spec_button') && (
-                            <button
-                                onClick={() => {
-                                    setShowSpecificationForm(!showSpecificationForm);
-                                    setEditingSpecification(null);
-                                    setSpecificationFormData({ categoryId: '', name: '', discount: '', cost: '' });
-                                }}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                            >
-                                {showSpecificationForm ? 'Отмена' : '+ Добавить спецификацию'}
-                            </button>
-                        )}
+                        <div className="flex gap-2">
+                            {hasPermission('settings_spec_button') && (
+                                <button
+                                    onClick={() => {
+                                        setShowSpecificationForm(!showSpecificationForm);
+                                        setShowSpecificationCategoryForm(false);
+                                        setEditingSpecification(null);
+                                        setSpecificationFormData({ categoryId: '', name: '', discount: '', cost: '' });
+                                    }}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    {showSpecificationForm ? 'Отмена' : '+ Новая спецификация'}
+                                </button>
+                            )}
+                            {hasPermission('settings_spec_button') && (
+                                <button
+                                    onClick={() => {
+                                        setShowSpecificationCategoryForm(!showSpecificationCategoryForm);
+                                        setShowSpecificationForm(false);
+                                        setEditingSpecificationCategory(null);
+                                        setSpecificationCategoryFormData({ name: '', description: '', parentId: '' });
+                                    }}
+                                    className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+                                    {showSpecificationCategoryForm ? 'Отмена' : '+ Новая папка'}
+                                </button>
+                            )}
+                        </div>
                     </div>
 
-                    {!showSpecificationForm && (
+                    {showSpecificationCategoryForm && (
+                        <div className="bg-white rounded-lg shadow p-6 mb-4">
+                            <h3 className="text-lg font-semibold mb-4">
+                                {editingSpecificationCategory ? 'Редактировать папку' : 'Добавить новую папку'}
+                            </h3>
+                            <form onSubmit={handleSpecificationCategorySubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название папки</label>
+                                    <input
+                                        type="text"
+                                        value={specificationCategoryFormData.name}
+                                        onChange={(e) => setSpecificationCategoryFormData({ ...specificationCategoryFormData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Родительская папка</label>
+                                    <select
+                                        value={specificationCategoryFormData.parentId}
+                                        onChange={(e) => setSpecificationCategoryFormData({ ...specificationCategoryFormData, parentId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Нет родителя (корневая папка)</option>
+                                        {allSpecificationCategories.map((cat) => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex gap-2 pt-4">
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                    >
+                                        {editingSpecificationCategory ? 'Обновить' : 'Создать'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowSpecificationCategoryForm(false)}
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+                    {!showSpecificationForm && !showSpecificationCategoryForm && (
                         <div className="bg-white rounded-lg shadow overflow-hidden">
                             <div className="divide-y divide-gray-200">
                                 {buildSpecificationsTree(specificationCategories, specifications).map((category) => (
@@ -2690,280 +2766,299 @@ const Settings = () => {
                     )}
                 </div>
             )}
-{activeSettingsTab === 'client-attributes' && (
-
+{activeSettingsTab === 'attributes' && (
     <div>
-
-        <div className="flex justify-between items-center mb-6">
-
-            <h2 className="text-2xl font-bold text-gray-800">Атрибуты клиентов</h2>
-
-            <button
-
-                onClick={() => {
-
-                    setClientAttributeFormData({
-
-                        name: '',
-
-                        type: 'string',
-
-                        options: [],
-
-                        isEnabled: true,
-
-                    });
-
-                    setEditingClientAttribute(null);
-
-                    setShowClientAttributeForm(true);
-
-                }}
-
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-
-            >
-
-                + Добавить атрибут
-
-            </button>
-
-        </div>
-
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-
-            <table className="min-w-full divide-y divide-gray-200">
-
-                <thead className="bg-gray-50">
-
-                    <tr>
-
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
-
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тип</th>
-
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Включен</th>
-
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody className="bg-white divide-y divide-gray-200">
-
-                    {clientAttributes.map((attr) => (
-
-                        <tr key={attr.id}>
-
-                            <td className="px-6 py-4 whitespace-nowrap">{attr.name}</td>
-
-                            <td className="px-6 py-4 whitespace-nowrap">{attr.type}</td>
-
-                            <td className="px-6 py-4 whitespace-nowrap">{attr.isEnabled ? 'Да' : 'Нет'}</td>
-
-                            <td className="px-6 py-4 whitespace-nowrap">
-
-                                <button
-
-                                    onClick={() => {
-
-                                        setClientAttributeFormData({
-
-                                            name: attr.name,
-
-                                            type: attr.type,
-
-                                            options: attr.options || [],
-
-                                            isEnabled: attr.isEnabled,
-
-                                        });
-
-                                        setEditingClientAttribute(attr);
-
-                                        setShowClientAttributeForm(true);
-
-                                    }}
-
-                                    className="text-blue-600 hover:text-blue-900 mr-2"
-
-                                >
-
-                                    Редактировать
-
-                                </button>
-
-                                <button
-
-                                    onClick={() => handleDeleteClientAttribute(attr.id)}
-
-                                    className="text-red-600 hover:text-red-900"
-
-                                >
-
-                                    Удалить
-
-                                </button>
-
-                            </td>
-
-                        </tr>
-
-                    ))}
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-        {showClientAttributeForm && (
-
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-
-                <div className="bg-white rounded-lg p-6 w-full max-w-md">
-
-                    <h3 className="text-xl font-bold mb-4">
-
-                        {editingClientAttribute ? 'Редактировать атрибут' : 'Добавить атрибут'}
-
-                    </h3>
-
-                    <form onSubmit={handleClientAttributeSubmit} className="space-y-4">
-
-                        <div>
-
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
-
-                            <input
-
-                                type="text"
-
-                                value={clientAttributeFormData.name}
-
-                                onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, name: e.target.value })}
-
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-
-                                required
-
-                            />
-
-                        </div>
-
-                        <div>
-
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Тип</label>
-
-                            <select
-
-                                value={clientAttributeFormData.type}
-
-                                onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, type: e.target.value })}
-
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-
-                            >
-
-                                <option value="string">Строка</option>
-
-                                <option value="number">Число</option>
-
-                                <option value="boolean">Булево</option>
-
-                                <option value="select">Выпадающий список</option>
-
-                                <option value="multiselect">Набор значений из списка</option>
-
-                                <option value="image">Рисунок</option>
-
-                            </select>
-
-                        </div>
-
-                        {(clientAttributeFormData.type === 'select' || clientAttributeFormData.type === 'multiselect') && (
-
-                            <div>
-
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Опции (через запятую)</label>
-
-                                <input
-
-                                    type="text"
-
-                                    value={clientAttributeFormData.options ? clientAttributeFormData.options.join(', ') : ''}
-
-                                    onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, options: e.target.value.split(',').map(s => s.trim()).filter(s => s) })}
-
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-
-                                    placeholder="Опция 1, Опция 2, Опция 3"
-
-                                />
-
-                            </div>
-
-                        )}
-
-                        <div className="flex items-center">
-
-                            <input
-
-                                type="checkbox"
-
-                                checked={clientAttributeFormData.isEnabled}
-
-                                onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, isEnabled: e.target.checked })}
-
-                                className="mr-2"
-
-                            />
-
-                            <label className="text-sm font-medium text-gray-700">Включен</label>
-
-                        </div>
-
-                        <div className="flex gap-2 pt-4">
-
-                            <button
-
-                                type="submit"
-
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-
-                            >
-
-                                {editingClientAttribute ? 'Обновить' : 'Создать'}
-
-                            </button>
-
-                            <button
-
-                                type="button"
-
-                                onClick={() => setShowClientAttributeForm(false)}
-
-                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-
-                            >
-
-                                Отмена
-
-                            </button>
-
-                        </div>
-
-                    </form>
-
-                </div>
-
+        <div className="mb-6">
+            <div className="flex border-b border-gray-200">
+                <button
+                    onClick={() => setActiveAttributeTab('client-attributes')}
+                    className={`px-4 py-2 -mb-px border-b-2 font-medium text-sm ${
+                        activeAttributeTab === 'client-attributes'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                    Атрибуты клиентов
+                </button>
+                <button
+                    onClick={() => setActiveAttributeTab('bid-attributes')}
+                    className={`px-4 py-2 -mb-px border-b-2 font-medium text-sm ${
+                        activeAttributeTab === 'bid-attributes'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                    Атрибуты заявок
+                </button>
             </div>
+        </div>
 
+        {activeAttributeTab === 'client-attributes' && (
+            <div>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Атрибуты клиентов</h2>
+                    <button
+                        onClick={() => {
+                            setClientAttributeFormData({ name: '', type: 'string', options: [], isEnabled: true });
+                            setEditingClientAttribute(null);
+                            setShowClientAttributeForm(true);
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        + Добавить атрибут
+                    </button>
+                </div>
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тип</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Включен</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {clientAttributes.map((attr) => (
+                                <tr key={attr.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap">{attr.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{attr.type}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{attr.isEnabled ? 'Да' : 'Нет'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <button
+                                            onClick={() => {
+                                                setClientAttributeFormData({
+                                                    name: attr.name,
+                                                    type: attr.type,
+                                                    options: attr.options || [],
+                                                    isEnabled: attr.isEnabled,
+                                                });
+                                                setEditingClientAttribute(attr);
+                                                setShowClientAttributeForm(true);
+                                            }}
+                                            className="text-blue-600 hover:text-blue-900 mr-2"
+                                        >
+                                            Редактировать
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClientAttribute(attr.id)}
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            Удалить
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                {showClientAttributeForm && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                            <h3 className="text-xl font-bold mb-4">
+                                {editingClientAttribute ? 'Редактировать атрибут' : 'Добавить атрибут'}
+                            </h3>
+                            <form onSubmit={handleClientAttributeSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                                    <input
+                                        type="text"
+                                        value={clientAttributeFormData.name}
+                                        onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Тип</label>
+                                    <select
+                                        value={clientAttributeFormData.type}
+                                        onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, type: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="string">Строка</option>
+                                        <option value="number">Число</option>
+                                        <option value="date">Дата</option>
+                                        <option value="select">Выбор из списка</option>
+                                        <option value="multiselect">Множественный выбор</option>
+                                    </select>
+                                </div>
+                                {(clientAttributeFormData.type === 'select' || clientAttributeFormData.type === 'multiselect') && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Варианты (через запятую)</label>
+                                        <input
+                                            type="text"
+                                            value={clientAttributeFormData.options ? clientAttributeFormData.options.join(', ') : ''}
+                                            onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, options: e.target.value.split(',').map(s => s.trim()).filter(s => s) })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Вариант 1, Вариант 2, Вариант 3"
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={clientAttributeFormData.isEnabled}
+                                        onChange={(e) => setClientAttributeFormData({ ...clientAttributeFormData, isEnabled: e.target.checked })}
+                                        className="mr-2"
+                                    />
+                                    <span>Включен</span>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowClientAttributeForm(false)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                                    >
+                                        Сохранить
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
         )}
 
+        {activeAttributeTab === 'bid-attributes' && (
+            <div>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Атрибуты заявок</h2>
+                    <button
+                        onClick={() => {
+                            setBidAttributeFormData({ name: '', type: 'string', options: [], isEnabled: true });
+                            setEditingBidAttribute(null);
+                            setShowBidAttributeForm(true);
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        + Добавить атрибут
+                    </button>
+                </div>
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тип</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Включен</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {bidAttributes.map((attr) => (
+                                <tr key={attr.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap">{attr.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{attr.type}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{attr.isEnabled ? 'Да' : 'Нет'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <button
+                                            onClick={() => {
+                                                setBidAttributeFormData({
+                                                    name: attr.name,
+                                                    type: attr.type,
+                                                    options: attr.options || [],
+                                                    isEnabled: attr.isEnabled,
+                                                });
+                                                setEditingBidAttribute(attr);
+                                                setShowBidAttributeForm(true);
+                                            }}
+                                            className="text-blue-600 hover:text-blue-900 mr-2"
+                                        >
+                                            Редактировать
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteBidAttribute(attr.id)}
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            Удалить
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                {showBidAttributeForm && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                            <h3 className="text-xl font-bold mb-4">
+                                {editingBidAttribute ? 'Редактировать атрибут' : 'Добавить атрибут'}
+                            </h3>
+                            <form onSubmit={handleBidAttributeSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                                    <input
+                                        type="text"
+                                        value={bidAttributeFormData.name}
+                                        onChange={(e) => setBidAttributeFormData({ ...bidAttributeFormData, name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Тип</label>
+                                    <select
+                                        value={bidAttributeFormData.type}
+                                        onChange={(e) => setBidAttributeFormData({ ...bidAttributeFormData, type: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="string">Строка</option>
+                                        <option value="number">Число</option>
+                                        <option value="date">Дата</option>
+                                        <option value="select">Выбор из списка</option>
+                                        <option value="multiselect">Множественный выбор</option>
+                                    </select>
+                                </div>
+                                {(bidAttributeFormData.type === 'select' || bidAttributeFormData.type === 'multiselect') && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Варианты (через запятую)</label>
+                                        <input
+                                            type="text"
+                                            value={bidAttributeFormData.options ? bidAttributeFormData.options.join(', ') : ''}
+                                            onChange={(e) => setBidAttributeFormData({ ...bidAttributeFormData, options: e.target.value.split(',').map(s => s.trim()).filter(s => s) })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Вариант 1, Вариант 2, Вариант 3"
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={bidAttributeFormData.isEnabled}
+                                        onChange={(e) => setBidAttributeFormData({ ...bidAttributeFormData, isEnabled: e.target.checked })}
+                                        className="mr-2"
+                                    />
+                                    <span>Включен</span>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowBidAttributeForm(false)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                                    >
+                                        Сохранить
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
     </div>
-
 )}
 
 {activeSettingsTab === 'administration' && (

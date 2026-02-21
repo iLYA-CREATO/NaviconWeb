@@ -19,6 +19,13 @@ router.get('/', authMiddleware, async (req, res) => {
                     select: {
                         id: true,
                         name: true,
+                        responsibleId: true,
+                        responsible: {
+                            select: {
+                                id: true,
+                                fullName: true,
+                            },
+                        },
                     },
                 },
                 equipment: {

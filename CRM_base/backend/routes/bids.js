@@ -290,6 +290,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
                         equipment: true,
                     },
                 }, // Оборудование заявки
+                attributeValues: {
+                    include: {
+                        attribute: true,
+                    },
+                }, // Значения атрибутов заявки
             },
         });
 

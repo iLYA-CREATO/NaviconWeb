@@ -75,6 +75,13 @@ export const createClientAttribute = (data) => api.post('/client-attributes', da
 export const updateClientAttribute = (id, data) => api.put(`/client-attributes/${id}`, data); // Обновление атрибута клиента
 export const deleteClientAttribute = (id) => api.delete(`/client-attributes/${id}`); // Удаление атрибута клиента
 
+// === АТРИБУТЫ ЗАЯВОК ===
+export const getBidAttributes = () => api.get('/bid-attributes'); // Получение всех атрибутов заявок
+export const getEnabledBidAttributes = () => api.get('/bid-attributes/enabled'); // Получение включенных атрибутов заявок
+export const createBidAttribute = (data) => api.post('/bid-attributes', data); // Создание нового атрибута заявки
+export const updateBidAttribute = (id, data) => api.put(`/bid-attributes/${id}`, data); // Обновление атрибута заявки
+export const deleteBidAttribute = (id) => api.delete(`/bid-attributes/${id}`); // Удаление атрибута заявки
+
 // === ЗАЯВКИ ===
 // CRUD-операции для заявок
 export const getBids = (page = 1, limit = 20) => api.get(`/bids?page=${page}&limit=${limit}`); // Получение всех заявок с пагинацией

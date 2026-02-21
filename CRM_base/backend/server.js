@@ -29,6 +29,7 @@ const bidEquipmentRoutes = require('./routes/bidEquipment'); // Маршруты
 const clientEquipmentRoutes = require('./routes/clientEquipment'); // Маршруты оборудования клиентов
 const backupRoutes = require('./routes/backups'); // Маршруты бэкапов
 const clientAttributeRoutes = require('./routes/clientAttributes'); // Маршруты атрибутов клиентов
+const bidAttributeRoutes = require('./routes/bidAttributes'); // Маршруты атрибутов заявок
 const analyticsRoutes = require('./routes/analytics'); // Маршруты аналитики
 const notificationRoutes = require('./routes/notifications'); // Маршруты уведомлений
 
@@ -68,6 +69,7 @@ app.use('/api/client-equipment', clientEquipmentRoutes); // /api/client-equipmen
 app.use('/api/backups', backupRoutes); // /api/backups/*
 
 app.use('/api/client-attributes', clientAttributeRoutes); // /api/client-attributes/*
+app.use('/api/bid-attributes', bidAttributeRoutes); // /api/bid-attributes/*
 app.use('/api/analytics', analyticsRoutes); // /api/analytics/*
 app.use('/api/notifications', notificationRoutes); // /api/notifications/*
 

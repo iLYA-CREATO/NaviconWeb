@@ -14,12 +14,16 @@ import { useNavigate } from 'react-router-dom';
 import { getClients, createClient, getUsers, getEnabledClientAttributes } from '../services/api';
 // Импорт хука для проверки разрешений
 import { usePermissions } from '../hooks/usePermissions';
+// Импорт хука для получения текущего пользователя
+import { useAuth } from '../context/AuthContext';
 
 const Clients = () => {
     // Хук для навигации
     const navigate = useNavigate();
     // Хук для проверки разрешений
     const { hasPermission } = usePermissions();
+    // Хук для получения текущего пользователя
+    const { user: currentUser } = useAuth();
 
     // Состояние для списка клиентов
     const [clients, setClients] = useState([]);
@@ -38,6 +42,8 @@ const Clients = () => {
     const [searchQuery, setSearchQuery] = useState(localStorage.getItem('clientsSearchQuery') || '');
     // Состояние для фильтра по ответственному (сохранение в localStorage)
     const [responsibleFilter, setResponsibleFilter] = useState(localStorage.getItem('clientsResponsibleFilter') || '');
+    // Состояние для режима "Кроме" для фильтра ответственного
+    const [responsibleExceptMode, setResponsibleExceptMode] = useState(false);
     // Состояние для видимых фильтров (сохранение в localStorage)
     const [visibleFilters, setVisibleFilters] = useState(() => {
         const saved = localStorage.getItem('clientsVisibleFilters');
@@ -147,6 +153,17 @@ const Clients = () => {
         navigate(`/dashboard/clients/${client.id}`); // Переход на страницу деталей клиента
     };
 
+    // Функция открытия модального окна создания клиента
+    const openCreateModal = () => {
+        setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            responsibleId: currentUser?.id || '',
+        });
+        setShowModal(true);
+    };
+
     // Функция сброса формы к начальному состоянию
     const resetForm = () => {
         setFormData({ // Сброс данных формы
@@ -222,7 +239,7 @@ const Clients = () => {
                 <div className="flex justify-end mb-4">
                     {hasPermission('client_create') && (
                         <button
-                            onClick={() => setShowModal(true)} // Открытие модального окна создания клиента
+                            onClick={openCreateModal}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                         >
                             + Добавить клиента

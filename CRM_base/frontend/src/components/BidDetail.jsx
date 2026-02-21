@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
 import { useParams, useNavigate } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
-import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles, getBidFiles, uploadBidFiles, deleteBidFile } from '../services/api';
+import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles, getBidFiles, uploadBidFiles, deleteBidFile, getEnabledBidAttributes } from '../services/api';
 // Импорт функций для уведомлений
 import { createNotification } from '../services/api';
 // Импорт хука аутентификации
@@ -78,6 +78,7 @@ const BidDetail = () => {
 
     const [remainingTime, setRemainingTime] = useState(null);
     const [bidFiles, setBidFiles] = useState([]);
+    const [enabledBidAttributes, setEnabledBidAttributes] = useState([]);
     const [missingFiles, setMissingFiles] = useState(new Set());
     const [uploadingFile, setUploadingFile] = useState(false);
     const [showDeleteFileModal, setShowDeleteFileModal] = useState(false);
@@ -252,6 +253,7 @@ const BidDetail = () => {
         fetchClients();
         fetchBidTypes();
         fetchBidFiles();
+        fetchBidAttributes();
     }, [id]);
 
     useEffect(() => {
@@ -516,6 +518,15 @@ const BidDetail = () => {
             setMissingFiles(missing);
         } catch (error) {
             console.error('Error fetching bid files:', error);
+        }
+    };
+
+    const fetchBidAttributes = async () => {
+        try {
+            const response = await getEnabledBidAttributes();
+            setEnabledBidAttributes(response.data);
+        } catch (error) {
+            console.error('Error fetching bid attributes:', error);
         }
     };
 
@@ -1294,6 +1305,26 @@ const BidDetail = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
                         <p className="text-gray-900">{bid.description}</p>
                     </div>
+                    {enabledBidAttributes.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Атрибуты</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {enabledBidAttributes.map(attr => {
+                                    const value = bid.attributeValues?.find(av => av.attributeId === attr.id)?.value || '';
+                                    return (
+                                        <div key={attr.id}>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{attr.name}</label>
+                                            <p className="text-gray-900">
+                                                {attr.type === 'checkbox' ? (value === 'true' ? 'Да' : 'Нет') : 
+                                                 attr.type === 'date' ? (value ? new Date(value).toLocaleDateString('ru-RU') : '-')
+                                                 : value || '-'}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Equipment Section */}

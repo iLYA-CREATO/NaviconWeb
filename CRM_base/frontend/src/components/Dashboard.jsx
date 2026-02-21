@@ -47,8 +47,7 @@ const Dashboard = () => {
     const availableSettingsTabs = [
         { id: 'user', permission: 'settings_user_button', label: 'Пользователь' },
         { id: 'roles', permission: 'settings_role_button', label: 'Роли' },
-        { id: 'client-attributes', permission: 'settings_client_attributes_button', label: 'Атрибуты клиентов' },
-        { id: 'specification-categories', permission: 'settings_spec_category_button', label: 'Категории спецификаций' },
+        { id: 'attributes', permission: 'settings_client_attributes_button', label: 'Атрибуты' },
         { id: 'specifications', permission: 'settings_spec_button', label: 'Спецификации' },
         { id: 'bid-types', permission: 'settings_bid_type_button', label: 'Тип Заявки' },
         { id: 'administration', permission: 'settings_administration_button', label: 'Администрирование' },
@@ -102,7 +101,6 @@ const Dashboard = () => {
             'user': <User key="user-icon" size={20} />,
             'roles': <Shield key="roles-icon" size={20} />,
             'client-attributes': <Tag key="client-attributes-icon" size={20} />,
-            'specification-categories': <Folder key="specification-categories-icon" size={20} />,
             'specifications': <FileText key="specifications-icon" size={20} />,
             'bid-types': <Target key="bid-types-icon" size={20} />,
             'administration': <Settings key="administration-icon" size={20} />

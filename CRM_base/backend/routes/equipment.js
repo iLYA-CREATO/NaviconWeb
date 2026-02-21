@@ -7,7 +7,10 @@ const prisma = require('../prisma/client');
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const equipment = await prisma.equipment.findMany({
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            include: {
+                supplier: true
+            }
         });
 
         // Format response
@@ -17,7 +20,12 @@ router.get('/', authMiddleware, async (req, res) => {
                 name: item.name,
                 productCode: item.productCode,
                 sellingPrice: item.sellingPrice ? parseFloat(item.sellingPrice) : null,
-                purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null
+                purchasePrice: item.purchasePrice ? parseFloat(item.purchasePrice) : null,
+                description: item.description,
+                category: item.category,
+                supplierId: item.supplierId,
+                supplier: item.supplier,
+                images: item.images || []
             };
         });
 
@@ -32,7 +40,11 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
         const equipment = await prisma.equipment.findUnique({
-            where: { id: parseInt(req.params.id) }
+            where: { id: parseInt(req.params.id) },
+            include: {
+                supplier: true,
+                categoryData: true
+            }
         });
 
         if (!equipment) {
@@ -42,7 +54,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
         res.json({
             ...equipment,
             sellingPrice: equipment.sellingPrice ? parseFloat(equipment.sellingPrice) : null,
-            purchasePrice: equipment.purchasePrice ? parseFloat(equipment.purchasePrice) : null
+            purchasePrice: equipment.purchasePrice ? parseFloat(equipment.purchasePrice) : null,
+            category: equipment.category,
+            supplierId: equipment.supplierId,
+            images: equipment.images || []
         });
     } catch (error) {
         console.error('Get equipment error:', error);
@@ -53,25 +68,22 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create equipment
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { name, productCode, sellingPrice, purchasePrice, clientId } = req.body;
+        const { name, productCode, sellingPrice, purchasePrice, description, category, supplierId } = req.body;
 
-        if (!clientId) {
-            return res.status(400).json({ message: 'clientId is required' });
-        }
-
-        const existingName = await prisma.equipment.findFirst({
-            where: { name: name, clientId: parseInt(clientId) }
+        // Check for duplicates (global, not client-specific)
+        const existingName = await prisma.equipment.findUnique({
+            where: { name: name }
         });
         if (existingName) {
-            return res.status(400).json({ message: 'Оборудование с таким названием уже существует для этого клиента' });
+            return res.status(400).json({ message: 'Оборудование с таким названием уже существует' });
         }
 
         if (productCode) {
-            const existingCode = await prisma.equipment.findFirst({
-                where: { productCode: parseInt(productCode), clientId: parseInt(clientId) }
+            const existingCode = await prisma.equipment.findUnique({
+                where: { productCode: parseInt(productCode) }
             });
             if (existingCode) {
-                return res.status(400).json({ message: 'Оборудование с таким кодом товара уже существует для этого клиента' });
+                return res.status(400).json({ message: 'Оборудование с таким кодом товара уже существует' });
             }
         }
 
@@ -81,10 +93,9 @@ router.post('/', authMiddleware, async (req, res) => {
                 productCode: productCode ? parseInt(productCode) : null,
                 sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
                 purchasePrice: purchasePrice ? parseFloat(purchasePrice) : null,
-                clientId: parseInt(clientId),
-            },
-            include: {
-                client: true
+                description: description || null,
+                category: category || null,
+                supplierId: supplierId ? parseInt(supplierId) : null
             }
         });
 
@@ -92,7 +103,7 @@ router.post('/', authMiddleware, async (req, res) => {
             ...newEquipment,
             sellingPrice: newEquipment.sellingPrice ? parseFloat(newEquipment.sellingPrice) : null,
             purchasePrice: newEquipment.purchasePrice ? parseFloat(newEquipment.purchasePrice) : null,
-            clientName: newEquipment.client.name
+            images: newEquipment.images || []
         });
     } catch (error) {
         console.error('Create equipment error:', error);
