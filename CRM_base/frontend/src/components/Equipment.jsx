@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getExpenseHistory, getReturnHistory, getSuppliers } from '../services/api';
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getExpenseHistory, getReturnHistory, getSuppliers, getEquipmentCategories, createEquipmentCategory, updateEquipmentCategory, deleteEquipmentCategory, createSupplier, updateSupplier, deleteSupplier } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 const Equipment = () => {
@@ -12,7 +12,7 @@ const Equipment = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [showForm, setShowForm] = useState(false);
     // Определение всех возможных колонок для оборудования
-    const equipmentAllColumns = ['id', 'name', 'productCode', 'purchasePrice', 'sellingPrice'];
+    const equipmentAllColumns = ['id', 'name', 'productCode', 'purchasePrice', 'sellingPrice', 'category', 'supplier'];
     // Загрузка начальных состояний из localStorage для оборудования
     const savedEquipmentColumns = localStorage.getItem('equipmentVisibleColumns');
     const defaultEquipmentVisibleColumns = {
@@ -21,6 +21,8 @@ const Equipment = () => {
         productCode: true,
         sellingPrice: true,
         purchasePrice: true,
+        category: true,
+        supplier: true,
     };
     const initialEquipmentVisibleColumns = savedEquipmentColumns ? { ...defaultEquipmentVisibleColumns, ...JSON.parse(savedEquipmentColumns), sellingPrice: true, purchasePrice: true, productCode: true } : defaultEquipmentVisibleColumns;
     const savedEquipmentOrder = localStorage.getItem('equipmentColumnOrder');
@@ -41,9 +43,23 @@ const Equipment = () => {
         supplierId: '',
     });
     const [suppliers, setSuppliers] = useState([]);
+    const [equipmentCategories, setEquipmentCategories] = useState([]);
     const [error, setError] = useState('');
+    
+    // Состояния для форм поставщиков
+    const [supplierFormData, setSupplierFormData] = useState({ name: '', entityType: '', inn: '', phone: '', email: '' });
+    const [editingSupplier, setEditingSupplier] = useState(null);
+    const [supplierSearch, setSupplierSearch] = useState('');
+    const [showSupplierModal, setShowSupplierModal] = useState(false);
+    
+    // Состояния для форм категорий оборудования
+    const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '' });
+    const [editingCategory, setEditingCategory] = useState(null);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [customTabs, setCustomTabs] = useState([]);
     const [activeTab, setActiveTab] = useState('nomenclature');
+    const [selectedEquipment, setSelectedEquipment] = useState(null);
+    const [showEquipmentModal, setShowEquipmentModal] = useState(false);
 
     // Expense History column settings
     const expenseHistoryAllColumns = ['bidId', 'bidTema', 'clientObject', 'client', 'equipmentName', 'imei', 'quantity'];
@@ -73,6 +89,7 @@ const Equipment = () => {
     useEffect(() => {
         fetchEquipment();
         fetchSuppliers();
+        fetchEquipmentCategories();
     }, []);
 
     // Fetch expense history when the tab is active
@@ -98,6 +115,14 @@ const Equipment = () => {
     useEffect(() => {
         if (activeTab === 'return-history') {
             fetchReturnHistory();
+        }
+    }, [activeTab]);
+
+    // Fetch equipment categories and suppliers when the tab is active
+    useEffect(() => {
+        if (activeTab === 'other') {
+            fetchSuppliers();
+            fetchEquipmentCategories();
         }
     }, [activeTab]);
 
@@ -165,6 +190,15 @@ const Equipment = () => {
         }
     };
 
+    const fetchEquipmentCategories = async () => {
+        try {
+            const response = await getEquipmentCategories();
+            setEquipmentCategories(response.data);
+        } catch (error) {
+            console.error('Error fetching equipment categories:', error);
+        }
+    };
+
     const fetchExpenseHistory = async () => {
         try {
             const response = await getExpenseHistory();
@@ -209,8 +243,11 @@ const Equipment = () => {
     };
 
     const handleView = (item) => {
-        const tabId = `equipment-detail-${item.id}`;
-        openCustomTab(tabId, item.name);
+        // Загружаем поставщиков и категории если ещё не загружены
+        if (suppliers.length === 0) fetchSuppliers();
+        if (equipmentCategories.length === 0) fetchEquipmentCategories();
+        setSelectedEquipment(item);
+        setShowEquipmentModal(true);
     };
 
     const handleEdit = (item) => {
@@ -220,7 +257,12 @@ const Equipment = () => {
             productCode: item.productCode || '',
             sellingPrice: item.sellingPrice || '',
             purchasePrice: item.purchasePrice || '',
+            category: item.category || '',
+            supplierId: item.supplierId || '',
         });
+        // Загружаем поставщиков и категории если ещё не загружены
+        if (suppliers.length === 0) fetchSuppliers();
+        if (equipmentCategories.length === 0) fetchEquipmentCategories();
         openCustomTab('create-equipment', 'Редактирование оборудования');
     };
 
@@ -231,6 +273,85 @@ const Equipment = () => {
                 fetchEquipment();
             } catch (error) {
                 console.error('Error deleting equipment:', error);
+            }
+        }
+    };
+
+    // CRUD для поставщиков
+    const handleCreateSupplier = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingSupplier) {
+                await updateSupplier(editingSupplier.id, supplierFormData);
+            } else {
+                await createSupplier(supplierFormData);
+            }
+            fetchSuppliers();
+            setSupplierFormData({ name: '', entityType: '', inn: '', phone: '', email: '' });
+            setEditingSupplier(null);
+        } catch (error) {
+            console.error('Error saving supplier:', error);
+            setError(error.response?.data?.message || 'Ошибка при сохранении поставщика');
+        }
+    };
+
+    const handleEditSupplier = (supplier) => {
+        setEditingSupplier(supplier);
+        setSupplierFormData({
+            name: supplier.name || '',
+            entityType: supplier.entityType || '',
+            inn: supplier.inn || '',
+            phone: supplier.phone || '',
+            email: supplier.email || ''
+        });
+    };
+
+    const handleDeleteSupplier = async (supplier) => {
+        if (window.confirm(`Вы уверены, что хотите удалить поставщика "${supplier.name}"?`)) {
+            try {
+                await deleteSupplier(supplier.id);
+                fetchSuppliers();
+            } catch (error) {
+                console.error('Error deleting supplier:', error);
+                setError(error.response?.data?.message || 'Ошибка при удалении поставщика');
+            }
+        }
+    };
+
+    // CRUD для категорий оборудования
+    const handleCreateCategory = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingCategory) {
+                await updateEquipmentCategory(editingCategory.id, categoryFormData);
+            } else {
+                await createEquipmentCategory(categoryFormData);
+            }
+            fetchEquipmentCategories();
+            setCategoryFormData({ name: '', description: '' });
+            setEditingCategory(null);
+        } catch (error) {
+            console.error('Error saving category:', error);
+            setError(error.response?.data?.message || 'Ошибка при сохранении категории');
+        }
+    };
+
+    const handleEditCategory = (category) => {
+        setEditingCategory(category);
+        setCategoryFormData({
+            name: category.name || '',
+            description: category.description || ''
+        });
+    };
+
+    const handleDeleteCategory = async (category) => {
+        if (window.confirm(`Вы уверены, что хотите удалить категорию "${category.name}"?`)) {
+            try {
+                await deleteEquipmentCategory(category.id);
+                fetchEquipmentCategories();
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                setError(error.response?.data?.message || 'Ошибка при удалении категории');
             }
         }
     };
@@ -286,6 +407,8 @@ const Equipment = () => {
             productCode: 'Код товара',
             sellingPrice: 'Цена продажи',
             purchasePrice: 'Цена закупки',
+            category: 'Категория',
+            supplier: 'Поставщик',
         };
         return labels[column] || column;
     };
@@ -302,6 +425,14 @@ const Equipment = () => {
                 return item.sellingPrice ? `${item.sellingPrice} ₽` : '-';
             case 'purchasePrice':
                 return item.purchasePrice ? `${item.purchasePrice} ₽` : '-';
+            case 'category':
+                if (!item.category) return '-';
+                const cat = equipmentCategories.find(c => String(c.id) === String(item.category));
+                return cat ? cat.name : item.category;
+            case 'supplier':
+                if (!item.supplierId) return '-';
+                const sup = suppliers.find(s => s.id === item.supplierId);
+                return sup ? sup.name : '-';
             default:
                 return '';
         }
@@ -349,7 +480,8 @@ const Equipment = () => {
     const baseTabs = [
         { id: 'nomenclature', label: 'Номенклатура' },
         { id: 'expense-history', label: 'История Расхода' },
-        { id: 'return-history', label: 'История возврата' }
+        { id: 'return-history', label: 'История возврата' },
+        { id: 'other', label: 'Прочее' }
     ];
 
     const allTabs = [...baseTabs, ...customTabs];
@@ -378,8 +510,6 @@ const Equipment = () => {
             )}
 
 
-
-                <div>
                     {/* Tabs */}
                     <div className="border-b border-gray-200 mb-6 relative">
                         <nav className="tab-nav -mb-px flex space-x-8 overflow-x-auto pl-8 pr-8">
@@ -436,7 +566,12 @@ const Equipment = () => {
                                 <div className="flex justify-end mb-4">
                                     {hasPermission('equipment_create') && (
                                         <button
-                                            onClick={() => openCustomTab('create-equipment', 'Создание оборудования')}
+                                            onClick={() => {
+                                                resetForm();
+                                                if (suppliers.length === 0) fetchSuppliers();
+                                                if (equipmentCategories.length === 0) fetchEquipmentCategories();
+                                                openCustomTab('create-equipment', 'Создание оборудования');
+                                            }}
                                             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                                         >
                                             Новое оборудование
@@ -509,35 +644,16 @@ const Equipment = () => {
                                                     {getEquipmentColumnLabel(column)}
                                                 </th>
                                             ))}
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {filteredEquipment.map((item) => (
-                                            <tr key={item.id} className="hover:bg-gray-50">
+                                            <tr key={item.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(item)}>
                                                 {displayEquipmentColumns.map(column => (
-                                                    <td key={column} className="px-6 py-4 whitespace-nowrap">
+                                                    <td key={column} className="px-6 py-4 whitespace-nowrap" onClick={(e) => { e.stopPropagation(); handleView(item); }}>
                                                         {getEquipmentCellContent(item, column)}
                                                     </td>
                                                 ))}
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {hasPermission('equipment_edit') && (
-                                                        <button
-                                                            onClick={() => handleEdit(item)}
-                                                            className="text-blue-600 hover:text-blue-900 mr-2"
-                                                        >
-                                                            Редактировать
-                                                        </button>
-                                                    )}
-                                                    {hasPermission('equipment_delete') && (
-                                                        <button
-                                                            onClick={() => handleDelete(item)}
-                                                            className="text-red-600 hover:text-red-900"
-                                                        >
-                                                            Удалить
-                                                        </button>
-                                                    )}
-                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -548,7 +664,7 @@ const Equipment = () => {
 
                     {activeTab === 'create-equipment' && (
                         <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-xl font-bold mb-4">Добавить новое оборудование</h3>
+                            <h3 className="text-xl font-bold mb-4">{editingItem ? 'Редактировать оборудование' : 'Добавить новое оборудование'}</h3>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
@@ -568,6 +684,32 @@ const Equipment = () => {
                                         onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Категория оборудования</label>
+                                    <select
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value ? parseInt(e.target.value) : '' })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Выберите категорию</option>
+                                        {equipmentCategories.map(cat => (
+                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Поставщик</label>
+                                    <select
+                                        value={formData.supplierId}
+                                        onChange={(e) => setFormData({ ...formData, supplierId: e.target.value ? parseInt(e.target.value) : '' })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Выберите поставщика</option>
+                                        {suppliers.map(sup => (
+                                            <option key={sup.id} value={sup.id}>{sup.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Цена продажи</label>
@@ -807,7 +949,514 @@ const Equipment = () => {
                             </div>
                         </div>
                     )}
-                </div>
+
+                    {/* Вкладка Прочее - Поставщики и Категории оборудования */}
+                    {activeTab === 'other' && (
+                        <div className="space-y-8">
+                            {/* Секция Поставщики */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold">Поставщики</h3>
+                                    <button
+                                        onClick={() => {
+                                            setEditingSupplier(null);
+                                            setSupplierFormData({ name: '', entityType: '', inn: '', phone: '', email: '' });
+                                            setShowSupplierModal(true);
+                                        }}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    >
+                                        + Добавить поставщика
+                                    </button>
+                                </div>
+                                
+                                {/* Форма добавления/редактирования поставщика */}
+                                {(editingSupplier || supplierFormData.name) && (
+                                    <form onSubmit={handleCreateSupplier} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                            <input
+                                                type="text"
+                                                placeholder="Название *"
+                                                value={supplierFormData.name}
+                                                onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Тип организации (ИП/ООО/АО)"
+                                                value={supplierFormData.entityType}
+                                                onChange={(e) => setSupplierFormData({ ...supplierFormData, entityType: e.target.value })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="ИНН"
+                                                value={supplierFormData.inn}
+                                                onChange={(e) => setSupplierFormData({ ...supplierFormData, inn: e.target.value })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Телефон"
+                                                value={supplierFormData.phone}
+                                                onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <input
+                                                type="email"
+                                                placeholder="Email"
+                                                value={supplierFormData.email}
+                                                onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div className="mt-4 flex gap-2">
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+                                            >
+                                                {editingSupplier ? 'Обновить' : 'Добавить'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingSupplier(null);
+                                                    setSupplierFormData({ name: '', entityType: '', inn: '', phone: '', email: '' });
+                                                }}
+                                                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition"
+                                            >
+                                                Отмена
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {/* Таблица поставщиков */}
+                                <div className="mb-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Поиск поставщиков..."
+                                        value={supplierSearch}
+                                        onChange={(e) => setSupplierSearch(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Тип</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ИНН</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Телефон</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {suppliers.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                                                        Нет поставщиков
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                suppliers.filter(s => 
+                                                    !supplierSearch || 
+                                                    s.name?.toLowerCase().includes(supplierSearch.toLowerCase()) ||
+                                                    s.inn?.toLowerCase().includes(supplierSearch.toLowerCase()) ||
+                                                    s.phone?.toLowerCase().includes(supplierSearch.toLowerCase()) ||
+                                                    s.email?.toLowerCase().includes(supplierSearch.toLowerCase())
+                                                ).map((supplier) => (
+                                                    <tr key={supplier.id} className="hover:bg-gray-50">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{supplier.name}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{supplier.entityType || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{supplier.inn || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{supplier.phone || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{supplier.email || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                            <button
+                                                                onClick={() => handleEditSupplier(supplier)}
+                                                                className="text-blue-600 hover:text-blue-900 mr-2"
+                                                            >
+                                                                Редактировать
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteSupplier(supplier)}
+                                                                className="text-red-600 hover:text-red-900"
+                                                            >
+                                                                Удалить
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Секция Категории оборудования */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold">Категории оборудования</h3>
+                                    <button
+                                        onClick={() => {
+                                            setEditingCategory(null);
+                                            setCategoryFormData({ name: '', description: '' });
+                                            setShowCategoryModal(true);
+                                        }}
+                                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                    >
+                                        + Добавить категорию
+                                    </button>
+                                </div>
+                                
+                                {/* Форма добавления/редактирования категории */}
+                                {(editingCategory || categoryFormData.name) && (
+                                    <form onSubmit={handleCreateCategory} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <input
+                                                type="text"
+                                                placeholder="Название *"
+                                                value={categoryFormData.name}
+                                                onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Описание"
+                                                value={categoryFormData.description}
+                                                onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div className="mt-4 flex gap-2">
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+                                            >
+                                                {editingCategory ? 'Обновить' : 'Добавить'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingCategory(null);
+                                                    setCategoryFormData({ name: '', description: '' });
+                                                }}
+                                                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition"
+                                            >
+                                                Отмена
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {/* Таблица категорий */}
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Описание</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {equipmentCategories.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                                                        Нет категорий оборудования
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                equipmentCategories.map((category) => (
+                                                    <tr key={category.id} className="hover:bg-gray-50">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.id}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{category.name}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.description || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                            <button
+                                                                onClick={() => handleEditCategory(category)}
+                                                                className="text-blue-600 hover:text-blue-900 mr-2"
+                                                            >
+                                                                Редактировать
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteCategory(category)}
+                                                                className="text-red-600 hover:text-red-900"
+                                                            >
+                                                                Удалить
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Модальное окно просмотра/редактирования оборудования */}
+                    {showEquipmentModal && selectedEquipment && (
+                        <div 
+                            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                            onClick={(e) => {
+                                if (e.target === e.currentTarget) {
+                                    setShowEquipmentModal(false);
+                                    setSelectedEquipment(null);
+                                }
+                            }}
+                        >
+                            <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 relative">
+                                <button
+                                    onClick={() => {
+                                        setShowEquipmentModal(false);
+                                        setSelectedEquipment(null);
+                                    }}
+                                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                                >
+                                    ×
+                                </button>
+                                <div className="p-6">
+                                    <h3 className="text-xl font-bold mb-4">{selectedEquipment.name}</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">ID:</span>
+                                            <span className="font-medium">{selectedEquipment.id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Код товара:</span>
+                                            <span className="font-medium">{selectedEquipment.productCode || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Цена продажи:</span>
+                                            <span className="font-medium">{selectedEquipment.sellingPrice ? `${selectedEquipment.sellingPrice} ₽` : '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Цена закупки:</span>
+                                            <span className="font-medium">{selectedEquipment.purchasePrice ? `${selectedEquipment.purchasePrice} ₽` : '-'}</span>
+                                        </div>
+                                        {selectedEquipment.description && (
+                                            <div>
+                                                <span className="text-gray-600">Описание:</span>
+                                                <p className="mt-1 text-gray-900">{selectedEquipment.description}</p>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Категория:</span>
+                                            <span className="font-medium">
+                                                {selectedEquipment.category 
+                                                    ? (equipmentCategories.find(c => c.id === selectedEquipment.category)?.name || selectedEquipment.category)
+                                                    : 'Отсутствует'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Поставщик:</span>
+                                            <span className="font-medium">
+                                                {selectedEquipment.supplierId 
+                                                    ? (suppliers.find(s => s.id === selectedEquipment.supplierId)?.name || selectedEquipment.supplierId)
+                                                    : 'Отсутствует'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end gap-3">
+                                    {hasPermission('equipment_edit') && (
+                                        <button
+                                            onClick={() => {
+                                                setShowEquipmentModal(false);
+                                                handleEdit(selectedEquipment);
+                                            }}
+                                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+                                        >
+                                            Редактировать
+                                        </button>
+                                    )}
+                                    {hasPermission('equipment_delete') && (
+                                        <button
+                                            onClick={() => {
+                                                handleDelete(selectedEquipment);
+                                                setShowEquipmentModal(false);
+                                                setSelectedEquipment(null);
+                                            }}
+                                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
+                                        >
+                                            Удалить
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                {/* Модальное окно для категории */}
+                {showCategoryModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold">
+                                    {editingCategory ? 'Редактировать категорию' : 'Новая категория'}
+                                </h3>
+                                <button
+                                    onClick={() => {
+                                        setShowCategoryModal(false);
+                                        setEditingCategory(null);
+                                        setCategoryFormData({ name: '', description: '' });
+                                    }}
+                                    className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <form onSubmit={handleCreateCategory}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Название категории"
+                                            value={categoryFormData.name}
+                                            onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                                        <textarea
+                                            placeholder="Описание категории"
+                                            value={categoryFormData.description}
+                                            onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            rows="3"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-6 flex gap-2 justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowCategoryModal(false);
+                                            setEditingCategory(null);
+                                            setCategoryFormData({ name: '', description: '' });
+                                        }}
+                                        className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+                                    >
+                                        {editingCategory ? 'Обновить' : 'Создать'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Модальное окно для поставщика */}
+                {showSupplierModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold">
+                                    {editingSupplier ? 'Редактировать поставщика' : 'Новый поставщик'}
+                                </h3>
+                                <button
+                                    onClick={() => {
+                                        setShowSupplierModal(false);
+                                        setEditingSupplier(null);
+                                        setSupplierFormData({ name: '', entityType: '', inn: '', phone: '', email: '' });
+                                    }}
+                                    className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <form onSubmit={handleCreateSupplier}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Название поставщика"
+                                            value={supplierFormData.name}
+                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Тип организации</label>
+                                        <input
+                                            type="text"
+                                            placeholder="ИП/ООО/АО"
+                                            value={supplierFormData.entityType}
+                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, entityType: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">ИНН</label>
+                                        <input
+                                            type="text"
+                                            placeholder="ИНН"
+                                            value={supplierFormData.inn}
+                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, inn: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Телефон"
+                                            value={supplierFormData.phone}
+                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                        <input
+                                            type="email"
+                                            placeholder="Email"
+                                            value={supplierFormData.email}
+                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-6 flex gap-2 justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowSupplierModal(false);
+                                            setEditingSupplier(null);
+                                            setSupplierFormData({ name: '', entityType: '', inn: '', phone: '', email: '' });
+                                        }}
+                                        className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition"
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+                                    >
+                                        {editingSupplier ? 'Обновить' : 'Создать'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
         </div>
     );
 };

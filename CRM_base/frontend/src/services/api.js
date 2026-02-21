@@ -165,6 +165,14 @@ export const createSupplier = (data) => api.post('/suppliers', data); // Соз�
 export const updateSupplier = (id, data) => api.put(`/suppliers/${id}`, data); // Обновление поставщика
 export const deleteSupplier = (id) => api.delete(`/suppliers/${id}`); // Удаление поставщика
 
+// === КАТЕГОРИИ ОБОРУДОВАНИЯ ===
+// CRUD-операции для категорий оборудования
+export const getEquipmentCategories = () => api.get('/equipment-categories'); // Получение всех категорий оборудования
+export const getEquipmentCategory = (id) => api.get(`/equipment-categories/${id}`); // Получение категории оборудования по ID
+export const createEquipmentCategory = (data) => api.post('/equipment-categories', data); // Создание новой категории оборудования
+export const updateEquipmentCategory = (id, data) => api.put(`/equipment-categories/${id}`, data); // Обновление категории оборудования
+export const deleteEquipmentCategory = (id) => api.delete(`/equipment-categories/${id}`); // Удаление категории оборудования
+
 // === СКЛАДЫ ===
 // CRUD-операции для складов
 export const getWarehouses = () => api.get('/warehouses'); // Получение всех складов

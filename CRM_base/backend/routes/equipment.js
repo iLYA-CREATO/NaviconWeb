@@ -114,7 +114,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // Update equipment
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { name, productCode, sellingPrice, purchasePrice } = req.body;
+        const { name, productCode, sellingPrice, purchasePrice, category, supplierId } = req.body;
         const equipmentId = parseInt(req.params.id);
 
         const currentEquipment = await prisma.equipment.findUnique({
@@ -152,6 +152,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 ...(productCode !== undefined && { productCode: productCode ? parseInt(productCode) : null }),
                 ...(sellingPrice !== undefined && { sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null }),
                 ...(purchasePrice !== undefined && { purchasePrice: purchasePrice ? parseFloat(purchasePrice) : null }),
+                ...(category !== undefined && { category: category ? String(category) : null }),
+                ...(supplierId !== undefined && { supplierId: supplierId ? parseInt(supplierId) : null }),
             },
         });
 

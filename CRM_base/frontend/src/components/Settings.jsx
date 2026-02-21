@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients, getBids, getClientObjects, bulkUploadClientObjects, getClientAttributes, getEnabledClientAttributes, createClientAttribute, updateClientAttribute, deleteClientAttribute, getBidAttributes, createBidAttribute, updateBidAttribute, deleteBidAttribute } from '../services/api';
 import * as XLSX from 'xlsx';
-import BackupManagement from './BackupManagement.jsx';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -1129,49 +1128,7 @@ const Settings = () => {
                     </div>
                 )}
     
-                {/* Modal for Client Object Upload */}
-                {showClientObjectUploadModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                            <div className="p-6">
-                                <h3 className="text-lg font-semibold mb-4">Загрузка объектов</h3>
-                                <div className="mb-4">
-                                    <p className="text-sm text-gray-600 mb-2">
-                                        Выберите Excel файл с данными объектов. Файл должен содержать следующие столбцы:
-                                    </p>
-                                    <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-                                        <li>Клиент - ID или название клиента</li>
-                                        <li>Марка/Модель - марка и модель объекта</li>
-                                        <li>Государственный номер - гос. номер</li>
-                                        <li>Оборудование - описание оборудования</li>
-                                        <li>Дата создания - дата создания записи</li>
-                                    </ul>
-                                </div>
-                                <div className="flex gap-2 pt-4">
-                                    <button
-                                        onClick={handleClientObjectFileUpload}
-                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                                    >
-                                        Загрузить файл
-                                    </button>
-                                    <button
-                                        onClick={() => setShowClientObjectUploadModal(false)}
-                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                                    >
-                                        Отмена
-                                    </button>
-                                </div>
-                                <input
-                                    type="file"
-                                    ref={clientObjectFileInputRef}
-                                    onChange={handleClientObjectFileChange}
-                                    accept=".xlsx,.xls"
-                                    style={{ display: 'none' }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
+
             </div>
         );
     };
@@ -3074,12 +3031,6 @@ const Settings = () => {
                             <h3 className="text-lg font-semibold mb-4">Управление клиентами</h3>
                             <div className="flex gap-4">
                                 <button
-                                    onClick={() => setShowClientUploadModal(true)}
-                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                                >
-                                    Импорт клиентов
-                                </button>
-                                <button
                                     onClick={handleExportClients}
                                     className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
@@ -3092,12 +3043,6 @@ const Settings = () => {
                         <div className="bg-white rounded-lg shadow p-6">
                             <h3 className="text-lg font-semibold mb-4">Управление Объектами</h3>
                             <div className="flex gap-4">
-                                <button
-                                    onClick={() => setShowClientObjectUploadModal(true)}
-                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                                >
-                                    Импорт объектов
-                                </button>
                                 <button
                                     onClick={handleExportClientObjects}
                                     className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
@@ -3112,12 +3057,6 @@ const Settings = () => {
                             <h3 className="text-lg font-semibold mb-4">Управление заявками</h3>
                             <div className="flex gap-4">
                                 <button
-                                    onClick={handleBidImportClick}
-                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                                >
-                                    Импорт заявок
-                                </button>
-                                <button
                                     onClick={handleExportBids}
                                     className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                 >
@@ -3126,58 +3065,12 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        {/* Backup Management Card */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <BackupManagement />
-                        </div>
+
                     </div>
                 </div>
             )}
 
-            {/* Modal for Client Upload */}
-            {showClientUploadModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                        <div className="p-6">
-                            <h3 className="text-lg font-semibold mb-4">Загрузка клиентов</h3>
-                            <div className="mb-4">
-                                <p className="text-sm text-gray-600 mb-2">
-                                    Выберите Excel файл с данными клиентов. Файл должен содержать следующие столбцы:
-                                </p>
-                                <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-                                    <li>Название - название клиента</li>
-                                    <li>ИНН - ИНН клиента</li>
-                                    <li>Электронная почта - email клиента</li>
-                                    <li>Телефон - телефон клиента</li>
-                                    <li>Дата создания - дата создания записи</li>
-                                    <li>Пользователь - ответственный пользователь</li>
-                                </ul>
-                            </div>
-                            <div className="flex gap-2 pt-4">
-                                <button
-                                    onClick={handleFileUpload}
-                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                                >
-                                    Загрузить файл
-                                </button>
-                                <button
-                                    onClick={() => setShowClientUploadModal(false)}
-                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                                >
-                                    Отмена
-                                </button>
-                            </div>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileChange}
-                                accept=".xlsx,.xls"
-                                style={{ display: 'none' }}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 };
