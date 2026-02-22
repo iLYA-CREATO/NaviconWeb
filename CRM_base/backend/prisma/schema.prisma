@@ -78,7 +78,6 @@ model Bid {
   clientObjectId             Int?
   updNumber                  String?
   updDate                    DateTime?
-  contract                   String?
   createdBy                  Int
   createdAt                  DateTime            @default(now())
   updatedAt                  DateTime            @updatedAt
@@ -106,7 +105,6 @@ model Bid {
   bidSpecifications          BidSpecification[]
   clientEquipments           ClientEquipment[]
   comments                   Comment[]
-  Contract                   Contract[]
 }
 
 model Comment {
@@ -229,7 +227,6 @@ model BidEquipment {
   returnReason String?
   bid          Bid       @relation(fields: [bidId], references: [id], onDelete: Cascade)
   equipment    Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  Contract     Contract?
 }
 
 model ClientEquipment {
@@ -319,24 +316,6 @@ model BidFile {
   user         User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
 
   @@index([bidId])
-}
-
-model Contract {
-  id              Int           @id @default(autoincrement())
-  bidId           Int
-  contractNumber  String?
-  clientName      String?
-  responsibleName String?
-  clientObject    String?
-  equipmentName   String?
-  imei            String?
-  quantity        Int           @default(1)
-  contractEndDate DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime
-  bidEquipmentId  Int?          @unique
-  BidEquipment    BidEquipment? @relation(fields: [bidEquipmentId], references: [id])
-  Bid             Bid           @relation(fields: [bidId], references: [id], onDelete: Cascade)
 }
 
 model EquipmentCategory {

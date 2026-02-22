@@ -25,7 +25,6 @@ const ClientDetail = () => {
     const [enabledAttributes, setEnabledAttributes] = useState([]);
     const [clientEquipment, setClientEquipment] = useState([]);
     const [clientFiles, setClientFiles] = useState([]);
-    const [clientContracts, setClientContracts] = useState([]);
     const [allEquipment, setAllEquipment] = useState([]);
     const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
     const [selectedEquipmentId, setSelectedEquipmentId] = useState('');
@@ -772,8 +771,7 @@ const ClientDetail = () => {
                         'Заявки',
                         'Оборудование',
                         'Файлы',
-                        'Объекты',
-                        'Договоры'
+                        'Объекты'
                     ].map((tab) => {
                         let displayTab = tab;
                         let count = 0;
@@ -785,8 +783,6 @@ const ClientDetail = () => {
                             count = clientFiles.length;
                         } else if (tab === 'Объекты') {
                             count = clientObjects.length;
-                        } else if (tab === 'Договоры') {
-                            count = clientContracts.length;
                         }
                         displayTab = `${tab} (${count})`;
                         return (
@@ -1068,12 +1064,6 @@ const ClientDetail = () => {
                             ) : (
                                 <p className="text-gray-500">У клиента нет объектов</p>
                             )}
-                        </div>
-                    )}
-                    {activeTab === 'Договоры' && (
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Договоры</h3>
-                            <p className="text-gray-500">В разработке</p>
                         </div>
                     )}
                 </div>

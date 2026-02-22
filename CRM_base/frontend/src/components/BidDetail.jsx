@@ -54,8 +54,6 @@ const BidDetail = () => {
     const [updNumber, setUpdNumber] = useState('');
     const [updDate, setUpdDate] = useState('');
     const [editingUpd, setEditingUpd] = useState(false);
-    const [contract, setContract] = useState('');
-    const [editingContract, setEditingContract] = useState(false);
     const [workAddress, setWorkAddress] = useState('');
     const [editingWorkAddress, setEditingWorkAddress] = useState(false);
     const [bidStatuses, setBidStatuses] = useState([]);
@@ -287,7 +285,6 @@ const BidDetail = () => {
         if (bid) {
             setUpdNumber(bid.updNumber || '');
             setUpdDate(bid.updDate ? new Date(bid.updDate).toISOString().split('T')[0] : '');
-            setContract(bid.contract || '');
             setWorkAddress(bid.workAddress || '');
         }
     }, [bid]);
@@ -1221,50 +1218,6 @@ const BidDetail = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">№, дата УПД</label>
                             <p className="text-gray-900">{updNumber || 'Не указан'} {updDate ? new Date(updDate).toLocaleDateString('ru-RU') : ''}</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Договор</label>
-                            {editingContract ? (
-                                <div className="flex flex-wrap gap-2">
-                                    <input
-                                        type="text"
-                                        value={contract}
-                                        onChange={(e) => setContract(e.target.value)}
-                                        className="flex-1 min-w-[150px] max-w-[300px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Номер договора"
-                                    />
-                                    <div className="flex flex-wrap gap-1 sm:gap-2 flex-shrink-0">
-                                        <button
-                                            onClick={() => {
-                                                handleUpdateBid({ contract });
-                                                setEditingContract(false);
-                                            }}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
-                                        >
-                                            Сохранить
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setContract(bid.contract || '');
-                                                setEditingContract(false);
-                                            }}
-                                            className="bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 sm:px-3 sm:py-2 text-sm rounded-lg whitespace-nowrap"
-                                        >
-                                            Отмена
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center space-x-2">
-                                    <p className="text-gray-900">{contract || 'Не указан'}</p>
-                                    <button
-                                        onClick={() => setEditingContract(true)}
-                                        className="text-blue-500 hover:text-blue-700"
-                                    >
-                                        ✏️
-                                    </button>
-                                </div>
-                            )}
                         </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Адрес проведения работ</label>

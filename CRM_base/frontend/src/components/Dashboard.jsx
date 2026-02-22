@@ -113,7 +113,6 @@ const Dashboard = () => {
         const icons = {
             'bids': <ClipboardList key="bids-icon" size={20} />,
             'clients': <Users key="clients-icon" size={20} />,
-            'contracts': <FileText key="contracts-icon" size={20} />,
             'objects': <Building key="objects-icon" size={20} />,
             'equipment': <Package key="equipment-icon" size={20} />,
             'salary': <DollarSign key="salary-icon" size={20} />,
@@ -340,20 +339,6 @@ const Dashboard = () => {
                                     title={isSidebarCollapsed ? "Клиенты" : ""}
                                 >
                                     {getNavIcon('clients')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Клиенты</span>
-                                </NavLink>
-                                {/* Ссылка на страницу договоров */}
-                                <NavLink
-                                    to="/dashboard/contracts"
-                                    className={({ isActive }) =>
-                                        `${
-                                            isActive
-                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
-                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
-                                    }
-                                    title={isSidebarCollapsed ? "Договоры" : ""}
-                                >
-                                    {getNavIcon('contracts')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Договоры</span>
                                 </NavLink>
                                 {/* Ссылка на страницу объектов */}
                                 <NavLink

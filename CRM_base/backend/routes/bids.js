@@ -469,7 +469,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
             clientObjectId: responseData.clientObjectId,
             updNumber: responseData.updNumber,
             updDate: responseData.updDate,
-            contract: responseData.contract,
             workAddress: responseData.workAddress,
             bidType: responseData.bidType,
             bidTypeName: responseData.bidType ? responseData.bidType.name : 'Не указан',
@@ -504,7 +503,7 @@ router.post('/', authMiddleware, async (req, res) => {
         }
 
         // Извлекаем данные из тела запроса
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, parentId, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, workAddress, contactFullName, contactPhone, parentId, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours } = req.body;
 
         // Логируем данные, отправленные в заявку
         const bidInputData = {
@@ -517,7 +516,6 @@ router.post('/', authMiddleware, async (req, res) => {
             bidTypeId,
             updNumber,
             updDate,
-            contract,
             workAddress,
             contactFullName,
             contactPhone,
@@ -590,7 +588,6 @@ router.post('/', authMiddleware, async (req, res) => {
                 createdBy: req.user.id, // ID пользователя, создавшего заявку
                 updNumber,
                 updDate: updDate ? new Date(updDate) : null,
-                contract,
                 workAddress,
                 contactFullName,
                 contactPhone,
@@ -628,10 +625,10 @@ router.post('/', authMiddleware, async (req, res) => {
 // Обновить заявку
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours, currentResponsibleUserId } = req.body;
+        const { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours, currentResponsibleUserId } = req.body;
 
         // Логируем данные обновления заявки
-        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, contract, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours, currentResponsibleUserId };
+        const updateData = { clientId, title, amount, status, description, clientObjectId, bidTypeId, updNumber, updDate, workAddress, contactFullName, contactPhone, plannedResolutionDate, plannedReactionTimeMinutes, assignedAt, plannedDurationMinutes, spentTimeHours, currentResponsibleUserId };
         console.log('Обновление заявки ID:', req.params.id, 'Данные:', updateData);
         logBidData('Обновление заявки ID: ' + req.params.id, updateData);
 
@@ -692,7 +689,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
                 clientObjectId: clientObjectId && clientObjectId.trim() ? parseInt(clientObjectId) : null, // Обновляем объект клиента
                 ...(updNumber !== undefined && { updNumber }), // Обновляем номер УПД если указано
                 ...(updDate !== undefined && { updDate: updDate ? new Date(updDate) : null }), // Обновляем дату УПД если указано
-                ...(contract !== undefined && { contract }), // Обновляем контракт если указано
                 ...(workAddress !== undefined && { workAddress }), // Обновляем адрес проведения работ если указано
                 ...(contactFullName !== undefined && { contactFullName }), // Обновляем ФИО контакта если указано
                 ...(contactPhone !== undefined && { contactPhone }), // Обновляем телефон контакта если указано
