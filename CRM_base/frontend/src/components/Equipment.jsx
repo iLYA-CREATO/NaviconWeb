@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getExpenseHistory, getReturnHistory, getSuppliers, getEquipmentCategories, createEquipmentCategory, updateEquipmentCategory, deleteEquipmentCategory, createSupplier, updateSupplier, deleteSupplier } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
+import Textarea from './Textarea';
 
 const Equipment = () => {
     const navigate = useNavigate();
@@ -674,90 +678,57 @@ const Equipment = () => {
                         <div className="bg-white rounded-lg shadow p-6">
                             <h3 className="text-xl font-bold mb-4">{editingItem ? 'Редактировать оборудование' : 'Добавить новое оборудование'}</h3>
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Код товара</label>
-                                    <input
-                                        type="number"
-                                        value={formData.productCode}
-                                        onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Категория оборудования</label>
-                                    <select
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value ? parseInt(e.target.value) : '' })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">Выберите категорию</option>
-                                        {equipmentCategories.map(cat => (
-                                            <option key={cat.id} value={cat.id}>
-                                                {cat.parentId ? '→ ' : ''}{cat.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Поставщик</label>
-                                    <select
-                                        value={formData.supplierId}
-                                        onChange={(e) => setFormData({ ...formData, supplierId: e.target.value ? parseInt(e.target.value) : '' })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">Выберите поставщика</option>
-                                        {suppliers.map(sup => (
-                                            <option key={sup.id} value={sup.id}>{sup.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Цена продажи</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.sellingPrice}
-                                        onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Цена закупки</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.purchasePrice}
-                                        onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
+                                <Input
+                                    label="Название"
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
+                                />
+                                <Input
+                                    label="Код товара"
+                                    type="number"
+                                    value={formData.productCode}
+                                    onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
+                                />
+                                <Select
+                                    label="Категория оборудования"
+                                    value={formData.category}
+                                    onChange={(e) => setFormData({ ...formData, category: e.target.value ? parseInt(e.target.value) : '' })}
+                                    options={equipmentCategories.map(cat => ({ value: cat.id, label: (cat.parentId ? '→ ' : '') + cat.name }))}
+                                    placeholder="Выберите категорию"
+                                />
+                                <Select
+                                    label="Поставщик"
+                                    value={formData.supplierId}
+                                    onChange={(e) => setFormData({ ...formData, supplierId: e.target.value ? parseInt(e.target.value) : '' })}
+                                    options={suppliers.map(sup => ({ value: sup.id, label: sup.name }))}
+                                    placeholder="Выберите поставщика"
+                                />
+                                <Input
+                                    label="Цена продажи"
+                                    type="number"
+                                    step="0.01"
+                                    value={formData.sellingPrice}
+                                    onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+                                />
+                                <Input
+                                    label="Цена закупки"
+                                    type="number"
+                                    step="0.01"
+                                    value={formData.purchasePrice}
+                                    onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
+                                />
                                 <div className="flex gap-2 pt-4">
-                                    <button
-                                        type="submit"
-                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                                    >
+                                    <Button type="submit" variant="primary" className="flex-1">
                                         {editingItem ? 'Обновить' : 'Создать'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            closeCustomTab('create-equipment');
-                                            resetForm();
-                                        }}
-                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                                    >
+                                    </Button>
+                                    <Button type="button" variant="secondary" onClick={() => {
+                                        closeCustomTab('create-equipment');
+                                        resetForm();
+                                    }} className="flex-1">
                                         Отмена
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>
@@ -1343,61 +1314,40 @@ const Equipment = () => {
                             </div>
                             <form onSubmit={handleCreateCategory}>
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Название категории"
-                                            value={categoryFormData.name}
-                                            onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Родительская категория</label>
-                                        <select
-                                            value={categoryFormData.parentId}
-                                            onChange={(e) => setCategoryFormData({ ...categoryFormData, parentId: e.target.value ? parseInt(e.target.value) : '' })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="">Без родителя (корневая категория)</option>
-                                            {equipmentCategories.filter(c => c.id !== editingCategory?.id).map(cat => (
-                                                <option key={cat.id} value={cat.id}>
-                                                    {cat.parentId ? '→ ' : ''}{cat.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
-                                        <textarea
-                                            placeholder="Описание категории"
-                                            value={categoryFormData.description}
-                                            onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            rows="3"
-                                        />
-                                    </div>
+                                    <Input
+                                        label="Название *"
+                                        type="text"
+                                        placeholder="Название категории"
+                                        value={categoryFormData.name}
+                                        onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                                        required
+                                    />
+                                    <Select
+                                        label="Родительская категория"
+                                        value={categoryFormData.parentId}
+                                        onChange={(e) => setCategoryFormData({ ...categoryFormData, parentId: e.target.value ? parseInt(e.target.value) : '' })}
+                                        options={equipmentCategories.filter(c => c.id !== editingCategory?.id).map(cat => ({ value: cat.id, label: (cat.parentId ? '→ ' : '') + cat.name }))}
+                                        placeholder="Без родителя (корневая категория)"
+                                    />
+                                    <Textarea
+                                        label="Описание"
+                                        placeholder="Описание категории"
+                                        value={categoryFormData.description}
+                                        onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                                        rows={3}
+                                    />
                                 </div>
                                 <div className="mt-6 flex gap-2 justify-end">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setShowCategoryModal(false);
-                                            setEditingCategory(null);
-                                            setCategoryFormData({ name: '', description: '', parentId: '' });
-                                        }}
-                                        className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition"
-                                    >
+                                    <Button type="button" variant="secondary" onClick={() => {
+                                        setShowCategoryModal(false);
+                                        setEditingCategory(null);
+                                        setCategoryFormData({ name: '', description: '', parentId: '' });
+                                    }}>
                                         Отмена
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
-                                    >
+                                    </Button>
+                                    <Button type="submit" variant="primary">
                                         {editingCategory ? 'Обновить' : 'Создать'}
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>
@@ -1425,76 +1375,54 @@ const Equipment = () => {
                             </div>
                             <form onSubmit={handleCreateSupplier}>
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Название поставщика"
-                                            value={supplierFormData.name}
-                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Тип организации</label>
-                                        <input
-                                            type="text"
-                                            placeholder="ИП/ООО/АО"
-                                            value={supplierFormData.entityType}
-                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, entityType: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">ИНН</label>
-                                        <input
-                                            type="text"
-                                            placeholder="ИНН"
-                                            value={supplierFormData.inn}
-                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, inn: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Телефон"
-                                            value={supplierFormData.phone}
-                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                        <input
-                                            type="email"
-                                            placeholder="Email"
-                                            value={supplierFormData.email}
-                                            onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
+                                    <Input
+                                        label="Название *"
+                                        type="text"
+                                        placeholder="Название поставщика"
+                                        value={supplierFormData.name}
+                                        onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
+                                        required
+                                    />
+                                    <Input
+                                        label="Тип организации"
+                                        type="text"
+                                        placeholder="ИП/ООО/АО"
+                                        value={supplierFormData.entityType}
+                                        onChange={(e) => setSupplierFormData({ ...supplierFormData, entityType: e.target.value })}
+                                    />
+                                    <Input
+                                        label="ИНН"
+                                        type="text"
+                                        placeholder="ИНН"
+                                        value={supplierFormData.inn}
+                                        onChange={(e) => setSupplierFormData({ ...supplierFormData, inn: e.target.value })}
+                                    />
+                                    <Input
+                                        label="Телефон"
+                                        type="text"
+                                        placeholder="Телефон"
+                                        value={supplierFormData.phone}
+                                        onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
+                                    />
+                                    <Input
+                                        label="Email"
+                                        type="email"
+                                        placeholder="Email"
+                                        value={supplierFormData.email}
+                                        onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
+                                    />
                                 </div>
                                 <div className="mt-6 flex gap-2 justify-end">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setShowSupplierModal(false);
-                                            setEditingSupplier(null);
-                                            setSupplierFormData({ name: '', entityType: '', inn: '', phone: '', email: '' });
-                                        }}
-                                        className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition"
-                                    >
+                                    <Button type="button" variant="secondary" onClick={() => {
+                                        setShowSupplierModal(false);
+                                        setEditingSupplier(null);
+                                        setSupplierFormData({ name: '', entityType: '', inn: '', phone: '', email: '' });
+                                    }}>
                                         Отмена
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
-                                    >
+                                    </Button>
+                                    <Button type="submit" variant="primary">
                                         {editingSupplier ? 'Обновить' : 'Создать'}
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>

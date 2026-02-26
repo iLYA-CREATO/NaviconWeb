@@ -9,11 +9,12 @@
 // Импорт компонентов и хуков из React Router
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 // Импорт иконок из Lucide React
-import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog, ChevronLeft, ChevronRight, Bell, BarChart2 } from 'lucide-react';
+import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog, ChevronLeft, ChevronRight, Bell, BarChart2, Key } from 'lucide-react';
 // Импорт хука состояния
 import { useState, useEffect, useMemo } from 'react';
 // Импорт хука аутентификации
 import { useAuth } from '../context/AuthContext.jsx';
+import Button from './Button';
 // Импорт хука прав доступа
 import { usePermissions } from '../hooks/usePermissions.js';
 // Импорт хука ошибок
@@ -50,6 +51,7 @@ const Dashboard = () => {
         { id: 'attributes', permission: 'settings_client_attributes_button', label: 'Атрибуты' },
         { id: 'specifications', permission: 'settings_spec_button', label: 'Спецификации' },
         { id: 'bid-types', permission: 'settings_bid_type_button', label: 'Тип Заявки' },
+        { id: 'api', permission: 'settings_api_button', label: 'API' },
         { id: 'administration', permission: 'settings_administration_button', label: 'Администрирование' },
     ];
 
@@ -103,6 +105,7 @@ const Dashboard = () => {
             'client-attributes': <Tag key="client-attributes-icon" size={20} />,
             'specifications': <FileText key="specifications-icon" size={20} />,
             'bid-types': <Target key="bid-types-icon" size={20} />,
+            'api': <Key key="api-icon" size={20} />,
             'administration': <Settings key="administration-icon" size={20} />
         };
         return icons[tabId] || <Settings key="default-settings-icon" size={20} />;
@@ -131,27 +134,24 @@ const Dashboard = () => {
                     <User size={20} />
                     {user?.fullName}
                 </div>
-                <button
+                <Button 
+                    variant="icon" 
+                    icon={<Bell size={20} />}
                     onClick={() => {
                         setShowNotifications(!showNotifications);
                         if (!showNotifications) {
                             fetchNotifications();
                         }
                     }}
-                    className={`notification_button relative flex items-center justify-center w-10 h-10 rounded-lg transition ${
-                        unreadCount > 0 
-                            ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }`}
+                    className={`relative ${unreadCount > 0 ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'}`}
                     title="Уведомления"
                 >
-                    <Bell size={20} />
                     {unreadCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                             {unreadCount}
                         </span>
                     )}
-                </button>
+                </Button>
                 {/* Панель уведомлений */}
                 {showNotifications && (
                     <div className="notification_panel absolute top-16 right-4 w-80 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
@@ -234,24 +234,21 @@ const Dashboard = () => {
                         </div>
                     </div>
                 )}
-                <button
-                    onClick={logout}
-                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition"
-                >
-                    <LogOut size={20} /> Выйти
-                </button>
+                <Button variant="danger" onClick={logout} icon={<LogOut size={20} />}>
+                    Выйти
+                </Button>
                 {/* Кнопка тестирования ошибки - только для разработки */}
-                <button
+                <Button variant="orange" 
                     onClick={() => {
                         console.error('Test error: Something went wrong!');
                         console.warn('Test warning: This is a warning message');
                         showError('Произошла критическая ошибка', 'Ошибка в модуле обработки данных. Пожалуйста, обратитесь к администратору.');
                     }}
-                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg transition"
                     title="Тест ошибки"
+                    icon={<LogOut size={20} />}
                 >
-                    <LogOut size={20} /> Тест
-                </button>
+                    Тест
+                </Button>
             </div>
             {/* Боковая панель: ширина зависит от состояния свернутости и страницы настроек */}
             <aside className={`${isSettings ? `${isSidebarCollapsed ? 'w-16' : 'w-56'} px-4 py-6 bg-sky-50 fixed left-0 top-0 h-screen transition-all duration-300` : `${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-sky-50 flex flex-col fixed left-0 top-0 h-screen transition-all duration-300`}`}>

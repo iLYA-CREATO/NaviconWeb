@@ -17,6 +17,11 @@ import { createNotification } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 // Импорт иконок из Lucide React
 import { X, ChevronLeft, ChevronRight, Plus, Bold, Italic, Underline, Strikethrough, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo, RotateCcw, ChevronUp, ChevronDown, Search } from 'lucide-react';
+// Импорт переиспользуемых компонентов
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
+import Textarea from './Textarea';
 
 // Компонент редактора Rich Text
 import RichTextEditor from './RichTextEditor';
@@ -706,31 +711,27 @@ const Bids = () => {
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-xl font-bold">Добавить новую заявку</h3>
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    icon={<X size={24} />}
                                     onClick={() => {
                                         if (showForm) {
-                                            resetForm(); // Сброс формы перед закрытием
+                                            resetForm();
                                         }
                                         setShowForm(!showForm);
                                     }}
-                                    className="text-gray-500 hover:text-gray-700"
-                                >
-                                    <X size={24} />
-                                </button>
+                                />
                             </div>
                             <form onSubmit={handleSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {/* Тема */}
-                                    <div className="col-span-full">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Тема *</label>
-                                        <input
-                                            type="text"
-                                            value={formData.title}
-                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required
-                                        />
-                                    </div>
+                                    <Input
+                                        type="text"
+                                        value={formData.title}
+                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                        label="Тема *"
+                                        required
+                                    />
                                     {/* Клиент */}
                                     <div className="col-span-1">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Клиент *</label>
@@ -790,36 +791,24 @@ const Bids = () => {
                                     </div>
                                     {/* Тип заявки */}
                                     <div className="col-span-1">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Тип заявки *</label>
-                                        <select
+                                        <Select
+                                            label="Тип заявки *"
                                             value={formData.bidTypeId}
                                             onChange={(e) => setFormData({ ...formData, bidTypeId: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            options={bidTypes.map(bt => ({ value: bt.id, label: bt.name }))}
+                                            placeholder="Выберите"
                                             required
-                                        >
-                                            <option value="">Выберите</option>
-                                            {bidTypes.map((bidType) => (
-                                                <option key={bidType.id} value={bidType.id}>
-                                                    {bidType.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        />
                                     </div>
                                     {/* Адрес выполнения работ */}
                                     <div className="col-span-full lg:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Адрес выполнения работ</label>
-                                        <div className="relative">
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={formData.workAddress}
-                                                    onChange={(e) => setFormData({ ...formData, workAddress: e.target.value })}
-                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    placeholder="Введите адрес..."
-                                                />
-                                            </div>
-
-                                        </div>
+                                        <Input
+                                            label="Адрес выполнения работ"
+                                            type="text"
+                                            value={formData.workAddress}
+                                            onChange={(e) => setFormData({ ...formData, workAddress: e.target.value })}
+                                            placeholder="Введите адрес..."
+                                        />
                                     </div>
 
                                     {/* Описание и дополнительные поля в одной строке */}
@@ -837,23 +826,21 @@ const Bids = () => {
                                         <div className="grid grid-cols-2 gap-3">
                                             {/* Контактное лицо */}
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">ФИО контакта</label>
-                                                <input
+                                                <Input
+                                                    label="ФИО контакта"
                                                     type="text"
                                                     value={formData.contactFullName}
                                                     onChange={(e) => setFormData({ ...formData, contactFullName: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     placeholder="ФИО"
                                                 />
                                             </div>
                                             {/* Телефон контакта */}
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                                                <input
+                                                <Input
+                                                    label="Телефон"
                                                     type="text"
                                                     value={formData.contactPhone}
                                                     onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     placeholder="Телефон"
                                                 />
                                             </div>
@@ -863,70 +850,55 @@ const Bids = () => {
                                             </div>
                                             {/* Плановое время реакции */}
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Время реакции (мин)</label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="number"
-                                                        value={formData.plannedReactionTimeMinutes}
-                                                        onChange={(e) => setFormData({ ...formData, plannedReactionTimeMinutes: e.target.value })}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        min="0"
-                                                        readOnly={!manualEdit}
-                                                        disabled={!manualEdit}
-                                                    />
-                                                    {!manualEdit && formData.plannedReactionTimeMinutes && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setManualEdit(true)}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-500 hover:text-blue-700"
-                                                        >
-                                                            Изменить
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                <Input
+                                                    label="Время реакции (мин)"
+                                                    type="number"
+                                                    value={formData.plannedReactionTimeMinutes}
+                                                    onChange={(e) => setFormData({ ...formData, plannedReactionTimeMinutes: e.target.value })}
+                                                    min="0"
+                                                    disabled={!manualEdit}
+                                                />
+                                                {!manualEdit && formData.plannedReactionTimeMinutes && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setManualEdit(true)}
+                                                        className="text-xs text-blue-500 hover:text-blue-700 mt-1"
+                                                    >
+                                                        Изменить
+                                                    </button>
+                                                )}
                                             </div>
                                             {/* Плановая продолжительность */}
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">План. длительность (мин)</label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="number"
-                                                        value={formData.plannedDurationMinutes}
-                                                        onChange={(e) => setFormData({ ...formData, plannedDurationMinutes: e.target.value })}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        min="0"
-                                                        readOnly={!manualEdit}
-                                                        disabled={!manualEdit}
-                                                    />
-                                                    {!manualEdit && formData.plannedDurationMinutes && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setManualEdit(true)}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-500 hover:text-blue-700"
-                                                        >
-                                                            Изменить
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                <Input
+                                                    label="План. длительность (мин)"
+                                                    type="number"
+                                                    value={formData.plannedDurationMinutes}
+                                                    onChange={(e) => setFormData({ ...formData, plannedDurationMinutes: e.target.value })}
+                                                    min="0"
+                                                    disabled={!manualEdit}
+                                                />
+                                                {!manualEdit && formData.plannedDurationMinutes && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setManualEdit(true)}
+                                                        className="text-xs text-blue-500 hover:text-blue-700 mt-1"
+                                                    >
+                                                        Изменить
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 {/* Кнопки */}
                                 <div className="flex gap-2 mt-6 pt-4 border-t">
-                                    <button
-                                        type="submit"
-                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                                    >
+                                    <Button type="submit" variant="primary" className="flex-1">
                                         Создать
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={resetForm}
-                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                                    >
+                                    </Button>
+                                    <Button type="button" variant="secondary" onClick={resetForm} className="flex-1">
                                         Отмена
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>
@@ -953,55 +925,44 @@ const Bids = () => {
                             </div>
                             <form onSubmit={handleQuickClientSubmit}>
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
-                                        <input
-                                            type="text"
-                                            value={quickClientForm.name}
-                                            onChange={(e) => setQuickClientForm({ ...quickClientForm, name: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required
-                                            placeholder="Название клиента"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                        <input
-                                            type="email"
-                                            value={quickClientForm.email}
-                                            onChange={(e) => setQuickClientForm({ ...quickClientForm, email: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="email@example.com"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                                        <input
-                                            type="text"
-                                            value={quickClientForm.phone}
-                                            onChange={(e) => setQuickClientForm({ ...quickClientForm, phone: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="+7 (999) 123-45-67"
-                                        />
-                                    </div>
+                                    <Input
+                                        label="Название *"
+                                        type="text"
+                                        value={quickClientForm.name}
+                                        onChange={(e) => setQuickClientForm({ ...quickClientForm, name: e.target.value })}
+                                        required
+                                        placeholder="Название клиента"
+                                    />
+                                    <Input
+                                        label="Email"
+                                        type="email"
+                                        value={quickClientForm.email}
+                                        onChange={(e) => setQuickClientForm({ ...quickClientForm, email: e.target.value })}
+                                        placeholder="email@example.com"
+                                    />
+                                    <Input
+                                        label="Телефон"
+                                        type="text"
+                                        value={quickClientForm.phone}
+                                        onChange={(e) => setQuickClientForm({ ...quickClientForm, phone: e.target.value })}
+                                        placeholder="+7 (999) 123-45-67"
+                                    />
                                 </div>
                                 <div className="flex gap-2 mt-6 pt-4 border-t">
-                                    <button
-                                        type="submit"
-                                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
-                                    >
+                                    <Button type="submit" variant="primary" className="flex-1">
                                         Создать
-                                    </button>
-                                    <button
-                                        type="button"
+                                    </Button>
+                                    <Button 
+                                        type="button" 
+                                        variant="secondary" 
                                         onClick={() => {
                                             setShowClientModal(false);
                                             setQuickClientForm({ name: '', email: '', phone: '' });
-                                        }}
-                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                        }} 
+                                        className="flex-1"
                                     >
                                         Отмена
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>
@@ -1028,45 +989,37 @@ const Bids = () => {
                             </div>
                             <form onSubmit={handleQuickObjectSubmit}>
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Марка/Модель *</label>
-                                        <input
-                                            type="text"
-                                            value={quickObjectForm.brandModel}
-                                            onChange={(e) => setQuickObjectForm({ ...quickObjectForm, brandModel: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            required
-                                            placeholder="Например: КАМАЗ 65115"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Гос. номер</label>
-                                        <input
-                                            type="text"
-                                            value={quickObjectForm.stateNumber}
-                                            onChange={(e) => setQuickObjectForm({ ...quickObjectForm, stateNumber: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Например: А123АА 777"
-                                        />
-                                    </div>
+                                    <Input
+                                        label="Марка/Модель *"
+                                        type="text"
+                                        value={quickObjectForm.brandModel}
+                                        onChange={(e) => setQuickObjectForm({ ...quickObjectForm, brandModel: e.target.value })}
+                                        required
+                                        placeholder="Например: КАМАЗ 65115"
+                                    />
+                                    <Input
+                                        label="Гос. номер"
+                                        type="text"
+                                        value={quickObjectForm.stateNumber}
+                                        onChange={(e) => setQuickObjectForm({ ...quickObjectForm, stateNumber: e.target.value })}
+                                        placeholder="Например: А123АА 777"
+                                    />
                                 </div>
                                 <div className="flex gap-2 mt-6 pt-4 border-t">
-                                    <button
-                                        type="submit"
-                                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
-                                    >
+                                    <Button type="submit" variant="primary" className="flex-1">
                                         Создать
-                                    </button>
-                                    <button
-                                        type="button"
+                                    </Button>
+                                    <Button 
+                                        type="button" 
+                                        variant="secondary" 
                                         onClick={() => {
                                             setShowObjectModal(false);
                                             setQuickObjectForm({ brandModel: '', stateNumber: '' });
-                                        }}
-                                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
+                                        }} 
+                                        className="flex-1"
                                     >
                                         Отмена
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </div>

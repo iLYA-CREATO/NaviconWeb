@@ -40,6 +40,7 @@ async function main() {
                 settings_spec_category_button: true,
                 settings_spec_button: true,
                 settings_bid_type_button: true,
+                settings_api_button: true,
             },
         },
         create: {
@@ -76,6 +77,7 @@ async function main() {
                 settings_spec_category_button: true,
                 settings_spec_button: true,
                 settings_bid_type_button: true,
+                settings_api_button: true,
             },
         },
     });
@@ -97,6 +99,7 @@ async function main() {
                 settings_user_button: true,
                 settings_spec_category_button: true,
                 settings_spec_button: true,
+                settings_api_button: true,
             },
         },
         create: {
@@ -115,6 +118,7 @@ async function main() {
                 settings_user_button: true,
                 settings_spec_category_button: true,
                 settings_spec_button: true,
+                settings_api_button: true,
             },
         },
     });

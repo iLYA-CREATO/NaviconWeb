@@ -18,6 +18,12 @@ import { usePermissions } from '../hooks/usePermissions';
 // Импорт иконок из Lucide React
 import { Trash2, Paperclip, Upload, File, Download, X, Image as ImageIcon, ZoomIn, ZoomOut, RotateCw, Maximize2, RefreshCw, Bold, Italic, Underline, Strikethrough, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo, RotateCcw } from 'lucide-react';
 
+// Импорт переиспользуемых компонентов
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
+import Textarea from './Textarea';
+
 // Компонент редактора Rich Text
 import RichTextEditor from './RichTextEditor';
 
@@ -2238,64 +2244,37 @@ const BidDetail = () => {
                         <h3 className="text-xl font-bold mb-4">{isCloneMode ? 'Клонировать заявку' : 'Создать дочернюю заявку'}</h3>
                         <form onSubmit={handleCreateChildBid} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
-                                <select
+                                <Select
+                                    label="Клиент"
                                     value={childBidFormData.clientId}
                                     onChange={(e) => setChildBidFormData({ ...childBidFormData, clientId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                >
-                                    <option value="">Выберите клиента</option>
-                                    {clients.map((client) => (
-                                        <option key={client.id} value={client.id}>
-                                            {client.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Объект обслуживания</label>
-                                <select
-                                    value={childBidFormData.clientObjectId}
-                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, clientObjectId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">
-                                        {childBidFormData.clientId ? 'Выберите объект (необязательно)' : 'Сначала выберите клиента'}
-                                    </option>
-                                    {clientObjects.map((obj) => (
-                                        <option key={obj.id} value={obj.id}>
-                                            {obj.brandModel} {obj.stateNumber ? `(${obj.stateNumber})` : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Тема</label>
-                                <input
-                                    type="text"
-                                    value={childBidFormData.title}
-                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, title: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    options={clients.map(client => ({ value: client.id, label: client.name }))}
+                                    placeholder="Выберите клиента"
                                     required
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Тип заявки</label>
-                                <select
-                                    value={childBidFormData.bidTypeId}
-                                    onChange={(e) => setChildBidFormData({ ...childBidFormData, bidTypeId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                >
-                                    <option value="">Выберите тип заявки</option>
-                                    {bidTypes.map((bidType) => (
-                                        <option key={bidType.id} value={bidType.id}>
-                                            {bidType.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            <Select
+                                label="Объект обслуживания"
+                                value={childBidFormData.clientObjectId}
+                                onChange={(e) => setChildBidFormData({ ...childBidFormData, clientObjectId: e.target.value })}
+                                options={clientObjects.map(obj => ({ value: obj.id, label: obj.brandModel + ' ' + (obj.stateNumber ? `(${obj.stateNumber})` : '') }))}
+                                placeholder={childBidFormData.clientId ? 'Выберите объект (необязательно)' : 'Сначала выберите клиента'}
+                            />
+                            <Input
+                                label="Тема"
+                                type="text"
+                                value={childBidFormData.title}
+                                onChange={(e) => setChildBidFormData({ ...childBidFormData, title: e.target.value })}
+                                required
+                            />
+                            <Select
+                                label="Тип заявки"
+                                value={childBidFormData.bidTypeId}
+                                onChange={(e) => setChildBidFormData({ ...childBidFormData, bidTypeId: e.target.value })}
+                                options={bidTypes.map(bt => ({ value: bt.id, label: bt.name }))}
+                                placeholder="Выберите тип заявки"
+                                required
+                            />
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
                                 <RichTextEditor

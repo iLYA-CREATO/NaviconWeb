@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getClient, getClientObjects, updateClient, getUsers, getEnabledClientAttributes, getClientEquipmentByClient, createClientEquipment, deleteClientEquipment, getEquipment } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
 
 const ClientDetail = () => {
     const { id } = useParams();

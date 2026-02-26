@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getClientObjects, createClientObject, getClients, getUsers } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
 
 const Objects = () => {
     const navigate = useNavigate();
@@ -109,56 +112,35 @@ const Objects = () => {
                 <div className="bg-white rounded-lg shadow p-6 mb-6">
                     <h3 className="text-xl font-bold mb-4">Добавить новый объект</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
-                            <select
-                                value={formData.clientId}
-                                onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            >
-                                <option value="">Выберите клиента</option>
-                                {clients.map((client) => (
-                                    <option key={client.id} value={client.id}>
-                                        {client.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Марка/Модель</label>
-                            <input
-                                type="text"
-                                value={formData.brandModel}
-                                onChange={(e) => setFormData({ ...formData, brandModel: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Гос. Номер</label>
-                            <input
-                                type="text"
-                                value={formData.stateNumber}
-                                onChange={(e) => setFormData({ ...formData, stateNumber: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            />
-                        </div>
+                        <Select
+                            label="Клиент"
+                            value={formData.clientId}
+                            onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                            options={clients.map(client => ({ value: client.id, label: client.name }))}
+                            placeholder="Выберите клиента"
+                            required
+                        />
+                        <Input
+                            label="Марка/Модель"
+                            type="text"
+                            value={formData.brandModel}
+                            onChange={(e) => setFormData({ ...formData, brandModel: e.target.value })}
+                            required
+                        />
+                        <Input
+                            label="Гос. Номер"
+                            type="text"
+                            value={formData.stateNumber}
+                            onChange={(e) => setFormData({ ...formData, stateNumber: e.target.value })}
+                            required
+                        />
                         <div className="flex gap-2 pt-4">
-                            <button
-                                type="submit"
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                            >
+                            <Button type="submit" variant="primary" className="flex-1">
                                 Создать
-                            </button>
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                            >
+                            </Button>
+                            <Button type="button" variant="secondary" onClick={resetForm} className="flex-1">
                                 Отмена
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 </div>
@@ -234,38 +216,28 @@ const Objects = () => {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 mb-1">Ответственный</label>
-                                        <select
+                                        <Select
                                             value={filters.responsible}
                                             onChange={(e) => setFilters({ ...filters, responsible: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="">Все ответственные</option>
-                                            {users.map((user) => (
-                                                <option key={user.id} value={user.id}>
-                                                    {user.fullName || user.username}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            options={users.map(user => ({ value: user.id, label: user.fullName || user.username }))}
+                                            placeholder="Все ответственные"
+                                        />
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        setFilters({ client: '', brandModel: '', responsible: '' });
-                                        setFilterExceptMode({ client: false, brandModel: false, responsible: false });
-                                    }}
-                                    className="text-sm text-gray-600 hover:text-gray-800"
-                                >
+                                <Button variant="ghost" onClick={() => {
+                                    setFilters({ client: '', brandModel: '', responsible: '' });
+                                    setFilterExceptMode({ client: false, brandModel: false, responsible: false });
+                                }}>
                                     Сбросить фильтры
-                                </button>
+                                </Button>
                             </div>
                         )}
                         {/* Поле поиска */}
-                        <input
+                        <Input
                             type="text"
                             placeholder="Поиск по номеру объекта, клиенту или марке..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                     <div className="bg-white rounded-lg shadow overflow-x-auto">

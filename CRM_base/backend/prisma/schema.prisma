@@ -23,6 +23,7 @@ model User {
   clients         Client[]
   ClientObject    ClientObject[]
   comments        Comment[]
+  apiTokens       ApiToken[]
 }
 
 model Role {
@@ -334,4 +335,19 @@ model SubjectForm {
   name      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime
+}
+
+// Модель для API токенов внешнего доступа
+model ApiToken {
+  id          Int       @id @default(autoincrement())
+  name        String    // Название токена (для идентификации)
+  token       String    @unique // Сам токен (хранится в зашифрованном виде)
+  userId      Int       // Пользователь, создавший токен
+  permissions Json      @default("{\"clients\": true, \"objects\": true, \"bids\": true}") // Права доступа
+  expiresAt   DateTime? // Дата истечения токена (null = без ограничения)
+  lastUsedAt  DateTime? // Дата последнего использования
+  isActive    Boolean   @default(true) // Активен ли токен
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login as loginAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext.jsx';
+import Button from './Button';
+import Input from './Input';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -44,45 +46,37 @@ const Login = () => {
                         </div>
                     )}
 
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
-                            Имя пользователя
-                        </label>
-                        <input
-                            type="text"
-                            value={credentials.username}
-                            onChange={(e) =>
-                                setCredentials({ ...credentials, username: e.target.value })
-                            }
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Введите имя пользователя"
-                            required
-                        />
-                    </div>
+                    <Input
+                        type="text"
+                        value={credentials.username}
+                        onChange={(e) =>
+                            setCredentials({ ...credentials, username: e.target.value })
+                        }
+                        placeholder="Введите имя пользователя"
+                        label="Имя пользователя"
+                        required
+                    />
 
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
-                            Пароль
-                        </label>
-                        <input
-                            type="password"
-                            value={credentials.password}
-                            onChange={(e) =>
-                                setCredentials({ ...credentials, password: e.target.value })
-                            }
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Введите пароль"
-                            required
-                        />
-                    </div>
+                    <Input
+                        type="password"
+                        value={credentials.password}
+                        onChange={(e) =>
+                            setCredentials({ ...credentials, password: e.target.value })
+                        }
+                        placeholder="Введите пароль"
+                        label="Пароль"
+                        required
+                    />
 
-                    <button
+                    <Button
                         type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+                        variant="primary"
+                        size="lg"
+                        loading={loading}
+                        className="w-full"
                     >
                         {loading ? 'Вход...' : 'Войти'}
-                    </button>
+                    </Button>
                 </form>
 
 

@@ -33,6 +33,12 @@ const clientAttributeRoutes = require('./routes/clientAttributes'); // Марш�
 const bidAttributeRoutes = require('./routes/bidAttributes'); // Маршруты атрибутов заявок
 const analyticsRoutes = require('./routes/analytics'); // Маршруты аналитики
 const notificationRoutes = require('./routes/notifications'); // Маршруты уведомлений
+const apiTokenRoutes = require('./routes/apiTokens'); // Маршруты управления API токенами
+
+// Импорт внешних API маршрутов
+const externalClientRoutes = require('./routes/external/clients'); // Внешний API клиентов
+const externalClientObjectRoutes = require('./routes/external/clientObjects'); // Внешний API объектов клиентов
+const externalBidRoutes = require('./routes/external/bids'); // Внешний API заявок
 
 // Импорт node-cron для автоматических бэкапов
 const cron = require('node-cron');
@@ -74,6 +80,12 @@ app.use('/api/client-attributes', clientAttributeRoutes); // /api/client-attribu
 app.use('/api/bid-attributes', bidAttributeRoutes); // /api/bid-attributes/*
 app.use('/api/analytics', analyticsRoutes); // /api/analytics/*
 app.use('/api/notifications', notificationRoutes); // /api/notifications/*
+app.use('/api/api-tokens', apiTokenRoutes); // /api/api-tokens/* (управление токенами)
+
+// === Внешний API (требует API токен) ===
+app.use('/api/external/clients', externalClientRoutes); // /api/external/clients/*
+app.use('/api/external/client-objects', externalClientObjectRoutes); // /api/external/client-objects/*
+app.use('/api/external/bids', externalBidRoutes); // /api/external/bids/*
 
 // === Health check endpoint ===
 // Проверка работоспособности сервера

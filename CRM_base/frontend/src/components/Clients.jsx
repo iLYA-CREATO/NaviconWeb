@@ -8,14 +8,13 @@
 
 // Импорт хуков React для управления состоянием и эффектами
 import { useState, useEffect } from 'react';
-// Импорт хука для навигации между маршрутами
 import { useNavigate } from 'react-router-dom';
-// Импорт функций API для работы с клиентами и пользователями
 import { getClients, createClient, getUsers, getEnabledClientAttributes } from '../services/api';
-// Импорт хука для проверки разрешений
+import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions';
-// Импорт хука для получения текущего пользователя
-import { useAuth } from '../context/AuthContext';
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
 
 const Clients = () => {
     // Хук для навигации
@@ -238,32 +237,25 @@ const Clients = () => {
                 {/* Кнопка создания нового клиента */}
                 <div className="flex justify-end mb-4">
                     {hasPermission('client_create') && (
-                        <button
-                            onClick={openCreateModal}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
-                        >
+                        <Button variant="primary" onClick={openCreateModal}>
                             + Добавить клиента
-                        </button>
+                        </Button>
                     )}
                 </div>
                 {/* Панель поиска и фильтров */}
                 <div className="mb-4 flex gap-4">
                     <div className="flex-1">
-                        <input
+                        <Input
                             type="text"
                             placeholder="Поиск по имени..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)} // Обновление поискового запроса
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
                     <div className="relative column-settings">
-                        <button
-                            onClick={() => setShowColumnSettings(!showColumnSettings)}
-                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
-                        >
+                        <Button variant="secondary" onClick={() => setShowColumnSettings(!showColumnSettings)}>
                             Настройки столбцов
-                        </button>
+                        </Button>
                         {showColumnSettings && (
                             <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 column-settings">
                                 <div className="p-4">
@@ -303,38 +295,30 @@ const Clients = () => {
                             </div>
                         )}
                     </div>
-                    <button
-                        onClick={() => setShowFilterModal(true)} // Открытие модального окна выбора фильтров
-                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
-                    >
+                    <Button variant="secondary" onClick={() => setShowFilterModal(true)}>
                         Добавить фильтр
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Фильтр по ответственному, показывается если включен */}
                 {visibleFilters.responsible && (
                     <div className="flex items-center gap-2">
-                        <select
+                        <Select
                             value={responsibleFilter}
-                            onChange={(e) => setResponsibleFilter(e.target.value)} // Обновление фильтра
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Все ответственные</option>
-                            {users.map((user) => (
-                                <option key={user.id} value={user.id}>
-                                    {user.fullName || user.username} {/* Отображение полного имени или username */}
-                                </option>
-                            ))}
-                        </select>
-                        <button
+                            onChange={(e) => setResponsibleFilter(e.target.value)}
+                            options={users.map(user => ({ value: user.id, label: user.fullName || user.username }))}
+                            placeholder="Все ответственные"
+                        />
+                        <Button
+                            variant="ghost"
                             onClick={() => {
                                 setVisibleFilters({ ...visibleFilters, responsible: false }); // Скрытие фильтра
                                 setResponsibleFilter(''); // Сброс фильтра
                             }}
-                            className="text-red-500 hover:text-red-700"
+                            title="Удалить фильтр"
                         >
-                            X {/* Кнопка удаления фильтра */}
-                        </button>
+                            X
+                        </Button>
                     </div>
                 )}
             </div>
@@ -372,23 +356,21 @@ const Clients = () => {
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <h3 className="text-xl font-bold mb-4">Выберите фильтр</h3>
                         <div className="space-y-2">
-                            <button
+                            <Button
+                                variant="primary"
                                 onClick={() => {
                                     setVisibleFilters({ ...visibleFilters, responsible: true }); // Включение фильтра по ответственному
                                     setShowFilterModal(false); // Закрытие модального окна
                                 }}
-                                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
+                                className="w-full"
                             >
                                 Ответственный
-                            </button>
+                            </Button>
                         </div>
                         <div className="flex gap-2 pt-4">
-                            <button
-                                onClick={() => setShowFilterModal(false)} // Закрытие модального окна
-                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                            >
+                            <Button variant="secondary" onClick={() => setShowFilterModal(false)} className="flex-1">
                                 Закрыть
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -401,65 +383,41 @@ const Clients = () => {
                             Добавить нового клиента
                         </h3>
                         <form onSubmit={handleSubmit} className="space-y-4"> {/* Форма с обработчиком отправки */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Имя</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                                <input
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Ответственный</label>
-                                <select
-                                    value={formData.responsibleId}
-                                    onChange={(e) => setFormData({ ...formData, responsibleId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Не выбран</option>
-                                    {users.map((user) => (
-                                        <option key={user.id} value={user.id}>
-                                            {user.fullName || user.username}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            <Input
+                                label="Имя"
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                required
+                            />
+                            <Input
+                                label="Email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                required
+                            />
+                            <Input
+                                label="Телефон"
+                                type="tel"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                required
+                            />
+                            <Select
+                                label="Ответственный"
+                                value={formData.responsibleId}
+                                onChange={(e) => setFormData({ ...formData, responsibleId: e.target.value })}
+                                options={users.map(user => ({ value: user.id, label: user.fullName || user.username }))}
+                                placeholder="Не выбран"
+                            />
                             <div className="flex gap-2 pt-4">
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
-                                >
+                                <Button type="submit" variant="primary" className="flex-1">
                                     Создать
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={resetForm}
-                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                                >
+                                </Button>
+                                <Button type="button" variant="secondary" onClick={resetForm} className="flex-1">
                                     Отмена
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>

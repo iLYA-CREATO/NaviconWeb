@@ -271,4 +271,11 @@ export const markAllNotificationsAsRead = () => api.put('/notifications/read-all
 export const deleteNotification = (id) => api.delete(`/notifications/${id}`); // Удаление уведомления
 export const createNotification = (data) => api.post('/notifications/create', data); // Создание уведомления
 
+// === API ТОКЕНЫ ===
+export const getApiTokens = () => api.get('/api-tokens'); // Получение списка API токенов
+export const createApiToken = (data) => api.post('/api-tokens', data); // Создание API токена
+export const updateApiToken = (id, data) => api.put(`/api-tokens/${id}`, data); // Обновление API токена
+export const deleteApiToken = (id) => api.delete(`/api-tokens/${id}`); // Удаление API токена
+export const regenerateApiToken = (id, expiresInDays) => api.post(`/api-tokens/${id}/regenerate`, { expiresInDays }); // Регенерация API токена
+
 export default api;

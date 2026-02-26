@@ -4,6 +4,11 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions.js';
 import { register, getUsers, createUser, updateUser, deleteUser, getRoles, createRole, updateRole, deleteRole, getSpecifications, createSpecification, updateSpecification, deleteSpecification, getSpecificationCategories, getSpecificationCategoriesTree, createSpecificationCategory, updateSpecificationCategory, deleteSpecificationCategory, getBidTypes, createBidType, updateBidType, deleteBidType, getBidStatuses, createBidStatus, updateBidStatus, deleteBidStatus, getBidStatusTransitions, createBidStatusTransition, deleteBidStatusTransition, bulkUploadClients, getClients, getBids, getClientObjects, bulkUploadClientObjects, getClientAttributes, getEnabledClientAttributes, createClientAttribute, updateClientAttribute, deleteClientAttribute, getBidAttributes, createBidAttribute, updateBidAttribute, deleteBidAttribute } from '../services/api';
 import * as XLSX from 'xlsx';
+import Button from './Button';
+import Input from './Input';
+import Select from './Select';
+import Textarea from './Textarea';
+import ApiTokens from './ApiTokens';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -169,6 +174,7 @@ const Settings = () => {
             { id: 'bid-attributes', permission: 'settings_bid_attributes_button' },
             { id: 'specifications', permission: 'settings_spec_button' },
             { id: 'bid-types', permission: 'settings_bid_type_button' },
+            { id: 'api', permission: 'settings_api_button' },
             { id: 'administration', permission: 'settings_administration_button' },
         ];
 
@@ -233,6 +239,9 @@ const Settings = () => {
                 if (bidTypes.length === 0 && hasPermission('bid_type_create')) {
                     fetchBidTypes();
                 }
+                break;
+            case 'api':
+                // API токены загружаются в компоненте ApiTokens
                 break;
             case 'attributes':
                 fetchClientAttributes();
@@ -3018,7 +3027,11 @@ const Settings = () => {
     </div>
 )}
 
-{activeSettingsTab === 'administration' && (
+{activeSettingsTab === 'api' && (
+                <ApiTokens />
+            )}
+
+            {activeSettingsTab === 'administration' && (
 
                 <div>
                     <div className="flex justify-between items-center mb-6">
