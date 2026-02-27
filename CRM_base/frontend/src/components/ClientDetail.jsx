@@ -817,7 +817,7 @@ const ClientDetail = () => {
                                 <div className="relative bids-column-settings">
                                     <button
                                         onClick={() => setShowBidsColumnSettings(!showBidsColumnSettings)}
-                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition text-sm"
+                                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm"
                                     >
                                         Настройки столбцов
                                     </button>
@@ -899,7 +899,7 @@ const ClientDetail = () => {
                                     <div className="relative equipment-column-settings">
                                         <button
                                             onClick={() => setShowEquipmentColumnSettings(!showEquipmentColumnSettings)}
-                                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition text-sm"
+                                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm"
                                         >
                                             Настройки столбцов
                                         </button>
@@ -995,7 +995,7 @@ const ClientDetail = () => {
                                 <div className="relative objects-column-settings">
                                     <button
                                         onClick={() => setShowObjectsColumnSettings(!showObjectsColumnSettings)}
-                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition text-sm"
+                                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm"
                                     >
                                         Настройки столбцов
                                     </button>

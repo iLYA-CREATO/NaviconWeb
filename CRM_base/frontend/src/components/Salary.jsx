@@ -271,7 +271,7 @@ const Salary = () => {
                     <div className="relative column-settings">
                         <button
                             onClick={() => setShowColumnSettings(!showColumnSettings)}
-                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
                         >
                             Настройки столбцов
                         </button>

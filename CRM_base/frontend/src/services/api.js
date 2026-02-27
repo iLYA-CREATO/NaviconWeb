@@ -58,7 +58,14 @@ export const getMe = () => api.get('/auth/me'); // Получение данны
 export const getClients = (search = '', responsibleId = '') => {
     const params = {};
     if (search) params.name = search; // Поиск по имени
-    if (responsibleId) params.responsibleId = responsibleId; // Фильтр по ответственному
+    if (responsibleId) {
+        // Поддержка множественного выбора (массив или строка через запятую)
+        if (Array.isArray(responsibleId)) {
+            params.responsibleId = responsibleId.join(',');
+        } else {
+            params.responsibleId = responsibleId;
+        }
+    }
     return api.get('/clients', { params });
 };
 export const getClient = (id) => api.get(`/clients/${id}`); // Получение клиента по ID

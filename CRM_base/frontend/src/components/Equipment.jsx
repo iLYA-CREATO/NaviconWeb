@@ -584,7 +584,7 @@ const Equipment = () => {
                                                 if (equipmentCategories.length === 0) fetchEquipmentCategories();
                                                 openCustomTab('create-equipment', 'Создание оборудования');
                                             }}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                                         >
                                             Новое оборудование
                                         </button>
@@ -602,7 +602,7 @@ const Equipment = () => {
                                     <div className="relative equipment-column-settings">
                                         <button
                                             onClick={() => setShowEquipmentColumnSettings(!showEquipmentColumnSettings)}
-                                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
                                         >
                                             Настройки столбцов
                                         </button>
@@ -742,7 +742,7 @@ const Equipment = () => {
                                     <div className="relative expense-history-column-settings">
                                         <button
                                             onClick={() => setShowExpenseHistoryColumnSettings(!showExpenseHistoryColumnSettings)}
-                                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+                                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
                                         >
                                             Настройки столбцов
                                         </button>

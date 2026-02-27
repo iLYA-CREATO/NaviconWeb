@@ -22,6 +22,7 @@ import Button from './Button';
 import Input from './Input';
 import Select from './Select';
 import Textarea from './Textarea';
+import MultiSelectFilter from './MultiSelectFilter';
 
 // Компонент редактора Rich Text
 import RichTextEditor from './RichTextEditor';
@@ -55,14 +56,14 @@ const Bids = () => {
     const [showForm, setShowForm] = useState(false);
     // Состояние для поля поиска для фильтрации заявок
     const [searchTerm, setSearchTerm] = useState('');
-    // Состояние для фильтров
+    // Состояние для фильтров (массивы для множественного выбора)
     const [filters, setFilters] = useState({
-        creator: '',
-        bidType: '',
-        client: '',
-        status: '',
-        clientObject: '',
-        responsible: '',
+        creator: [],
+        bidType: [],
+        client: [],
+        status: [],
+        clientObject: [],
+        responsible: [],
     });
     // Состояние для режима "Кроме" (исключить) для каждого фильтра
     const [filterExceptMode, setFilterExceptMode] = useState({
@@ -669,24 +670,24 @@ const Bids = () => {
             bid.creatorName.toLowerCase().includes(searchTerm.toLowerCase()) || // Поиск по ФИО создателя (регистронезависимо)
             (bid.status && bid.status.toLowerCase().includes(searchTerm.toLowerCase())); // Поиск по статусу (регистронезависимо)
 
-        // Логика фильтрации с учетом режима "Кроме"
-        const matchesCreator = filters.creator === '' || 
-            (filterExceptMode.creator ? bid.creatorName !== filters.creator : bid.creatorName === filters.creator);
-        const matchesBidType = filters.bidType === '' || 
-            (filterExceptMode.bidType ? bid.bidTypeId !== parseInt(filters.bidType) : bid.bidTypeId === parseInt(filters.bidType));
-        const matchesClient = filters.client === '' || 
-            (filterExceptMode.client ? bid.clientName !== filters.client : bid.clientName === filters.client);
-        const matchesStatus = filters.status === '' || 
-            (filterExceptMode.status ? bid.status !== filters.status : bid.status === filters.status);
-        const matchesClientObject = filters.clientObject === '' || 
+        // Логика фильтрации с учетом режима "Кроме" и множественного выбора
+        const matchesCreator = filters.creator.length === 0 || 
+            (filterExceptMode.creator ? !filters.creator.includes(bid.creatorName) : filters.creator.includes(bid.creatorName));
+        const matchesBidType = filters.bidType.length === 0 || 
+            (filterExceptMode.bidType ? !filters.bidType.includes(bid.bidTypeId.toString()) : filters.bidType.includes(bid.bidTypeId.toString()));
+        const matchesClient = filters.client.length === 0 || 
+            (filterExceptMode.client ? !filters.client.includes(bid.clientName) : filters.client.includes(bid.clientName));
+        const matchesStatus = filters.status.length === 0 || 
+            (filterExceptMode.status ? !filters.status.includes(bid.status) : filters.status.includes(bid.status));
+        const matchesClientObject = filters.clientObject.length === 0 || 
             (filterExceptMode.clientObject ? 
-                (bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '') !== filters.clientObject :
-                (bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '') === filters.clientObject
+                !filters.clientObject.includes(bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '') :
+                filters.clientObject.includes(bid.clientObject ? `${bid.clientObject.brandModel} ${bid.clientObject.stateNumber ? `(${bid.clientObject.stateNumber})` : ''}` : '')
             );
-        const matchesResponsible = filters.responsible === '' || 
+        const matchesResponsible = filters.responsible.length === 0 || 
             (filterExceptMode.responsible ? 
-                (filters.responsible.startsWith('Роль: ') ? bid.bidTypeResponsibleName !== filters.responsible : bid.currentResponsibleUserName !== filters.responsible) :
-                (filters.responsible.startsWith('Роль: ') ? bid.bidTypeResponsibleName === filters.responsible : bid.currentResponsibleUserName === filters.responsible)
+                !filters.responsible.some(r => r.startsWith('Роль: ') ? bid.bidTypeResponsibleName === r : bid.currentResponsibleUserName === r) :
+                filters.responsible.some(r => r.startsWith('Роль: ') ? bid.bidTypeResponsibleName === r : bid.currentResponsibleUserName === r)
             );
 
         return matchesSearch && matchesCreator && matchesBidType && matchesClient && matchesStatus && matchesClientObject && matchesResponsible;
@@ -1103,17 +1104,16 @@ const Bids = () => {
                         <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
                             {visibleFilters.creator && (
                                 <div className="flex items-center gap-1">
-                                    <select
-                                        value={filters.creator}
-                                        onChange={(e) => { setFilters({ ...filters, creator: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, creator: false }); }}
-                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.creator ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                                    >
-                                        <option value="">{filterExceptMode.creator ? 'Все (кроме)' : 'Все создатели'}</option>
-                                        {uniqueCreators.map(creator => (
-                                            <option key={creator} value={creator}>{creator}</option>
-                                        ))}
-                                    </select>
-                                    {filters.creator && (
+                                    <div className="flex-1">
+                                        <MultiSelectFilter
+                                            value={filters.creator}
+                                            onChange={(newValue) => setFilters({ ...filters, creator: newValue })}
+                                            options={uniqueCreators.map(c => ({ value: c, label: c }))}
+                                            placeholder={filterExceptMode.creator ? 'Все (кроме)' : 'Все создатели'}
+                                            exceptMode={filterExceptMode.creator}
+                                        />
+                                    </div>
+                                    {filters.creator.length > 0 && (
                                         <button
                                             onClick={() => setFilterExceptMode({ ...filterExceptMode, creator: !filterExceptMode.creator })}
                                             className={`px-2 py-1 text-xs rounded border ${filterExceptMode.creator ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
@@ -1126,19 +1126,16 @@ const Bids = () => {
                             )}
                             {visibleFilters.bidType && (
                                 <div className="flex items-center gap-1">
-                                    <select
-                                        value={filters.bidType}
-                                        onChange={(e) => { setFilters({ ...filters, bidType: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, bidType: false }); }}
-                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.bidType ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                                    >
-                                        <option value="">{filterExceptMode.bidType ? 'Все (кроме)' : 'Все типы заявок'}</option>
-                                        {bidTypes.map(bidType => (
-                                            <option key={bidType.id} value={bidType.id}>
-                                                {bidType.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {filters.bidType && (
+                                    <div className="flex-1">
+                                        <MultiSelectFilter
+                                            value={filters.bidType}
+                                            onChange={(newValue) => setFilters({ ...filters, bidType: newValue })}
+                                            options={bidTypes.map(bt => ({ value: bt.id.toString(), label: bt.name }))}
+                                            placeholder={filterExceptMode.bidType ? 'Все (кроме)' : 'Все типы заявок'}
+                                            exceptMode={filterExceptMode.bidType}
+                                        />
+                                    </div>
+                                    {filters.bidType.length > 0 && (
                                         <button
                                             onClick={() => setFilterExceptMode({ ...filterExceptMode, bidType: !filterExceptMode.bidType })}
                                             className={`px-2 py-1 text-xs rounded border ${filterExceptMode.bidType ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
@@ -1151,17 +1148,16 @@ const Bids = () => {
                             )}
                             {visibleFilters.client && (
                                 <div className="flex items-center gap-1">
-                                    <select
-                                        value={filters.client}
-                                        onChange={(e) => { setFilters({ ...filters, client: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, client: false }); }}
-                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.client ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                                    >
-                                        <option value="">{filterExceptMode.client ? 'Все (кроме)' : 'Все клиенты'}</option>
-                                        {uniqueClients.map(client => (
-                                            <option key={client} value={client}>{client}</option>
-                                        ))}
-                                    </select>
-                                    {filters.client && (
+                                    <div className="flex-1">
+                                        <MultiSelectFilter
+                                            value={filters.client}
+                                            onChange={(newValue) => setFilters({ ...filters, client: newValue })}
+                                            options={uniqueClients.map(c => ({ value: c, label: c }))}
+                                            placeholder={filterExceptMode.client ? 'Все (кроме)' : 'Все клиенты'}
+                                            exceptMode={filterExceptMode.client}
+                                        />
+                                    </div>
+                                    {filters.client.length > 0 && (
                                         <button
                                             onClick={() => setFilterExceptMode({ ...filterExceptMode, client: !filterExceptMode.client })}
                                             className={`px-2 py-1 text-xs rounded border ${filterExceptMode.client ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
@@ -1174,17 +1170,16 @@ const Bids = () => {
                             )}
                             {visibleFilters.status && (
                                 <div className="flex items-center gap-1">
-                                    <select
-                                        value={filters.status}
-                                        onChange={(e) => { setFilters({ ...filters, status: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, status: false }); }}
-                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.status ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                                    >
-                                        <option value="">{filterExceptMode.status ? 'Все (кроме)' : 'Все статусы'}</option>
-                                        {uniqueStatuses.map(status => (
-                                            <option key={status} value={status}>{status}</option>
-                                        ))}
-                                    </select>
-                                    {filters.status && (
+                                    <div className="flex-1">
+                                        <MultiSelectFilter
+                                            value={filters.status}
+                                            onChange={(newValue) => setFilters({ ...filters, status: newValue })}
+                                            options={uniqueStatuses.map(s => ({ value: s, label: s }))}
+                                            placeholder={filterExceptMode.status ? 'Все (кроме)' : 'Все статусы'}
+                                            exceptMode={filterExceptMode.status}
+                                        />
+                                    </div>
+                                    {filters.status.length > 0 && (
                                         <button
                                             onClick={() => setFilterExceptMode({ ...filterExceptMode, status: !filterExceptMode.status })}
                                             className={`px-2 py-1 text-xs rounded border ${filterExceptMode.status ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
@@ -1197,17 +1192,16 @@ const Bids = () => {
                             )}
                             {visibleFilters.clientObject && (
                                 <div className="flex items-center gap-1">
-                                    <select
-                                        value={filters.clientObject}
-                                        onChange={(e) => { setFilters({ ...filters, clientObject: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, clientObject: false }); }}
-                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.clientObject ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                                    >
-                                        <option value="">{filterExceptMode.clientObject ? 'Все (кроме)' : 'Все объекты обслуживания'}</option>
-                                        {uniqueClientObjects.map(obj => (
-                                            <option key={obj} value={obj}>{obj}</option>
-                                        ))}
-                                    </select>
-                                    {filters.clientObject && (
+                                    <div className="flex-1">
+                                        <MultiSelectFilter
+                                            value={filters.clientObject}
+                                            onChange={(newValue) => setFilters({ ...filters, clientObject: newValue })}
+                                            options={uniqueClientObjects.map(o => ({ value: o, label: o }))}
+                                            placeholder={filterExceptMode.clientObject ? 'Все (кроме)' : 'Все объекты обслуживания'}
+                                            exceptMode={filterExceptMode.clientObject}
+                                        />
+                                    </div>
+                                    {filters.clientObject.length > 0 && (
                                         <button
                                             onClick={() => setFilterExceptMode({ ...filterExceptMode, clientObject: !filterExceptMode.clientObject })}
                                             className={`px-2 py-1 text-xs rounded border ${filterExceptMode.clientObject ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
@@ -1220,24 +1214,19 @@ const Bids = () => {
                             )}
                             {visibleFilters.responsible && (
                                 <div className="flex items-center gap-1">
-                                    <select
-                                        value={filters.responsible}
-                                        onChange={(e) => { setFilters({ ...filters, responsible: e.target.value }); if (e.target.value === '') setFilterExceptMode({ ...filterExceptMode, responsible: false }); }}
-                                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${filterExceptMode.responsible ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                                    >
-                                        <option value="">{filterExceptMode.responsible ? 'Все (кроме)' : 'Все ответственные'}</option>
-                                        <optgroup label="Пользователи">
-                                            {users.map(user => (
-                                                <option key={user.id} value={user.fullName}>{user.fullName}</option>
-                                            ))}
-                                        </optgroup>
-                                        <optgroup label="Роли">
-                                            {roles.map(role => (
-                                                <option key={role.id} value={`Роль: ${role.name}`}>{role.name}</option>
-                                            ))}
-                                        </optgroup>
-                                    </select>
-                                    {filters.responsible && (
+                                    <div className="flex-1">
+                                        <MultiSelectFilter
+                                            value={filters.responsible}
+                                            onChange={(newValue) => setFilters({ ...filters, responsible: newValue })}
+                                            options={[
+                                                ...users.map(u => ({ value: u.fullName, label: u.fullName })),
+                                                ...roles.map(r => ({ value: `Роль: ${r.name}`, label: r.name }))
+                                            ]}
+                                            placeholder={filterExceptMode.responsible ? 'Все (кроме)' : 'Все ответственные'}
+                                            exceptMode={filterExceptMode.responsible}
+                                        />
+                                    </div>
+                                    {filters.responsible.length > 0 && (
                                         <button
                                             onClick={() => setFilterExceptMode({ ...filterExceptMode, responsible: !filterExceptMode.responsible })}
                                             className={`px-2 py-1 text-xs rounded border ${filterExceptMode.responsible ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}

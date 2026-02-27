@@ -237,7 +237,7 @@ const Clients = () => {
                 {/* Кнопка создания нового клиента */}
                 <div className="flex justify-end mb-4">
                     {hasPermission('client_create') && (
-                        <Button variant="primary" onClick={openCreateModal}>
+                        <Button variant="primary" onClick={openCreateModal} className="bg-green-500 hover:bg-green-600">
                             + Добавить клиента
                         </Button>
                     )}
@@ -253,7 +253,7 @@ const Clients = () => {
                         />
                     </div>
                     <div className="relative column-settings">
-                        <Button variant="secondary" onClick={() => setShowColumnSettings(!showColumnSettings)}>
+                        <Button variant="primary" onClick={() => setShowColumnSettings(!showColumnSettings)} className="bg-blue-500 hover:bg-blue-600 text-white">
                             Настройки столбцов
                         </Button>
                         {showColumnSettings && (
@@ -295,7 +295,7 @@ const Clients = () => {
                             </div>
                         )}
                     </div>
-                    <Button variant="secondary" onClick={() => setShowFilterModal(true)}>
+                    <Button variant="primary" onClick={() => setShowFilterModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white">
                         Добавить фильтр
                     </Button>
                 </div>
