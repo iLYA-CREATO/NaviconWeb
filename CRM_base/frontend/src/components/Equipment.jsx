@@ -574,31 +574,8 @@ const Equipment = () => {
                         <>
                             {/* Карточка с элементами управления */}
                             <div className="bg-gray-200 rounded-lg p-4 mb-6">
-                                {/* Кнопка создания нового оборудования */}
-                                <div className="flex justify-end mb-4">
-                                    {hasPermission('equipment_create') && (
-                                        <button
-                                            onClick={() => {
-                                                resetForm();
-                                                if (suppliers.length === 0) fetchSuppliers();
-                                                if (equipmentCategories.length === 0) fetchEquipmentCategories();
-                                                openCustomTab('create-equipment', 'Создание оборудования');
-                                            }}
-                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
-                                        >
-                                            Новое оборудование
-                                        </button>
-                                    )}
-                                </div>
-                                {/* Поле поиска и настройки столбцов */}
-                                <div className="flex gap-4">
-                                    <input
-                                        type="text"
-                                        placeholder="Поиск по ID, названию или коду..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
+                                {/* Кнопки управления */}
+                                <div className="flex justify-end gap-2 mb-4">
                                     <div className="relative equipment-column-settings">
                                         <button
                                             onClick={() => setShowEquipmentColumnSettings(!showEquipmentColumnSettings)}
@@ -645,6 +622,29 @@ const Equipment = () => {
                                             </div>
                                         )}
                                     </div>
+                                    {hasPermission('equipment_create') && (
+                                        <button
+                                            onClick={() => {
+                                                resetForm();
+                                                if (suppliers.length === 0) fetchSuppliers();
+                                                if (equipmentCategories.length === 0) fetchEquipmentCategories();
+                                                openCustomTab('create-equipment', 'Создание оборудования');
+                                            }}
+                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+                                        >
+                                            Новое оборудование
+                                        </button>
+                                    )}
+                                </div>
+                                {/* Поле поиска */}
+                                <div className="mb-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Поиск по ID, названию или коду..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </div>
                             </div>
                             <div className="bg-white rounded-lg shadow overflow-x-auto">

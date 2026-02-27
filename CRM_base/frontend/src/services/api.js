@@ -91,7 +91,16 @@ export const deleteBidAttribute = (id) => api.delete(`/bid-attributes/${id}`); /
 
 // === ЗАЯВКИ ===
 // CRUD-операции для заявок
-export const getBids = (page = 1, limit = 20) => api.get(`/bids?page=${page}&limit=${limit}`); // Получение всех заявок с пагинацией
+export const getBids = (page = 1, limit = 20, filters = {}) => {
+    const params = { page, limit, ...filters };
+    // Удаляем пустые значения
+    Object.keys(params).forEach(key => {
+        if (params[key] === '' || params[key] === null || params[key] === undefined) {
+            delete params[key];
+        }
+    });
+    return api.get('/bids', { params });
+}; // Получение всех заявок с пагинацией и фильтрами
 export const getBid = (id) => api.get(`/bids/${id}`); // Получение заявки по ID
 export const createBid = (data) => api.post('/bids', data); // Создание новой заявки
 export const updateBid = (id, data) => api.put(`/bids/${id}`, data); // Обновление заявки

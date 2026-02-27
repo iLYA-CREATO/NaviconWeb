@@ -36,10 +36,94 @@ const Objects = () => {
         const saved = localStorage.getItem('objectsVisibleFilters');
         return saved ? JSON.parse(saved) : { client: true, brandModel: true, responsible: true };
     });
+    // Определение всех возможных столбцов
+    const allColumns = ['client', 'brandModel', 'stateNumber', 'responsible'];
+    // Загрузка начальных состояний из localStorage
+    const savedColumns = localStorage.getItem('objectsVisibleColumns');
+    const defaultVisibleColumns = {
+        client: true,
+        brandModel: true,
+        stateNumber: true,
+        responsible: true,
+    };
+    const initialVisibleColumns = savedColumns ? { ...defaultVisibleColumns, ...JSON.parse(savedColumns) } : defaultVisibleColumns;
+    const savedOrder = localStorage.getItem('objectsColumnOrder');
+    let initialColumnOrder = savedOrder ? JSON.parse(savedOrder).filter(col => allColumns.includes(col)) : allColumns;
+
+    // Ensure all columns are included in the order
+    allColumns.forEach(col => {
+        if (!initialColumnOrder.includes(col)) {
+            initialColumnOrder.push(col);
+        }
+    });
+
+    // Состояние для порядка столбцов
+    const [columnOrder, setColumnOrder] = useState(initialColumnOrder);
+    // Состояние для видимых столбцов в таблице
+    const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
+    // Состояние для показа выпадающего списка настроек столбцов
+    const [showColumnSettings, setShowColumnSettings] = useState(false);
     // Сохранение видимых фильтров в localStorage
     useEffect(() => {
         localStorage.setItem('objectsVisibleFilters', JSON.stringify(visibleFilters));
     }, [visibleFilters]);
+
+    // Сохранение видимых столбцов в localStorage
+    useEffect(() => {
+        localStorage.setItem('objectsVisibleColumns', JSON.stringify(visibleColumns));
+    }, [visibleColumns]);
+
+    // Сохранение порядка столбцов в localStorage
+    useEffect(() => {
+        localStorage.setItem('objectsColumnOrder', JSON.stringify(columnOrder));
+    }, [columnOrder]);
+
+    // Обработчик клика вне выпадающего списка настроек столбцов
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showColumnSettings && !event.target.closest('.column-settings')) {
+                setShowColumnSettings(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showColumnSettings]);
+
+    // Обработчик изменения видимости столбцов
+    const handleColumnToggle = (column) => {
+        setVisibleColumns(prev => ({
+            ...prev,
+            [column]: !prev[column]
+        }));
+    };
+
+    // Функции для изменения порядка столбцов
+    const moveUp = (index) => {
+        if (index > 0) {
+            const newOrder = [...columnOrder];
+            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+            setColumnOrder(newOrder);
+        }
+    };
+
+    const moveDown = (index) => {
+        if (index < columnOrder.length - 1) {
+            const newOrder = [...columnOrder];
+            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+            setColumnOrder(newOrder);
+        }
+    };
+
+    // Функция для получения названия столбца
+    const getColumnLabel = (column) => {
+        switch (column) {
+            case 'client': return 'Клиент';
+            case 'brandModel': return 'Марка/Модель';
+            case 'stateNumber': return 'Гос. Номер';
+            case 'responsible': return 'Ответственный';
+            default: return column;
+        }
+    };
 
     const [formData, setFormData] = useState({
         clientId: '',
@@ -169,6 +253,52 @@ const Objects = () => {
                     <div className="bg-gray-200 rounded-lg p-4 mb-6">
                         {/* Кнопки управления */}
                         <div className="flex justify-end gap-2 mb-4">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowColumnSettings(!showColumnSettings)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+                                >
+                                    Настройки столбцов
+                                </button>
+                                {showColumnSettings && (
+                                    <div className="column-settings absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                                        <div className="p-4">
+                                            <h4 className="font-medium mb-2">Настройки столбцов</h4>
+                                            {columnOrder.map((column, index) => (
+                                                <div key={column} className="flex items-center justify-between mb-2">
+                                                    <label className="flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={visibleColumns[column]}
+                                                            onChange={() => handleColumnToggle(column)}
+                                                            className="mr-2"
+                                                        />
+                                                        {getColumnLabel(column)}
+                                                    </label>
+                                                    {visibleColumns[column] && (
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => moveUp(index)}
+                                                                disabled={index === 0}
+                                                                className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                            >
+                                                                ↑
+                                                            </button>
+                                                            <button
+                                                                onClick={() => moveDown(index)}
+                                                                disabled={index === columnOrder.length - 1}
+                                                                className="px-2 py-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-xs rounded"
+                                                            >
+                                                                ↓
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <button
                                 onClick={() => setShowFilterModal(true)}
                                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
@@ -282,25 +412,34 @@ const Objects = () => {
                         <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Клиент</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Марка/Модель</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Гос. Номер</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>Ответственный</th>
+                                    {columnOrder.map((column) => (
+                                        visibleColumns[column] && (
+                                            <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>
+                                                {getColumnLabel(column)}
+                                            </th>
+                                        )
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredObjects.map((obj) => (
                                     <tr key={obj.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(obj)}>
-                                        <td className="px-6 py-4 whitespace-nowrap">{obj.client.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{obj.brandModel}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{obj.stateNumber}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {obj.client.responsible ? (
-                                                <span className="text-gray-900">{obj.client.responsible.fullName || 'Не назначен'}</span>
-                                            ) : (
-                                                <span className="text-gray-500">Не назначен</span>
-                                            )}
-                                        </td>
+                                        {columnOrder.map((column) => (
+                                            visibleColumns[column] && (
+                                                <td key={column} className="px-6 py-4 whitespace-nowrap">
+                                                    {column === 'client' && obj.client.name}
+                                                    {column === 'brandModel' && obj.brandModel}
+                                                    {column === 'stateNumber' && obj.stateNumber}
+                                                    {column === 'responsible' && (
+                                                        obj.client.responsible ? (
+                                                            <span className="text-gray-900">{obj.client.responsible.fullName || 'Не назначен'}</span>
+                                                        ) : (
+                                                            <span className="text-gray-500">Не назначен</span>
+                                                        )
+                                                    )}
+                                                </td>
+                                            )
+                                        ))}
                                     </tr>
                                 ))}
                             </tbody>

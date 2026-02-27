@@ -234,24 +234,8 @@ const Clients = () => {
 
             {/* Карточка с фильтрами и элементами управления */}
             <div className="bg-gray-200 rounded-lg p-4 mb-6">
-                {/* Кнопка создания нового клиента */}
-                <div className="flex justify-end mb-4">
-                    {hasPermission('client_create') && (
-                        <Button variant="primary" onClick={openCreateModal} className="bg-green-500 hover:bg-green-600">
-                            + Добавить клиента
-                        </Button>
-                    )}
-                </div>
-                {/* Панель поиска и фильтров */}
-                <div className="mb-4 flex gap-4">
-                    <div className="flex-1">
-                        <Input
-                            type="text"
-                            placeholder="Поиск по имени..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
+                {/* Панель управления с кнопками */}
+                <div className="flex justify-end gap-2 mb-4">
                     <div className="relative column-settings">
                         <Button variant="primary" onClick={() => setShowColumnSettings(!showColumnSettings)} className="bg-blue-500 hover:bg-blue-600 text-white">
                             Настройки столбцов
@@ -298,6 +282,20 @@ const Clients = () => {
                     <Button variant="primary" onClick={() => setShowFilterModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white">
                         Добавить фильтр
                     </Button>
+                    {hasPermission('client_create') && (
+                        <Button variant="primary" onClick={openCreateModal} className="bg-green-500 hover:bg-green-600">
+                            + Добавить клиента
+                        </Button>
+                    )}
+                </div>
+                {/* Панель поиска */}
+                <div className="mb-4">
+                    <Input
+                        type="text"
+                        placeholder="Поиск по имени..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
 
                 {/* Фильтр по ответственному, показывается если включен */}

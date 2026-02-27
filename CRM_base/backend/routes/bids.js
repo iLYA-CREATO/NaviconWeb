@@ -117,14 +117,129 @@ router.get('/', authMiddleware, async (req, res) => {
         const skip = (page - 1) * limit;
         const take = limit;
         
-        // Получаем общее количество заявок для расчета пагинации
-        const totalCount = await prisma.bid.count();
+        // Параметры фильтрации
+        const {
+            // Фильтры по датам
+            createdAtFrom,
+            createdAtTo,
+            updatedAtFrom,
+            updatedAtTo,
+            plannedResolutionDateFrom,
+            plannedResolutionDateTo,
+            // Быстрые фильтры
+            myBids,
+            overdue,
+            inWorkToday,
+            // Сортировка
+            sortBy,
+            sortOrder,
+        } = req.query;
         
-        // Получаем заявки с пагинацией
+        // Построение условий WHERE
+        const where = {};
+        
+        // Фильтры по дате создания
+        if (createdAtFrom || createdAtTo) {
+            where.createdAt = {};
+            if (createdAtFrom) {
+                where.createdAt.gte = new Date(createdAtFrom);
+            }
+            if (createdAtTo) {
+                where.createdAt.lte = new Date(createdAtTo);
+            }
+        }
+        
+        // Фильтры по дате обновления
+        if (updatedAtFrom || updatedAtTo) {
+            where.updatedAt = {};
+            if (updatedAtFrom) {
+                where.updatedAt.gte = new Date(updatedAtFrom);
+            }
+            if (updatedAtTo) {
+                where.updatedAt.lte = new Date(updatedAtTo);
+            }
+        }
+        
+        // Фильтры по плановой дате решения
+        if (plannedResolutionDateFrom || plannedResolutionDateTo) {
+            where.plannedResolutionDate = {};
+            if (plannedResolutionDateFrom) {
+                where.plannedResolutionDate.gte = new Date(plannedResolutionDateFrom);
+            }
+            if (plannedResolutionDateTo) {
+                where.plannedResolutionDate.lte = new Date(plannedResolutionDateTo);
+            }
+        }
+        
+        // Быстрый фильтр "Мои заявки"
+        if (myBids === 'true') {
+            where.currentResponsibleUserId = req.user.id;
+        }
+        
+        // Быстрый фильтр "Просроченные" (плановая дата решения меньше текущей даты И статус не "Завершена")
+        if (overdue === 'true') {
+            const now = new Date();
+            where.plannedResolutionDate = {
+                ...where.plannedResolutionDate,
+                lt: now,
+            };
+            // Исключаем завершённые заявки
+            where.status = {
+                not: 'Завершена',
+            };
+        }
+        
+        // Быстрый фильтр "В работе сегодня" (заявки, которые не завершены и назначены сегодня или находятся в работе)
+        if (inWorkToday === 'true') {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            where.status = {
+                not: 'Завершена',
+            };
+            // Заявки, назначенные сегодня или с неназначенным временем назначения (но в статусе != завершена)
+            where.assignedAt = {
+                gte: today,
+                lt: tomorrow,
+            };
+        }
+        
+        // Определение полей для сортировки
+        const sortableFields = {
+            id: 'id',
+            createdAt: 'createdAt',
+            updatedAt: 'updatedAt',
+            plannedResolutionDate: 'plannedResolutionDate',
+            status: 'status',
+            clientName: 'client.name',
+            tema: 'tema',
+        };
+        
+        const orderByField = sortableFields[sortBy] || 'createdAt';
+        const orderDirection = sortOrder === 'asc' ? 'asc' : 'desc';
+        
+        // Построение объекта orderBy с учётом вложенных полей
+        let orderBy = {};
+        if (sortBy === 'clientName') {
+            orderBy = { client: { name: orderDirection } };
+        } else {
+            orderBy = { [orderByField]: orderDirection };
+        }
+        
+        console.log('Filter conditions:', JSON.stringify(where));
+        console.log('Sort by:', orderBy);
+        
+        // Получаем общее количество заявок для расчета пагинации
+        const totalCount = await prisma.bid.count({ where });
+        
+        // Получаем заявки с пагинацией и фильтрами
         const bids = await prisma.bid.findMany({
-            orderBy: { createdAt: 'desc' },
+            orderBy: orderBy,
             skip: skip,
             take: take,
+            where: where,
             include: {
                 client: {
                     select: {

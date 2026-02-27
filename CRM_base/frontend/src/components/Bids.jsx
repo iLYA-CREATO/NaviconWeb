@@ -65,6 +65,26 @@ const Bids = () => {
         clientObject: [],
         responsible: [],
     });
+    // Состояние для фильтров по датам
+    const [dateFilters, setDateFilters] = useState({
+        createdAtFrom: '',
+        createdAtTo: '',
+        updatedAtFrom: '',
+        updatedAtTo: '',
+        plannedResolutionDateFrom: '',
+        plannedResolutionDateTo: '',
+    });
+    // Состояние для быстрых фильтров
+    const [quickFilters, setQuickFilters] = useState({
+        myBids: false,
+        overdue: false,
+        inWorkToday: false,
+    });
+    // Состояние для сортировки
+    const [sortConfig, setSortConfig] = useState({
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+    });
     // Состояние для режима "Кроме" (исключить) для каждого фильтра
     const [filterExceptMode, setFilterExceptMode] = useState({
         creator: false,
@@ -77,7 +97,12 @@ const Bids = () => {
     // Состояние для видимых фильтров (сохранение в localStorage)
     const [visibleFilters, setVisibleFilters] = useState(() => {
         const saved = localStorage.getItem('bidsVisibleFilters');
-        return saved ? JSON.parse(saved) : { creator: false, bidType: false, client: false, status: false, clientObject: false, responsible: false }; // По умолчанию все фильтры скрыты
+        return saved ? JSON.parse(saved) : { 
+            creator: false, bidType: false, client: false, status: false, clientObject: false, responsible: false,
+            createdAtFrom: false, createdAtTo: false, updatedAtFrom: false, updatedAtTo: false,
+            plannedResolutionDateFrom: false, plannedResolutionDateTo: false,
+            myBids: false, overdue: false, inWorkToday: false
+        }; // По умолчанию все фильтры скрыты
     });
     // Состояние для показа модального окна выбора фильтров
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -226,6 +251,12 @@ const Bids = () => {
     useEffect(() => {
         fetchBids();
     }, [pagination.page, pagination.limit]);
+    
+    // useEffect to reload bids when filters change
+    useEffect(() => {
+        setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when filters change
+        fetchBids();
+    }, [dateFilters, quickFilters, sortConfig]);
 
     // useEffect to close dropdown on outside click
     useEffect(() => {
@@ -277,7 +308,25 @@ const Bids = () => {
     // Функция для загрузки списка заявок с сервера
     const fetchBids = async () => {
         try {
-            const response = await getBids(pagination.page, pagination.limit); // Вызов API для получения заявок с пагинацией
+            // Подготовка параметров фильтрации
+            const filterParams = {
+                // Фильтры по датам
+                ...(dateFilters.createdAtFrom && { createdAtFrom: dateFilters.createdAtFrom }),
+                ...(dateFilters.createdAtTo && { createdAtTo: dateFilters.createdAtTo }),
+                ...(dateFilters.updatedAtFrom && { updatedAtFrom: dateFilters.updatedAtFrom }),
+                ...(dateFilters.updatedAtTo && { updatedAtTo: dateFilters.updatedAtTo }),
+                ...(dateFilters.plannedResolutionDateFrom && { plannedResolutionDateFrom: dateFilters.plannedResolutionDateFrom }),
+                ...(dateFilters.plannedResolutionDateTo && { plannedResolutionDateTo: dateFilters.plannedResolutionDateTo }),
+                // Быстрые фильтры
+                ...(quickFilters.myBids && { myBids: 'true' }),
+                ...(quickFilters.overdue && { overdue: 'true' }),
+                ...(quickFilters.inWorkToday && { inWorkToday: 'true' }),
+                // Сортировка
+                ...(sortConfig.sortBy && { sortBy: sortConfig.sortBy }),
+                ...(sortConfig.sortOrder && { sortOrder: sortConfig.sortOrder }),
+            };
+            
+            const response = await getBids(pagination.page, pagination.limit, filterParams); // Вызов API для получения заявок с пагинацией и фильтрами
             setBids(response.data.data); // Сохранение данных в состояние
             setPagination(prev => ({
                 ...prev,
@@ -388,6 +437,14 @@ const Bids = () => {
             [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
             setColumnOrder(newOrder);
         }
+    };
+    
+    // Функция для обработки сортировки по колонке
+    const handleSort = (column) => {
+        setSortConfig(prev => ({
+            sortBy: column,
+            sortOrder: prev.sortBy === column && prev.sortOrder === 'desc' ? 'asc' : 'desc',
+        }));
     };
 
     // Функция для получения названия столбца
@@ -1100,6 +1157,123 @@ const Bids = () => {
                                 </button>
                             )}
                         </div>
+                        {/* Кнопки быстрых фильтров */}
+                        {(visibleFilters.myBids || visibleFilters.overdue || visibleFilters.inWorkToday) && (
+                        <div className="flex gap-2 mb-4 flex-wrap">
+                            {visibleFilters.myBids && (
+                            <button
+                                onClick={() => setQuickFilters(prev => ({ ...prev, myBids: !prev.myBids }))}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                                    quickFilters.myBids 
+                                        ? 'bg-blue-600 text-white' 
+                                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                }`}
+                            >
+                                Мои заявки
+                            </button>
+                            )}
+                            {visibleFilters.overdue && (
+                            <button
+                                onClick={() => setQuickFilters(prev => ({ ...prev, overdue: !prev.overdue }))}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                                    quickFilters.overdue 
+                                        ? 'bg-red-600 text-white' 
+                                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                }`}
+                            >
+                                Просроченные
+                            </button>
+                            )}
+                            {visibleFilters.inWorkToday && (
+                            <button
+                                onClick={() => setQuickFilters(prev => ({ ...prev, inWorkToday: !prev.inWorkToday }))}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                                    quickFilters.inWorkToday 
+                                        ? 'bg-green-600 text-white' 
+                                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                                }`}
+                            >
+                                В работе сегодня
+                            </button>
+                            )}
+                            {(quickFilters.myBids || quickFilters.overdue || quickFilters.inWorkToday) && (
+                                <button
+                                    onClick={() => setQuickFilters({ myBids: false, overdue: false, inWorkToday: false })}
+                                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                >
+                                    Сбросить
+                                </button>
+                            )}
+                        </div>
+                        )}
+                        {/* Фильтры по датам */}
+                        {(visibleFilters.createdAtFrom || visibleFilters.updatedAtFrom || visibleFilters.plannedResolutionDateFrom) && (
+                        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-100 rounded-lg">
+                            {visibleFilters.createdAtFrom && (
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Дата создания (с/по)</label>
+                                <div className="flex gap-1">
+                                    <input
+                                        type="date"
+                                        value={dateFilters.createdAtFrom}
+                                        onChange={(e) => setDateFilters(prev => ({ ...prev, createdAtFrom: e.target.value }))}
+                                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="С"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={dateFilters.createdAtTo}
+                                        onChange={(e) => setDateFilters(prev => ({ ...prev, createdAtTo: e.target.value }))}
+                                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="По"
+                                    />
+                                </div>
+                            </div>
+                            )}
+                            {visibleFilters.updatedAtFrom && (
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Дата обновления (с/по)</label>
+                                <div className="flex gap-1">
+                                    <input
+                                        type="date"
+                                        value={dateFilters.updatedAtFrom}
+                                        onChange={(e) => setDateFilters(prev => ({ ...prev, updatedAtFrom: e.target.value }))}
+                                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="С"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={dateFilters.updatedAtTo}
+                                        onChange={(e) => setDateFilters(prev => ({ ...prev, updatedAtTo: e.target.value }))}
+                                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="По"
+                                    />
+                                </div>
+                            </div>
+                            )}
+                            {visibleFilters.plannedResolutionDateFrom && (
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Плановая дата решения (с/по)</label>
+                                <div className="flex gap-1">
+                                    <input
+                                        type="date"
+                                        value={dateFilters.plannedResolutionDateFrom}
+                                        onChange={(e) => setDateFilters(prev => ({ ...prev, plannedResolutionDateFrom: e.target.value }))}
+                                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="С"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={dateFilters.plannedResolutionDateTo}
+                                        onChange={(e) => setDateFilters(prev => ({ ...prev, plannedResolutionDateTo: e.target.value }))}
+                                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="По"
+                                    />
+                                </div>
+                            </div>
+                            )}
+                        </div>
+                        )}
                         {/* Фильтры */}
                         <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
                             {visibleFilters.creator && (
@@ -1255,8 +1429,20 @@ const Bids = () => {
                         <thead className="bg-gray-50">
                         <tr>
                             {displayColumns.map(column => (
-                                <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 resize-x overflow-auto" style={{ minWidth: '1px' }}>
-                                    {getColumnLabel(column)}
+                                <th 
+                                    key={column} 
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 resize-x overflow-auto cursor-pointer hover:bg-gray-100 transition"
+                                    style={{ minWidth: '1px' }}
+                                    onClick={() => handleSort(column)}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        {getColumnLabel(column)}
+                                        {sortConfig.sortBy === column && (
+                                            <span className="text-blue-500">
+                                                {sortConfig.sortOrder === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </th>
                             ))}
                         </tr>
@@ -1407,6 +1593,80 @@ const Bids = () => {
                                     className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                 />
                                 <span className="text-gray-700">Фильтр по ответственному</span>
+                            </label>
+                            )}
+                            {/* Раздел: Быстрые фильтры */}
+                            <div className="col-span-full mt-4 pt-4 border-t border-gray-200">
+                                <h4 className="font-medium text-gray-700 mb-3">Быстрые фильтры</h4>
+                            </div>
+                            {(!filterSettingsSearch || 'мои'.includes(filterSettingsSearch.toLowerCase())) && (
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.myBids}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, myBids: !visibleFilters.myBids })}
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700">Мои заявки</span>
+                            </label>
+                            )}
+                            {(!filterSettingsSearch || 'просроч'.includes(filterSettingsSearch.toLowerCase())) && (
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.overdue}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, overdue: !visibleFilters.overdue })}
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700">Просроченные</span>
+                            </label>
+                            )}
+                            {(!filterSettingsSearch || 'работе'.includes(filterSettingsSearch.toLowerCase())) && (
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.inWorkToday}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, inWorkToday: !visibleFilters.inWorkToday })}
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700">В работе сегодня</span>
+                            </label>
+                            )}
+                            {/* Раздел: Фильтры по датам */}
+                            <div className="col-span-full mt-4 pt-4 border-t border-gray-200">
+                                <h4 className="font-medium text-gray-700 mb-3">Фильтры по датам</h4>
+                            </div>
+                            {(!filterSettingsSearch || 'создания'.includes(filterSettingsSearch.toLowerCase())) && (
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.createdAtFrom}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, createdAtFrom: !visibleFilters.createdAtFrom })}
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700">Дата создания</span>
+                            </label>
+                            )}
+                            {(!filterSettingsSearch || 'обновления'.includes(filterSettingsSearch.toLowerCase())) && (
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.updatedAtFrom}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, updatedAtFrom: !visibleFilters.updatedAtFrom })}
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700">Дата обновления</span>
+                            </label>
+                            )}
+                            {(!filterSettingsSearch || 'решения'.includes(filterSettingsSearch.toLowerCase())) && (
+                            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition">
+                                <input
+                                    type="checkbox"
+                                    checked={visibleFilters.plannedResolutionDateFrom}
+                                    onChange={() => setVisibleFilters({ ...visibleFilters, plannedResolutionDateFrom: !visibleFilters.plannedResolutionDateFrom })}
+                                    className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700">Плановая дата решения</span>
                             </label>
                             )}
                         </div>
