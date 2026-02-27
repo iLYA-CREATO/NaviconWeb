@@ -131,12 +131,19 @@ const Objects = () => {
         stateNumber: '',
     });
 
+    // Загрузка данных при монтировании
     useEffect(() => {
         fetchObjects();
         fetchClients();
         fetchUsers();
         setShowForm(false);
     }, []);
+
+    // Перезагрузка объектов при изменении фильтров или поиска
+    useEffect(() => {
+        const timeout = setTimeout(() => fetchObjects(), 300);
+        return () => clearTimeout(timeout);
+    }, [searchTerm, filters]);
 
     const fetchUsers = async () => {
         try {
@@ -149,7 +156,16 @@ const Objects = () => {
 
     const fetchObjects = async () => {
         try {
-            const response = await getClientObjects();
+            // Подготовка параметров фильтрации
+            const params = {
+                // Поиск
+                ...(searchTerm && { search: searchTerm }),
+                // Фильтры
+                ...(filters.client.length > 0 && { clientId: filters.client.join(',') }),
+                ...(filters.brandModel && { brandModel: filters.brandModel }),
+                ...(filters.responsible.length > 0 && { responsibleId: filters.responsible.join(',') }),
+            };
+            const response = await getClientObjects(params);
             setObjects(response.data);
         } catch (error) {
             console.error('Error fetching objects:', error);

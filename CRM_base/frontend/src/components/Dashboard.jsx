@@ -136,6 +136,7 @@ const Dashboard = () => {
                 </div>
                 <Button 
                     variant="icon" 
+                    size="md"
                     icon={<Bell size={20} />}
                     onClick={() => {
                         setShowNotifications(!showNotifications);
@@ -143,7 +144,7 @@ const Dashboard = () => {
                             fetchNotifications();
                         }
                     }}
-                    className={`relative ${unreadCount > 0 ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'}`}
+                    className={`relative notification-button ${unreadCount > 0 ? '!bg-orange-500 !text-white' : '!bg-gray-100 !text-gray-700'}`}
                     title="Уведомления"
                 >
                     {unreadCount > 0 && (
@@ -154,7 +155,7 @@ const Dashboard = () => {
                 </Button>
                 {/* Панель уведомлений */}
                 {showNotifications && (
-                    <div className="notification_panel absolute top-16 right-4 w-80 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                    <div className="notification-panel absolute top-16 right-4 w-80 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
                         <div className="p-4 border-b border-gray-200">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-medium">Уведомления</h4>

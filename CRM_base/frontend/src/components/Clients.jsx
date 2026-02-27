@@ -9,9 +9,10 @@
 // Импорт хуков React для управления состоянием и эффектами
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getClients, createClient, getUsers, getEnabledClientAttributes } from '../services/api';
+import { getClients, createClient, getUsers, getEnabledClientAttributes, deleteClient, bulkDeleteClients } from '../services/api';
 import { useAuth } from '../context/AuthContext.jsx';
 import { usePermissions } from '../hooks/usePermissions';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from './Button';
 import Input from './Input';
 import Select from './Select';
@@ -38,18 +39,45 @@ const Clients = () => {
         responsibleId: '', // ID ответственного пользователя
     });
     // Состояние для поискового запроса (сохранение в localStorage)
-    const [searchQuery, setSearchQuery] = useState(localStorage.getItem('clientsSearchQuery') || '');
+    const [searchQuery, setSearchQuery] = useState(() => {
+        try {
+            return localStorage.getItem('clientsSearchQuery') || '';
+        } catch {
+            return '';
+        }
+    });
     // Состояние для фильтра по ответственному (сохранение в localStorage)
-    const [responsibleFilter, setResponsibleFilter] = useState(localStorage.getItem('clientsResponsibleFilter') || '');
+    const [responsibleFilter, setResponsibleFilter] = useState(() => {
+        try {
+            return localStorage.getItem('clientsResponsibleFilter') || '';
+        } catch {
+            return '';
+        }
+    });
     // Состояние для режима "Кроме" для фильтра ответственного
     const [responsibleExceptMode, setResponsibleExceptMode] = useState(false);
     // Состояние для видимых фильтров (сохранение в localStorage)
     const [visibleFilters, setVisibleFilters] = useState(() => {
-        const saved = localStorage.getItem('clientsVisibleFilters');
-        return saved ? JSON.parse(saved) : { responsible: false }; // По умолчанию фильтр ответственного скрыт
+        try {
+            const saved = localStorage.getItem('clientsVisibleFilters');
+            return saved ? JSON.parse(saved) : { responsible: false };
+        } catch {
+            return { responsible: false };
+        }
     });
     // Состояние для показа модального окна выбора фильтров
     const [showFilterModal, setShowFilterModal] = useState(false);
+    // Состояние для пагинации
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+    });
+    // Состояние для модального окна подтверждения удаления
+    const [deleteModal, setDeleteModal] = useState({ show: false, client: null });
+    // Состояние для выбранных клиентов (массовое удаление)
+    const [selectedClients, setSelectedClients] = useState([]);
 
     // Определение всех возможных колонок
     const allColumns = ['name', 'email', 'phone', 'responsible', 'bidsCount', 'objectsCount'];
@@ -63,9 +91,40 @@ const Clients = () => {
         bidsCount: true,
         objectsCount: true,
     };
-    const initialVisibleColumns = savedColumns ? { ...defaultVisibleColumns, ...JSON.parse(savedColumns) } : defaultVisibleColumns;
+    
+    // Safely parse and validate saved columns
+    let initialVisibleColumns;
+    try {
+        const parsed = savedColumns ? JSON.parse(savedColumns) : null;
+        // Validate that parsed object has valid boolean values for all columns
+        if (parsed && typeof parsed === 'object') {
+            initialVisibleColumns = { ...defaultVisibleColumns };
+            Object.keys(defaultVisibleColumns).forEach(key => {
+                if (typeof parsed[key] === 'boolean') {
+                    initialVisibleColumns[key] = parsed[key];
+                }
+            });
+        } else {
+            initialVisibleColumns = defaultVisibleColumns;
+        }
+    } catch (e) {
+        // If parsing fails, reset to defaults
+        console.warn('Failed to parse clientsVisibleColumns from localStorage, using defaults');
+        initialVisibleColumns = defaultVisibleColumns;
+    }
     const savedOrder = localStorage.getItem('clientsColumnOrder');
-    let initialColumnOrder = savedOrder ? JSON.parse(savedOrder).filter(col => allColumns.includes(col)) : allColumns;
+    let initialColumnOrder;
+    try {
+        const parsed = savedOrder ? JSON.parse(savedOrder) : null;
+        if (Array.isArray(parsed)) {
+            initialColumnOrder = parsed.filter(col => allColumns.includes(col));
+        } else {
+            initialColumnOrder = allColumns;
+        }
+    } catch (e) {
+        console.warn('Failed to parse clientsColumnOrder from localStorage, using defaults');
+        initialColumnOrder = allColumns;
+    }
 
     // Ensure all new columns are included in the order
     allColumns.forEach(col => {
@@ -83,9 +142,22 @@ const Clients = () => {
 
     // useEffect для загрузки клиентов с debounce при изменении поиска или фильтра
     useEffect(() => {
-        const timeout = setTimeout(() => fetchClients(searchQuery, responsibleFilter), 300); // Задержка 300мс для оптимизации
+        const timeout = setTimeout(() => {
+            setPagination(prev => ({ ...prev, page: 1 })); // Сброс на первую страницу при изменении поиска/фильтра
+            fetchClients(searchQuery, responsibleFilter);
+        }, 300); // Задержка 300мс для оптимизации
         return () => clearTimeout(timeout); // Очистка таймера при изменении зависимостей
     }, [searchQuery, responsibleFilter]); // Зависимости: поиск и фильтр
+
+    // useEffect for initial load of clients
+    useEffect(() => {
+        fetchClients(searchQuery, responsibleFilter);
+    }, []);
+
+    // useEffect for pagination changes
+    useEffect(() => {
+        fetchClients(searchQuery, responsibleFilter);
+    }, [pagination.page, pagination.limit]);
 
     // useEffect для загрузки списка пользователей при монтировании компонента
     useEffect(() => {
@@ -123,15 +195,34 @@ const Clients = () => {
 
     // Функция для загрузки клиентов с параметрами поиска и фильтра
     const fetchClients = async (search = '', responsibleId = '') => {
-        console.log('Fetching clients...'); // Логирование начала загрузки
         try {
-            const response = await getClients(search, responsibleId); // Вызов API с параметрами
-            console.log('Clients response:', response); // Логирование ответа
-            setClients(response.data); // Сохранение данных в состояние
-            console.log('Clients set:', response.data); // Логирование установки данных
+            // Calculate offset from page number
+            const offset = (pagination.page - 1) * pagination.limit;
+            const response = await getClients(search, responsibleId, pagination.limit, offset);
+            
+            // Handle both response formats
+            let clientsData = [];
+            let total = 0;
+            
+            if (Array.isArray(response.data)) {
+                // Response is directly an array
+                clientsData = response.data;
+                total = response.data.length;
+            } else if (response.data?.data && Array.isArray(response.data.data)) {
+                // Response is { data: array, total, offset }
+                clientsData = response.data.data;
+                total = response.data.total || 0;
+            }
+            
+            const totalPages = Math.ceil(total / pagination.limit);
+            setClients(clientsData);
+            setPagination(prev => ({
+                ...prev,
+                total: total,
+                totalPages: totalPages
+            }));
         } catch (error) {
-            console.error('Error fetching clients:', error); // Логирование ошибки
-            console.error('Error details:', error.response); // Детали ошибки
+            console.error('Error fetching clients:', error);
         }
     };
 
@@ -150,6 +241,59 @@ const Clients = () => {
     // Обработчик клика по клиенту для просмотра деталей
     const handleView = (client) => {
         navigate(`/dashboard/clients/${client.id}`); // Переход на страницу деталей клиента
+    };
+
+    // Обработчик клика по кнопке удаления
+    const handleDeleteClick = (e, client) => {
+        e.stopPropagation(); // Предотвращение открытия деталей
+        setDeleteModal({ show: true, client });
+    };
+
+    // Обработчик подтверждения удаления
+    const handleDeleteConfirm = async () => {
+        if (!deleteModal.client) return;
+        try {
+            await deleteClient(deleteModal.client.id);
+            setDeleteModal({ show: false, client: null });
+            fetchClients();
+        } catch (error) {
+            console.error('Error deleting client:', error);
+            alert('Ошибка при удалении клиента');
+        }
+    };
+
+    // Обработчик выбора всех клиентов
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedClients(clients.map(client => client.id));
+        } else {
+            setSelectedClients([]);
+        }
+    };
+
+    // Обработчик выбора одного клиента
+    const handleSelectClient = (clientId) => {
+        setSelectedClients(prev => {
+            if (prev.includes(clientId)) {
+                return prev.filter(id => id !== clientId);
+            } else {
+                return [...prev, clientId];
+            }
+        });
+    };
+
+    // Обработчик массового удаления
+    const handleBulkDelete = async () => {
+        if (selectedClients.length === 0) return;
+        if (!window.confirm(`Вы уверены, что хотите удалить ${selectedClients.length} клиентов?`)) return;
+        try {
+            await bulkDeleteClients(selectedClients);
+            setSelectedClients([]);
+            fetchClients();
+        } catch (error) {
+            console.error('Error bulk deleting clients:', error);
+            alert('Ошибка при массовом удалении клиентов');
+        }
     };
 
     // Функция открытия модального окна создания клиента
@@ -225,8 +369,30 @@ const Clients = () => {
         }
     };
 
+    // Обработчик изменения страницы
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= pagination.totalPages) {
+            setPagination(prev => ({ ...prev, page: newPage }));
+        }
+    };
+
+    // Функция для сброса всех настроек таблицы
+    const resetTableSettings = () => {
+        if (window.confirm('Вы уверены, что хотите сбросить все настройки таблицы клиентов?')) {
+            localStorage.removeItem('clientsVisibleColumns');
+            localStorage.removeItem('clientsColumnOrder');
+            localStorage.removeItem('clientsSearchQuery');
+            localStorage.removeItem('clientsResponsibleFilter');
+            localStorage.removeItem('clientsVisibleFilters');
+            // Перезагрузить страницу для применения настроек
+            window.location.reload();
+        }
+    };
+
     // Определение видимых столбцов в порядке columnOrder
     const displayColumns = columnOrder.filter(col => visibleColumns[col]);
+    // Fallback: если нет видимых столбцов, показать имя
+    const finalDisplayColumns = displayColumns.length > 0 ? displayColumns : ['name'];
 
     return (
         <div>
@@ -236,6 +402,15 @@ const Clients = () => {
             <div className="bg-gray-200 rounded-lg p-4 mb-6">
                 {/* Панель управления с кнопками */}
                 <div className="flex justify-end gap-2 mb-4">
+                    {selectedClients.length > 0 && hasPermission('client_delete') && (
+                        <Button 
+                            variant="primary" 
+                            onClick={handleBulkDelete}
+                            className="bg-red-500 hover:bg-red-600"
+                        >
+                            Удалить выбранных ({selectedClients.length})
+                        </Button>
+                    )}
                     <div className="relative column-settings">
                         <Button variant="primary" onClick={() => setShowColumnSettings(!showColumnSettings)} className="bg-blue-500 hover:bg-blue-600 text-white">
                             Настройки столбцов
@@ -275,6 +450,13 @@ const Clients = () => {
                                             )}
                                         </div>
                                     ))}
+                                    <hr className="my-3" />
+                                    <button
+                                        onClick={resetTableSettings}
+                                        className="w-full px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 text-sm rounded"
+                                    >
+                                        Сбросить настройки
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -322,12 +504,22 @@ const Clients = () => {
             </div>
 
             {/* Таблица с клиентами */}
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
+            <div className="overflow-x-auto table-container flex-1 min-h-0 bg-white rounded-lg shadow">
+                <table className="divide-y divide-gray-200" style={{ minWidth: `${finalDisplayColumns.length * 120}px` }}>
                     <thead className="bg-gray-50">
                     <tr>
-                        {displayColumns.map(column => (
-                            <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]" style={{ resize: 'horizontal', overflow: 'auto' }}>
+                        {hasPermission('client_delete') && (
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                <input
+                                    type="checkbox"
+                                    onChange={handleSelectAll}
+                                    checked={clients.length > 0 && selectedClients.length === clients.length}
+                                    className="w-4 h-4"
+                                />
+                            </th>
+                        )}
+                        {(finalDisplayColumns || []).map(column => (
+                            <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 resize-x overflow-auto cursor-pointer hover:bg-gray-100 transition" style={{ minWidth: '1px' }}>
                                 {getColumnLabel(column)}
                             </th>
                         ))}
@@ -335,9 +527,19 @@ const Clients = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                     {/* Отображение списка клиентов */}
-                    {clients.map((client) => (
-                        <tr key={client.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(client)}>
-                            {displayColumns.map(column => (
+                    {(clients || []).map((client) => (
+                        <tr key={client.id} className="hover:bg-gray-50 cursor-pointer">
+                            {hasPermission('client_delete') && (
+                                <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedClients.includes(client.id)}
+                                        onChange={() => handleSelectClient(client.id)}
+                                        className="w-4 h-4"
+                                    />
+                                </td>
+                            )}
+                            {(finalDisplayColumns || []).map(column => (
                                 <td key={column} className="px-6 py-4 whitespace-nowrap">
                                     {getCellContent(client, column)}
                                 </td>
@@ -418,6 +620,88 @@ const Clients = () => {
                                 </Button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Модальное окно подтверждения удаления */}
+            {deleteModal.show && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-xl font-bold mb-4 text-red-600">
+                            Подтверждение удаления
+                        </h3>
+                        <p className="mb-4">
+                            Вы уверены, что хотите удалить клиента <strong>"{deleteModal.client?.name}"</strong>?
+                        </p>
+                        <p className="mb-4 text-sm text-gray-600">
+                            Будут удалены все связанные данные:
+                        </p>
+                        <ul className="list-disc list-inside mb-4 text-sm text-gray-600">
+                            <li>Заявки: {deleteModal.client?._count?.bids || 0}</li>
+                            <li>Объекты: {deleteModal.client?._count?.clientObjects || 0}</li>
+                        </ul>
+                        <p className="mb-4 text-sm text-red-500 font-medium">
+                            Это действие нельзя отменить!
+                        </p>
+                        <div className="flex gap-2 pt-4">
+                            <Button 
+                                variant="primary" 
+                                onClick={handleDeleteConfirm} 
+                                className="flex-1 bg-red-500 hover:bg-red-600"
+                            >
+                                Удалить
+                            </Button>
+                            <Button 
+                                type="button" 
+                                variant="secondary" 
+                                onClick={() => setDeleteModal({ show: false, client: null })} 
+                                className="flex-1"
+                            >
+                                Отмена
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Пагинация */}
+            {pagination.total > 0 && (
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200 flex-none">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Записей на странице:</span>
+                        <select
+                            value={pagination.limit}
+                            onChange={(e) => setPagination(prev => ({ ...prev, limit: parseInt(e.target.value), page: 1 }))}
+                            className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">
+                            Страница {pagination.page} из {pagination.totalPages || 1} ({pagination.total} записей)
+                        </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            disabled={pagination.page === 1}
+                            className="p-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition"
+                        >
+                            <ChevronLeft size={20} className="text-white" />
+                        </button>
+                        <button
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            disabled={pagination.page >= pagination.totalPages}
+                            className="p-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition"
+                        >
+                            <ChevronRight size={20} className="text-white" />
+                        </button>
                     </div>
                 </div>
             )}

@@ -25,8 +25,14 @@ body {
     padding: 0.5rem 0.75rem;
 }
 
-::-webkit-scrollbar {
-    width: 0;
+/* Hide scrollbar for specific containers but allow scrolling */
+.hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
 }
 
 /* Custom scrollbar for equipment dropdown */

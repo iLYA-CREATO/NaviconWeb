@@ -130,6 +130,22 @@ router.get('/', authMiddleware, async (req, res) => {
             myBids,
             overdue,
             inWorkToday,
+            // Фильтры по ID (массивы через запятую)
+            creatorIds,
+            bidTypeIds,
+            clientIds,
+            statuses,
+            clientObjectIds,
+            responsibleUserIds,
+            // Режим "Кроме" (исключить)
+            exceptCreator,
+            exceptBidType,
+            exceptClient,
+            exceptStatus,
+            exceptClientObject,
+            exceptResponsible,
+            // Поиск
+            search,
             // Сортировка
             sortBy,
             sortOrder,
@@ -137,6 +153,75 @@ router.get('/', authMiddleware, async (req, res) => {
         
         // Построение условий WHERE
         const where = {};
+        
+        // Поиск по тексту (tema, description, client name)
+        if (search) {
+            where.OR = [
+                { tema: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+                { client: { name: { contains: search, mode: 'insensitive' } } },
+            ];
+        }
+        
+        // Фильтр по ID создателя (createdBy)
+        if (creatorIds) {
+            const ids = creatorIds.split(',').map(id => parseInt(id));
+            if (exceptCreator === 'true') {
+                where.createdBy = { notIn: ids };
+            } else {
+                where.createdBy = { in: ids };
+            }
+        }
+        
+        // Фильтр по типу заявки (bidTypeId)
+        if (bidTypeIds) {
+            const ids = bidTypeIds.split(',').map(id => parseInt(id));
+            if (exceptBidType === 'true') {
+                where.bidTypeId = { notIn: ids };
+            } else {
+                where.bidTypeId = { in: ids };
+            }
+        }
+        
+        // Фильтр по клиенту (clientId)
+        if (clientIds) {
+            const ids = clientIds.split(',').map(id => parseInt(id));
+            if (exceptClient === 'true') {
+                where.clientId = { notIn: ids };
+            } else {
+                where.clientId = { in: ids };
+            }
+        }
+        
+        // Фильтр по статусу
+        if (statuses) {
+            const statusList = statuses.split(',');
+            if (exceptStatus === 'true') {
+                where.status = { notIn: statusList };
+            } else {
+                where.status = { in: statusList };
+            }
+        }
+        
+        // Фильтр по объекту клиента (clientObjectId)
+        if (clientObjectIds) {
+            const ids = clientObjectIds.split(',').map(id => parseInt(id));
+            if (exceptClientObject === 'true') {
+                where.clientObjectId = { notIn: ids };
+            } else {
+                where.clientObjectId = { in: ids };
+            }
+        }
+        
+        // Фильтр по ответственному (currentResponsibleUserId)
+        if (responsibleUserIds) {
+            const ids = responsibleUserIds.split(',').map(id => parseInt(id));
+            if (exceptResponsible === 'true') {
+                where.currentResponsibleUserId = { notIn: ids };
+            } else {
+                where.currentResponsibleUserId = { in: ids };
+            }
+        }
         
         // Фильтры по дате создания
         if (createdAtFrom || createdAtTo) {

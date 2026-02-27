@@ -6,11 +6,37 @@ const prisma = require('../prisma/client');
 // Получение всех объектов клиентов
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const { clientId } = req.query;
+        const { clientId, brandModel, responsibleId, search } = req.query;
         const whereClause = {};
+        
         if (clientId) {
             whereClause.clientId = parseInt(clientId);
         }
+        
+        // Фильтр по названию (brandModel или stateNumber)
+        if (brandModel) {
+            whereClause.OR = [
+                { brandModel: { contains: brandModel, mode: 'insensitive' } },
+                { stateNumber: { contains: brandModel, mode: 'insensitive' } },
+            ];
+        }
+        
+        // Поиск по названию или госномеру
+        if (search) {
+            whereClause.OR = [
+                ...(whereClause.OR || []),
+                { brandModel: { contains: search, mode: 'insensitive' } },
+                { stateNumber: { contains: search, mode: 'insensitive' } },
+            ];
+        }
+        
+        // Фильтр по ответственному клиента
+        if (responsibleId) {
+            whereClause.client = {
+                responsibleId: parseInt(responsibleId)
+            };
+        }
+        
         const clientObjects = await prisma.clientObject.findMany({
             where: whereClause,
             orderBy: { createdAt: 'desc' },

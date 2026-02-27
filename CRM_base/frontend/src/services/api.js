@@ -55,8 +55,8 @@ export const getMe = () => api.get('/auth/me'); // Получение данны
 
 // === КЛИЕНТЫ ===
 // CRUD-операции для клиентов
-export const getClients = (search = '', responsibleId = '') => {
-    const params = {};
+export const getClients = (search = '', responsibleId = '', limit = 20, offset = 0) => {
+    const params = { limit, offset };
     if (search) params.name = search; // Поиск по имени
     if (responsibleId) {
         // Поддержка множественного выбора (массив или строка через запятую)
@@ -72,6 +72,7 @@ export const getClient = (id) => api.get(`/clients/${id}`); // Получени�
 export const createClient = (data) => api.post('/clients', data); // Создание нового клиента
 export const updateClient = (id, data) => api.put(`/clients/${id}`, data); // Обновление клиента
 export const deleteClient = (id) => api.delete(`/clients/${id}`); // Удаление клиента
+export const bulkDeleteClients = (ids) => api.post('/clients/bulk-delete', { ids }); // Массовое удаление клиентов
 export const bulkUploadClients = (data) => api.post('/clients/bulk-upload', data); // Массовый импорт клиентов
 export const bulkUploadClientObjects = (data) => api.post('/client-objects/bulk-upload', data); // Массовый импорт объектов клиентов
 
@@ -215,10 +216,13 @@ export const deleteRole = (id) => api.delete(`/roles/${id}`); // Удалени�
 
 // === ОБЪЕКТЫ КЛИЕНТОВ ===
 // CRUD-операции для объектов клиентов (автомобилей)
-export const getClientObjects = (clientId = '') => {
-    const params = {};
-    if (clientId) params.clientId = clientId; // Фильтр по клиенту
-    return api.get('/client-objects', { params });
+export const getClientObjects = (params = {}) => {
+    const queryParams = {};
+    if (params.clientId) queryParams.clientId = params.clientId;
+    if (params.brandModel) queryParams.brandModel = params.brandModel;
+    if (params.responsibleId) queryParams.responsibleId = params.responsibleId;
+    if (params.search) queryParams.search = params.search;
+    return api.get('/client-objects', { params: queryParams });
 };
 export const getClientObject = (id) => api.get(`/client-objects/${id}`); // Получение объекта по ID
 export const createClientObject = (data) => api.post('/client-objects', data); // Создание нового объекта

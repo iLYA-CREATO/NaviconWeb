@@ -256,7 +256,7 @@ const Bids = () => {
     useEffect(() => {
         setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when filters change
         fetchBids();
-    }, [dateFilters, quickFilters, sortConfig]);
+    }, [dateFilters, quickFilters, sortConfig, filters, searchTerm]);
 
     // useEffect to close dropdown on outside click
     useEffect(() => {
@@ -310,6 +310,8 @@ const Bids = () => {
         try {
             // Подготовка параметров фильтрации
             const filterParams = {
+                // Поиск
+                ...(searchTerm && { search: searchTerm }),
                 // Фильтры по датам
                 ...(dateFilters.createdAtFrom && { createdAtFrom: dateFilters.createdAtFrom }),
                 ...(dateFilters.createdAtTo && { createdAtTo: dateFilters.createdAtTo }),
@@ -321,6 +323,16 @@ const Bids = () => {
                 ...(quickFilters.myBids && { myBids: 'true' }),
                 ...(quickFilters.overdue && { overdue: 'true' }),
                 ...(quickFilters.inWorkToday && { inWorkToday: 'true' }),
+                // Фильтры множественного выбора - передаем на сервер
+                ...(filters.creator.length > 0 && { creatorIds: filters.creator.join(',') }),
+                ...(filters.bidType.length > 0 && { bidTypeIds: filters.bidType.join(',') }),
+                ...(filters.client.length > 0 && { clientIds: filters.client.join(',') }),
+                ...(filters.status.length > 0 && { statuses: filters.status.join(',') }),
+                // Режим "Кроме"
+                ...(filterExceptMode.creator && { exceptCreator: 'true' }),
+                ...(filterExceptMode.bidType && { exceptBidType: 'true' }),
+                ...(filterExceptMode.client && { exceptClient: 'true' }),
+                ...(filterExceptMode.status && { exceptStatus: 'true' }),
                 // Сортировка
                 ...(sortConfig.sortBy && { sortBy: sortConfig.sortBy }),
                 ...(sortConfig.sortOrder && { sortOrder: sortConfig.sortOrder }),
