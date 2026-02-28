@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getClientObject, updateClientObject, deleteClientObject, getClients } from '../services/api';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { getClientObject, updateClientObject, deleteClientObject, getClients, createClientObject } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 const ClientObjectDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { hasPermission } = usePermissions();
+    
+    // Check if we're in create mode
+    const isNewMode = id === 'new';
+    const preSelectedClientId = searchParams.get('clientId');
+    const preSelectedClientName = searchParams.get('clientName');
+    
     const [clientObject, setClientObject] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!isNewMode);
+    const [isCreating, setIsCreating] = useState(isNewMode);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('Заявки');
     const [isEditing, setIsEditing] = useState(false);
@@ -16,14 +24,18 @@ const ClientObjectDetail = () => {
         brandModel: '',
         stateNumber: '',
         equipment: '',
+        clientId: preSelectedClientId ? parseInt(preSelectedClientId) : '',
     });
     const [clients, setClients] = useState([]);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showLinkedBidsModal, setShowLinkedBidsModal] = useState(false);
     const [notification, setNotification] = useState(null);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        fetchClientObject();
+        if (!isNewMode) {
+            fetchClientObject();
+        }
         fetchClients();
     }, [id]);
 
@@ -58,22 +70,45 @@ const ClientObjectDetail = () => {
     };
 
     const handleSave = async () => {
-        try {
-            await updateClientObject(id, editForm);
-            setClientObject({ ...clientObject, ...editForm });
-            setIsEditing(false);
-        } catch (error) {
-            console.error('Error updating object:', error);
+        if (isNewMode) {
+            // Create new object
+            setSaving(true);
+            try {
+                const response = await createClientObject({
+                    ...editForm,
+                    clientId: parseInt(editForm.clientId),
+                });
+                navigate(`/dashboard/client-objects/${response.data.id}`);
+            } catch (error) {
+                console.error('Error creating object:', error);
+                setNotification({ type: 'error', message: 'Ошибка при создании объекта.' });
+                setTimeout(() => setNotification(null), 3000);
+            } finally {
+                setSaving(false);
+            }
+        } else {
+            try {
+                await updateClientObject(id, editForm);
+                setClientObject({ ...clientObject, ...editForm });
+                setIsEditing(false);
+            } catch (error) {
+                console.error('Error updating object:', error);
+            }
         }
     };
 
     const handleCancel = () => {
-        setEditForm({
-            brandModel: clientObject.brandModel,
-            stateNumber: clientObject.stateNumber,
-            equipment: clientObject.equipment || '',
-        });
-        setIsEditing(false);
+        if (isNewMode) {
+            navigate(-1);
+        } else {
+            setEditForm({
+                brandModel: clientObject.brandModel,
+                stateNumber: clientObject.stateNumber,
+                equipment: clientObject.equipment || '',
+                clientId: clientObject.clientId || '',
+            });
+            setIsEditing(false);
+        }
     };
 
     const handleDelete = () => {
@@ -97,12 +132,101 @@ const ClientObjectDetail = () => {
         }
     };
 
+    // Render the create form for new mode
+    const renderCreateForm = () => {
+        return (
+            <div>
+                {notification && (
+                    <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+                        {notification.message}
+                    </div>
+                )}
+
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Создание нового объекта</h2>
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        Назад
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Клиент</label>
+                            {preSelectedClientName ? (
+                                <p className="text-gray-900 text-lg">{decodeURIComponent(preSelectedClientName)}</p>
+                            ) : (
+                                <select
+                                    value={editForm.clientId}
+                                    onChange={(e) => setEditForm({ ...editForm, clientId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                >
+                                    <option value="">Выберите клиента</option>
+                                    {clients.map(client => (
+                                        <option key={client.id} value={client.id}>
+                                            {client.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Марка/Модель</label>
+                            <input
+                                type="text"
+                                value={editForm.brandModel}
+                                onChange={(e) => setEditForm({ ...editForm, brandModel: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Гос. Номер</label>
+                            <input
+                                type="text"
+                                value={editForm.stateNumber}
+                                onChange={(e) => setEditForm({ ...editForm, stateNumber: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-6">
+                        <button
+                            onClick={handleSave}
+                            disabled={saving || !editForm.clientId || !editForm.brandModel || !editForm.stateNumber}
+                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition disabled:opacity-50"
+                        >
+                            {saving ? 'Создание...' : 'Создать'}
+                        </button>
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+                        >
+                            Отмена
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <div className="text-gray-500">Загрузка...</div>
             </div>
         );
+    }
+
+    // In new mode, render the create form directly
+    if (isNewMode) {
+        return renderCreateForm();
     }
 
     if (error || !clientObject) {

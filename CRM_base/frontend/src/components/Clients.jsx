@@ -78,6 +78,8 @@ const Clients = () => {
     const [deleteModal, setDeleteModal] = useState({ show: false, client: null });
     // Состояние для выбранных клиентов (массовое удаление)
     const [selectedClients, setSelectedClients] = useState([]);
+    // Состояние для сортировки
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
 
     // Определение всех возможных колонок
     const allColumns = ['name', 'email', 'phone', 'responsible', 'bidsCount', 'objectsCount'];
@@ -198,7 +200,9 @@ const Clients = () => {
         try {
             // Calculate offset from page number
             const offset = (pagination.page - 1) * pagination.limit;
-            const response = await getClients(search, responsibleId, pagination.limit, offset);
+            const sortBy = sortConfig.key || '';
+            const sortOrder = sortConfig.direction || 'desc';
+            const response = await getClients(search, responsibleId, pagination.limit, offset, sortBy, sortOrder);
             
             // Handle both response formats
             let clientsData = [];
@@ -224,6 +228,15 @@ const Clients = () => {
         } catch (error) {
             console.error('Error fetching clients:', error);
         }
+    };
+
+    // Обработчик сортировки по столбцу
+    const handleSort = (column) => {
+        let direction = 'asc';
+        if (sortConfig.key === column && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key: column, direction });
     };
 
     // Обработчик отправки формы создания клиента
@@ -519,8 +532,20 @@ const Clients = () => {
                             </th>
                         )}
                         {(finalDisplayColumns || []).map(column => (
-                            <th key={column} className="px-6 py-3 text-left text-xs font-medium text-gray-500 resize-x overflow-auto cursor-pointer hover:bg-gray-100 transition" style={{ minWidth: '1px' }}>
-                                {getColumnLabel(column)}
+                            <th 
+                                key={column} 
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 resize-x overflow-auto cursor-pointer hover:bg-gray-100 transition"
+                                style={{ minWidth: '1px' }}
+                                onClick={() => handleSort(column)}
+                            >
+                                <div className="flex items-center gap-1">
+                                    {getColumnLabel(column)}
+                                    {sortConfig.key === column && (
+                                        <span className="text-blue-500">
+                                            {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </div>
                             </th>
                         ))}
                     </tr>
@@ -528,7 +553,11 @@ const Clients = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                     {/* Отображение списка клиентов */}
                     {(clients || []).map((client) => (
-                        <tr key={client.id} className="hover:bg-gray-50 cursor-pointer">
+                        <tr 
+                            key={client.id} 
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => handleView(client)}
+                        >
                             {hasPermission('client_delete') && (
                                 <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                                     <input

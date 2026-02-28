@@ -6,7 +6,7 @@
 // Импорты React хуков для управления состоянием и эффектами
 import { useState, useEffect, useRef } from 'react';
 // Импорты из React Router для получения параметров URL и навигации
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 // Импорты функций API для взаимодействия с сервером
 import { getBid, getBids, getClients, updateBid, getClientObjects, getComments, createComment, updateComment, deleteComment, getBidSpecifications, createBidSpecification, updateBidSpecification, deleteBidSpecification, getUsers, getSpecifications, getSpecificationCategories, getSpecificationCategoriesTree, getBidHistory, getBidStatuses, getBidStatusTransitions, getEquipment, getEquipmentCategories, getBidEquipment, createBidEquipment, updateBidEquipment, deleteBidEquipment, createBid, getBidTypes, getClientEquipmentByClient, createClientEquipment, getRoles, getBidFiles, uploadBidFiles, deleteBidFile, getEnabledBidAttributes } from '../services/api';
 // Импорт функций для уведомлений
@@ -33,6 +33,13 @@ const BidDetail = () => {
     const { id } = useParams();
     // Хук для навигации между страницами
     const navigate = useNavigate();
+    // Хук для получения параметров запроса
+    const [searchParams] = useSearchParams();
+    
+    // Проверка режима создания
+    const isNewMode = id === 'new';
+    const preSelectedClientId = searchParams.get('clientId');
+    const preSelectedClientName = searchParams.get('clientName');
     // Хук аутентификации
     const { user } = useAuth();
     // Хук для проверки разрешений
@@ -40,6 +47,16 @@ const BidDetail = () => {
     const [bid, setBid] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
+    
+    // Form state for creating new bid
+    const [newBidForm, setNewBidForm] = useState({
+        clientId: preSelectedClientId ? parseInt(preSelectedClientId) : '',
+        tema: '',
+        description: '',
+        bidTypeId: '',
+    });
+    
     const [showStatusDropdown, setShowStatusDropdown] = useState(false);
     const [activeTab, setActiveTab] = useState('comments');
     const [comments, setComments] = useState([]);
@@ -244,22 +261,29 @@ const BidDetail = () => {
     };
 
     useEffect(() => {
-        fetchBid();
-        fetchComments();
-        fetchBidSpecifications();
-        fetchBidEquipment();
-        fetchEquipment();
-        fetchEquipmentCategories();
+        // Only fetch bid details if not in new mode
+        if (!isNewMode) {
+            fetchBid();
+            fetchComments();
+            fetchBidSpecifications();
+            fetchBidEquipment();
+            fetchEquipment();
+            fetchEquipmentCategories();
+            fetchBidFiles();
+            fetchBidAttributes();
+            fetchHistory();
+            fetchChildBids();
+        } else {
+            // In new mode, just set loading to false after basic data loads
+            setLoading(false);
+        }
+        // These are always needed
         fetchUsers();
         fetchRoles();
         fetchSpecifications();
         fetchSpecCategories();
-        fetchHistory();
-        fetchChildBids();
         fetchClients();
         fetchBidTypes();
-        fetchBidFiles();
-        fetchBidAttributes();
     }, [id]);
 
     useEffect(() => {
@@ -311,6 +335,10 @@ const BidDetail = () => {
 
 
     const fetchBid = async () => {
+        // Skip fetching in new mode
+        if (isNewMode) {
+            return;
+        }
         try {
             const response = await getBid(id);
             setBid(response.data);
@@ -1139,6 +1167,11 @@ const BidDetail = () => {
                 <div className="text-gray-500">Загрузка...</div>
             </div>
         );
+    }
+
+    // In new mode, show create form
+    if (isNewMode) {
+        return renderCreateBidForm();
     }
 
     if (error || !bid) {

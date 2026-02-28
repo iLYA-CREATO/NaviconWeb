@@ -7,8 +7,8 @@ const prisma = require('../prisma/client');
 router.get('/', authMiddleware, async (req, res) => {
     try {
         console.log('Fetching clients for user ID:', req.user?.id);
-        const { name, responsibleId, limit = 20, offset = 0 } = req.query;
-        console.log('Query params:', { name, responsibleId, limit, offset });
+        const { name, responsibleId, limit = 20, offset = 0, sortBy, sortOrder } = req.query;
+        console.log('Query params:', { name, responsibleId, limit, offset, sortBy, sortOrder });
         const parsedLimit = parseInt(limit) || 20;
         const parsedOffset = parseInt(offset) || 0;
         console.log('Parsed pagination:', { parsedLimit, parsedOffset });
@@ -22,13 +22,41 @@ router.get('/', authMiddleware, async (req, res) => {
         if (responsibleId) {
             whereClause.responsibleId = parseInt(responsibleId);
         }
+
+        // Build orderBy clause based on sortBy and sortOrder
+        let orderBy = { createdAt: 'desc' };
+        if (sortBy) {
+            const order = sortOrder === 'asc' ? 'asc' : 'desc';
+            switch (sortBy) {
+                case 'name':
+                    orderBy = { name: order };
+                    break;
+                case 'email':
+                    orderBy = { email: order };
+                    break;
+                case 'phone':
+                    orderBy = { phone: order };
+                    break;
+                case 'responsible':
+                    orderBy = { responsible: { fullName: order } };
+                    break;
+                case 'bidsCount':
+                    orderBy = { bids: { _count: order } };
+                    break;
+                case 'objectsCount':
+                    orderBy = { clientObjects: { _count: order } };
+                    break;
+                default:
+                    orderBy = { createdAt: 'desc' };
+            }
+        }
         
         // Get total count for pagination
         const totalCount = await prisma.client.count({ where: whereClause });
         
         const clients = await prisma.client.findMany({
             where: whereClause,
-            orderBy: { createdAt: 'desc' },
+            orderBy: orderBy,
             take: parsedLimit,
             skip: parsedOffset,
             include: {

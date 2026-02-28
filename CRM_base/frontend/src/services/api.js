@@ -55,7 +55,7 @@ export const getMe = () => api.get('/auth/me'); // Получение данны
 
 // === КЛИЕНТЫ ===
 // CRUD-операции для клиентов
-export const getClients = (search = '', responsibleId = '', limit = 20, offset = 0) => {
+export const getClients = (search = '', responsibleId = '', limit = 20, offset = 0, sortBy = '', sortOrder = '') => {
     const params = { limit, offset };
     if (search) params.name = search; // Поиск по имени
     if (responsibleId) {
@@ -66,6 +66,8 @@ export const getClients = (search = '', responsibleId = '', limit = 20, offset =
             params.responsibleId = responsibleId;
         }
     }
+    if (sortBy) params.sortBy = sortBy;
+    if (sortOrder) params.sortOrder = sortOrder;
     return api.get('/clients', { params });
 };
 export const getClient = (id) => api.get(`/clients/${id}`); // Получение клиента по ID

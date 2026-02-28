@@ -84,12 +84,49 @@ router.post('/', authMiddleware, async (req, res) => {
 // Delete client equipment
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
+        const { returnReason } = req.body;
+        
+        // Get the equipment info before deletion for audit log
+        const clientEquipment = await prisma.clientEquipment.findUnique({
+            where: { id: parseInt(req.params.id) },
+            include: {
+                equipment: true,
+                client: true
+            }
+        });
+        
+        if (!clientEquipment) {
+            return res.status(404).json({ message: 'Client equipment not found' });
+        }
+
         await prisma.clientEquipment.delete({
             where: { id: parseInt(req.params.id) }
         });
 
-        res.json({ message: 'Client equipment deleted successfully' });
+        // Create audit log for equipment deletion with return reason
+        await prisma.auditLog.create({
+            data: {
+                clientId: clientEquipment.clientId,
+                userId: req.user.id,
+                action: 'client_equipment_removed',
+                details: JSON.stringify({
+                    equipmentId: clientEquipment.equipmentId,
+                    equipmentName: clientEquipment.equipment.name,
+                    clientName: clientEquipment.client.name,
+                    imei: clientEquipment.imei || '',
+                    returnReason: returnReason || 'Причина не указана'
+                })
+            }
+        });
+
+        res.json({ 
+            message: 'Client equipment deleted successfully',
+            returnReason 
+        });
     } catch (error) {
+        if (error.code === 'P2025') {
+            return res.status(404).json({ message: 'Client equipment not found' });
+        }
         console.error('Delete client equipment error:', error);
         res.status(500).json({ message: 'Server error' });
     }

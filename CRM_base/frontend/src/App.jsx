@@ -57,9 +57,11 @@ function App() {
                             <Route index element={<Navigate to="/dashboard/clients" replace />} /> {/* Перенаправление по умолчанию */}
                             <Route path="clients" element={<Clients />} /> {/* Список клиентов */}
                             <Route path="clients/:id" element={<ClientDetail />} /> {/* Детали клиента */}
+                            <Route path="client-objects/new" element={<ClientObjectDetail />} /> {/* Создание объекта клиента */}
                             <Route path="client-objects/:id" element={<ClientObjectDetail />} /> {/* Детали объекта клиента */}
                             <Route path="objects" element={<Objects />} /> {/* Список объектов клиентов */}
                             <Route path="bids" element={<Bids />} /> {/* Список заявок */}
+                            <Route path="bids/new" element={<BidDetail />} /> {/* Создание заявки */}
                             <Route path="bids/:id" element={<BidDetail />} /> {/* Детали заявки */}
                             <Route
                                 path="equipment"

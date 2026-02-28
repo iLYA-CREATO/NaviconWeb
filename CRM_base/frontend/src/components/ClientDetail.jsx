@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getClient, getClientObjects, updateClient, getUsers, getEnabledClientAttributes, getClientEquipmentByClient, createClientEquipment, deleteClientEquipment, getEquipment } from '../services/api';
+import { getClient, getClientObjects, updateClient, getUsers, getEnabledClientAttributes, getClientEquipmentByClient, deleteClientEquipment } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 import Button from './Button';
 import Input from './Input';
@@ -28,10 +28,9 @@ const ClientDetail = () => {
     const [enabledAttributes, setEnabledAttributes] = useState([]);
     const [clientEquipment, setClientEquipment] = useState([]);
     const [clientFiles, setClientFiles] = useState([]);
-    const [allEquipment, setAllEquipment] = useState([]);
-    const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
-    const [selectedEquipmentId, setSelectedEquipmentId] = useState('');
-    const [imei, setImei] = useState('');
+    const [showDeleteEquipmentModal, setShowDeleteEquipmentModal] = useState(false);
+    const [equipmentToDelete, setEquipmentToDelete] = useState(null);
+    const [deletionReason, setDeletionReason] = useState('');
 
     // Column settings for bids table
     const bidsAllColumns = ['id', 'tema', 'status', 'description'];
@@ -102,7 +101,6 @@ const ClientDetail = () => {
         fetchUsers();
         fetchEnabledAttributes();
         fetchClientEquipment();
-        fetchAllEquipment();
     }, [id]);
 
     // Save column settings to localStorage
@@ -195,19 +193,13 @@ const ClientDetail = () => {
         }
     };
 
-    const fetchAllEquipment = async () => {
+    const handleDeleteClientEquipment = async () => {
+        if (!equipmentToDelete) return;
         try {
-            const response = await getEquipment();
-            setAllEquipment(response.data);
-        } catch (error) {
-            console.error('Error fetching all equipment:', error);
-        }
-    };
-
-    const handleDeleteClientEquipment = async (clientEquipmentId) => {
-        if (!confirm('Вы уверены, что хотите удалить это оборудование у клиента?')) return;
-        try {
-            await deleteClientEquipment(clientEquipmentId);
+            await deleteClientEquipment(equipmentToDelete.id, deletionReason);
+            setShowDeleteEquipmentModal(false);
+            setEquipmentToDelete(null);
+            setDeletionReason('');
             fetchClientEquipment();
         } catch (error) {
             console.error('Error deleting client equipment:', error);
@@ -215,22 +207,10 @@ const ClientDetail = () => {
         }
     };
 
-    const handleAddClientEquipment = async () => {
-        if (!selectedEquipmentId) return;
-        try {
-            await createClientEquipment({
-                clientId: parseInt(id),
-                equipmentId: parseInt(selectedEquipmentId),
-                imei: imei.trim() || null
-            });
-            setShowAddEquipmentModal(false);
-            setSelectedEquipmentId('');
-            setImei('');
-            fetchClientEquipment();
-        } catch (error) {
-            console.error('Error adding client equipment:', error);
-            alert('Ошибка при добавлении оборудования.');
-        }
+    const openDeleteEquipmentModal = (equipment) => {
+        setEquipmentToDelete(equipment);
+        setDeletionReason('');
+        setShowDeleteEquipmentModal(true);
     };
 
     // Column settings handlers
@@ -387,7 +367,7 @@ const ClientDetail = () => {
             ) : '-';
             case 'actions': return hasPermission('client_equipment_delete') ? (
                 <button
-                    onClick={() => handleDeleteClientEquipment(ce.id)}
+                    onClick={() => openDeleteEquipmentModal(ce)}
                     className="text-red-500 hover:text-red-700"
                 >
                     Удалить
@@ -942,14 +922,6 @@ const ClientDetail = () => {
                                             </div>
                                         )}
                                     </div>
-                                    {hasPermission('client_equipment_add') && (
-                                        <button
-                                            onClick={() => setShowAddEquipmentModal(true)}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition text-sm"
-                                        >
-                                            Добавить оборудование
-                                        </button>
-                                    )}
                                 </div>
                             </div>
                             {clientEquipment.length > 0 ? (
@@ -1072,60 +1044,60 @@ const ClientDetail = () => {
                 </div>
             </div>
 
-            {/* Add Equipment Modal */}
-            {showAddEquipmentModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">Добавить оборудование</h3>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Выберите оборудование</label>
-                            <select
-                                value={selectedEquipmentId}
-                                onChange={(e) => setSelectedEquipmentId(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Выберите оборудование</option>
-                                {allEquipment
-                                    .filter(eq => !clientEquipment.some(ce => ce.equipmentId === eq.id))
-                                    .map(eq => (
-                                        <option key={eq.id} value={eq.id}>
-                                            {eq.name} {eq.productCode ? `(${eq.productCode})` : ''}
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">IMEI (необязательно)</label>
-                            <input
-                                type="text"
-                                value={imei}
-                                onChange={(e) => setImei(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Введите IMEI"
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleAddClientEquipment}
-                                disabled={!selectedEquipmentId}
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Добавить
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowAddEquipmentModal(false);
-                                    setSelectedEquipmentId('');
-                                    setImei('');
-                                }}
-                                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg transition"
-                            >
-                                Отмена
-                            </button>
-                        </div>
-                    </div>
+            {/* Delete Equipment Modal */}
+            <DeleteEquipmentModal
+                isOpen={showDeleteEquipmentModal}
+                onClose={() => {
+                    setShowDeleteEquipmentModal(false);
+                    setEquipmentToDelete(null);
+                    setDeletionReason('');
+                }}
+                onConfirm={handleDeleteClientEquipment}
+                equipment={equipmentToDelete}
+                reason={deletionReason}
+                setReason={setDeletionReason}
+            />
+        </div>
+    );
+};
+
+const DeleteEquipmentModal = ({ isOpen, onClose, onConfirm, equipment, reason, setReason }) => {
+    if (!isOpen || !equipment) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <h3 className="text-lg font-semibold mb-4">Удаление оборудования</h3>
+                <p className="mb-4">
+                    Вы уверены, что хотите удалить оборудование <strong>{equipment.equipment?.name || 'Неизвестно'}</strong> у клиента?
+                </p>
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Причина удаления:
+                    </label>
+                    <textarea
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows="3"
+                        placeholder="Введите причину удаления..."
+                    />
                 </div>
-            )}
+                <div className="flex justify-end gap-2">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition"
+                    >
+                        Отмена
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
+                    >
+                        Удалить
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
