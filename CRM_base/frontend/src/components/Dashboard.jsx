@@ -9,7 +9,7 @@
 // Импорт компонентов и хуков из React Router
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 // Импорт иконок из Lucide React
-import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog, ChevronLeft, ChevronRight, Bell, BarChart2, Key } from 'lucide-react';
+import { User, Shield, Tag, Folder, FileText, Target, Settings, DoorOpen, ClipboardList, Users, Building, Package, DollarSign, LogOut, Cog, ChevronLeft, ChevronRight, Bell, BarChart2, Key, StickyNote } from 'lucide-react';
 // Импорт хука состояния
 import { useState, useEffect, useMemo } from 'react';
 // Импорт хука аутентификации
@@ -120,6 +120,7 @@ const Dashboard = () => {
             'equipment': <Package key="equipment-icon" size={20} />,
             'salary': <DollarSign key="salary-icon" size={20} />,
             'analytics': <BarChart2 key="analytics-icon" size={20} />,
+            'notes': <StickyNote key="notes-icon" size={20} />,
             'settings': <Cog key="settings-icon" size={20} />,
             'logout': <LogOut key="logout-icon" size={20} />
         };
@@ -397,6 +398,20 @@ const Dashboard = () => {
                                     title={isSidebarCollapsed ? "Аналитика" : ""}
                                 >
                                     {getNavIcon('analytics')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Аналитика</span>
+                                </NavLink>
+                                {/* Ссылка на страницу заметок */}
+                                <NavLink
+                                    to="/dashboard/notes"
+                                    className={({ isActive }) =>
+                                        `${
+                                            isActive
+                                                ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-500'
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                        } ${isSidebarCollapsed ? 'flex justify-center p-2' : 'flex items-center px-4 py-2 gap-2'} rounded-lg font-medium transition`
+                                    }
+                                    title={isSidebarCollapsed ? "Заметки" : ""}
+                                >
+                                    {getNavIcon('notes')} <span className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>Заметки</span>
                                 </NavLink>
                             </div>
                         </nav>

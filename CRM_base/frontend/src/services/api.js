@@ -300,4 +300,14 @@ export const updateApiToken = (id, data) => api.put(`/api-tokens/${id}`, data); 
 export const deleteApiToken = (id) => api.delete(`/api-tokens/${id}`); // Удаление API токена
 export const regenerateApiToken = (id, expiresInDays) => api.post(`/api-tokens/${id}/regenerate`, { expiresInDays }); // Регенерация API токена
 
+// === ЗАМЕТКИ ===
+export const getNotes = () => api.get('/notes'); // Получение всех колонок и заметок пользователя
+export const createNoteColumn = (data) => api.post('/notes/columns', data); // Создание новой колонки
+export const updateNoteColumn = (id, data) => api.put(`/notes/columns/${id}`, data); // Обновление колонки
+export const deleteNoteColumn = (id) => api.delete(`/notes/columns/${id}`); // Удаление колонки
+export const createNote = (data) => api.post('/notes', data); // Создание новой заметки
+export const updateNote = (id, data) => api.put(`/notes/${id}`, data); // Обновление заметки
+export const deleteNote = (id) => api.delete(`/notes/${id}`); // Удаление заметки
+export const moveNote = (id, data) => api.put(`/notes/${id}/move`, data); // Перемещение заметки
+
 export default api;

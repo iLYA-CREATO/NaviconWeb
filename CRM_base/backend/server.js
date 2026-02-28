@@ -34,6 +34,7 @@ const bidAttributeRoutes = require('./routes/bidAttributes'); // Маршрут�
 const analyticsRoutes = require('./routes/analytics'); // Маршруты аналитики
 const notificationRoutes = require('./routes/notifications'); // Маршруты уведомлений
 const apiTokenRoutes = require('./routes/apiTokens'); // Маршруты управления API токенами
+const notesRoutes = require('./routes/notes'); // Маршруты заметок
 
 // Импорт внешних API маршрутов
 const externalClientRoutes = require('./routes/external/clients'); // Внешний API клиентов
@@ -81,6 +82,7 @@ app.use('/api/bid-attributes', bidAttributeRoutes); // /api/bid-attributes/*
 app.use('/api/analytics', analyticsRoutes); // /api/analytics/*
 app.use('/api/notifications', notificationRoutes); // /api/notifications/*
 app.use('/api/api-tokens', apiTokenRoutes); // /api/api-tokens/* (управление токенами)
+app.use('/api/notes', notesRoutes); // /api/notes/*
 
 // === Внешний API (требует API токен) ===
 app.use('/api/external/clients', externalClientRoutes); // /api/external/clients/*

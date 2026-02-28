@@ -24,6 +24,7 @@ model User {
   ClientObject    ClientObject[]
   comments        Comment[]
   apiTokens       ApiToken[]
+  noteColumns     NoteColumn[]
 }
 
 model Role {
@@ -350,4 +351,30 @@ model ApiToken {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Модель для колонок заметок (Kanban)
+model NoteColumn {
+  id        Int      @id @default(autoincrement())
+  userId    Int      // Пользователь-владелец колонки
+  title     String   // Название колонки
+  position  Int      @default(0) // Позиция колонки (для сортировки)
+  color     String?  @default("#3B82F6") // Цвет колонки
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes     Note[]
+}
+
+// Модель для заметок
+model Note {
+  id          Int        @id @default(autoincrement())
+  columnId    Int        // Колонка, к которой относится заметка
+  title       String     // Заголовок заметки
+  content     String?    // Содержание заметки
+  position    Int        @default(0) // Позиция заметки (для сортировки внутри колонки)
+  color       String?    @default("#FFFFFF") // Цвет заметки
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  column      NoteColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
 }
